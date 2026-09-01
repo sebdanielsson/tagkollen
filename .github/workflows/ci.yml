@@ -55,7 +55,4 @@ jobs:
           xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             -skipPackagePluginValidation \
-            CODE_SIGNING_ALLOWED=NO build test | xcbeautify --renderer github-actions || \
-          xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             CODE_SIGNING_ALLOWED=NO build test

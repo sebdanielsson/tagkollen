@@ -20,7 +20,7 @@ struct TrainMapView: View {
                 Annotation(coordinate: train.clCoordinate, anchor: .center) {
                     TrainMarker(
                         train: train,
-                        severity: delays.severity(for: train.key),
+                        severity: settings.colorMarkersByDelay ? delays.severity(for: train.key) : .unknown,
                         isSelected: train.id == selectedTrainID,
                         showLabel: showLabels
                     )
