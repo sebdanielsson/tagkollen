@@ -42,7 +42,7 @@ final class DelayIndex {
         return Self.severity(delay: entry.delay, canceled: entry.canceled)
     }
 
-    static func severity(delay: TimeInterval?, canceled: Bool) -> Severity {
+    nonisolated static func severity(delay: TimeInterval?, canceled: Bool) -> Severity {
         if canceled {
             return .canceled
         }

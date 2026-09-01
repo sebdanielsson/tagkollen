@@ -35,7 +35,7 @@ struct MapScreen: View {
                 selectedTrainID: $selectedTrainID
             )
             .ignoresSafeArea(edges: isRegular ? [] : .all)
-            .overlay(alignment: .top) { topOverlay }
+            .safeAreaInset(edge: .top, spacing: 0) { topOverlay }
             .navigationTitle("Map")
             .toolbar(isRegular ? .visible : .hidden, for: .navigationBar)
             .toolbar {
@@ -159,6 +159,7 @@ struct MapScreen: View {
             }
         }
         .padding(.horizontal)
-        .padding(.top, isRegular ? 8 : 0)
+        .padding(.top, isRegular ? 8 : 4)
+        .padding(.bottom, 8)
     }
 }

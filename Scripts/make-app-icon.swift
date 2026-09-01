@@ -48,8 +48,14 @@ func render(background: [NSColor], glyph: NSColor, file: String) {
     print("wrote \(file) \(cgImage.width)x\(cgImage.height)")
 }
 
-render(background: [NSColor(red: 0.00, green: 0.38, blue: 0.86, alpha: 1), NSColor(red: 0.10, green: 0.68, blue: 0.95, alpha: 1)],
-       glyph: .white, file: "AppIcon.png")
-render(background: [NSColor(red: 0.03, green: 0.07, blue: 0.16, alpha: 1), NSColor(red: 0.04, green: 0.20, blue: 0.42, alpha: 1)],
-       glyph: NSColor(red: 0.45, green: 0.75, blue: 1.0, alpha: 1), file: "AppIcon-Dark.png")
+render(
+    background: [NSColor(red: 0.00, green: 0.38, blue: 0.86, alpha: 1), NSColor(red: 0.10, green: 0.68, blue: 0.95, alpha: 1)],
+    glyph: .white,
+    file: "AppIcon.png"
+)
+render(
+    background: [NSColor(red: 0.03, green: 0.07, blue: 0.16, alpha: 1), NSColor(red: 0.04, green: 0.20, blue: 0.42, alpha: 1)],
+    glyph: NSColor(red: 0.45, green: 0.75, blue: 1.0, alpha: 1),
+    file: "AppIcon-Dark.png"
+)
 render(background: [NSColor.black, NSColor(white: 0.12, alpha: 1)], glyph: .white, file: "AppIcon-Tinted.png")
