@@ -1,5 +1,7 @@
 # Tågkollen
 
+[![CI](https://github.com/sebdanielsson/tagkollen/actions/workflows/ci.yml/badge.svg)](https://github.com/sebdanielsson/tagkollen/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Platform](https://img.shields.io/badge/platform-iOS%2026%20%7C%20iPadOS%2026-lightgrey)
+
 Tågkollen is a native iOS and iPadOS app that shows every train in Sweden live on a map, lets you look up any train by number or station, and keeps track of upcoming trips. It is a modern, open-source alternative to Trafikverket's MinaTåg app, built entirely on Trafikverket's free open data.
 
 > Tågkollen is an independent project and is not affiliated with or endorsed by Trafikverket.
