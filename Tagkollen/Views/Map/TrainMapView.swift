@@ -7,8 +7,11 @@ struct TrainMapView: View {
     @Binding var camera: MapCameraPosition
     @Binding var visibleRegion: MKCoordinateRegion
     @Binding var selectedTrainID: String?
+    var selectedKey: TrainKey?
 
     @Environment(LiveTrainStore.self) private var live
+    @Environment(JourneyStore.self) private var journeys
+    @Environment(StationDirectory.self) private var stations
     @Environment(DelayIndex.self) private var delays
     @Environment(AppSettings.self) private var settings
     @Environment(\.colorScheme) private var colorScheme
@@ -16,6 +19,9 @@ struct TrainMapView: View {
     var body: some View {
         Map(position: $camera, interactionModes: .all, selection: $selectedTrainID) {
             UserAnnotation()
+            if let journey = journeys.cached(selectedKey) {
+                routeOverlay(for: journey)
+            }
             ForEach(visibleTrains) { train in
                 Annotation(coordinate: train.clCoordinate, anchor: .center) {
                     TrainMarker(
@@ -44,6 +50,31 @@ struct TrainMapView: View {
         }
         .onChange(of: live.updateCount) { _, _ in
             delays.track(visibleTrains.compactMap(\.key))
+        }
+    }
+
+    /// Schematic route (straight segments between stations) and stop dots for the selected train.
+    @MapContentBuilder
+    private func routeOverlay(for journey: TrainJourney) -> some MapContent {
+        let points = journey.stops.compactMap { stop -> (TrainStop, CLLocationCoordinate2D)? in
+            guard let c = stations.station(stop.signature)?.coordinate else { return nil }
+            return (stop, CLLocationCoordinate2D(latitude: c.latitude, longitude: c.longitude))
+        }
+        if points.count > 1 {
+            MapPolyline(coordinates: points.map(\.1))
+                .stroke(Color.accentColor.opacity(0.65), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round, dash: [8, 6]))
+        }
+        ForEach(points, id: \.0.id) { stop, coordinate in
+            Annotation(coordinate: coordinate, anchor: .center) {
+                Circle()
+                    .fill(stop.isCanceled ? Color.red : (stop.hasPassed ? Color.secondary : Color.accentColor))
+                    .frame(width: 10, height: 10)
+                    .overlay(Circle().stroke(.white, lineWidth: 2))
+                    .shadow(radius: 1)
+            } label: {
+                Text(stations.shortName(stop.signature))
+            }
+            .annotationTitles(visibleRegion.span.latitudeDelta < 1.5 ? .visible : .hidden)
         }
     }
 

@@ -13,6 +13,7 @@ struct TagkollenApp: App {
                 .environment(dependencies.stations)
                 .environment(dependencies.live)
                 .environment(dependencies.delays)
+                .environment(dependencies.journeys)
                 .environment(dependencies.settings)
                 .task { await dependencies.start() }
         }

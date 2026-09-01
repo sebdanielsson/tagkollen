@@ -13,6 +13,7 @@ final class AppDependencies {
     let live: LiveTrainStore
     let delays: DelayIndex
     let trains: TrainService
+    let journeys: JourneyStore
     let modelContainer: ModelContainer
 
     private var started = false
@@ -27,7 +28,9 @@ final class AppDependencies {
         stations = StationDirectory(client: client)
         live = LiveTrainStore(client: client, settings: settings)
         delays = DelayIndex(client: client)
-        trains = TrainService(client: client)
+        let trains = TrainService(client: client)
+        self.trains = trains
+        journeys = JourneyStore(service: trains)
         do {
             modelContainer = try ModelContainer(for: FavoriteTrain.self)
         } catch {

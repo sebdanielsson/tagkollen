@@ -11,6 +11,7 @@ struct TrainDetailView: View {
     var onClose: (() -> Void)?
 
     @Environment(AppDependencies.self) private var deps
+    @Environment(JourneyStore.self) private var journeyStore
     @Environment(LiveTrainStore.self) private var live
     @Environment(StationDirectory.self) private var stations
     @Environment(AppNavigation.self) private var navigation
@@ -175,11 +176,12 @@ struct TrainDetailView: View {
     private func load() async {
         guard let key = effectiveKey else { return }
         if journey == nil {
-            isLoading = true
+            journey = journeyStore.cached(key)
+            isLoading = journey == nil
         }
         defer { isLoading = false }
         do {
-            let loaded = try await deps.trains.journey(for: key)
+            let loaded = try await journeyStore.load(key, force: journey != nil)
             journey = loaded
             error = nil
             if let loaded {

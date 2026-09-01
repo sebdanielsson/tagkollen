@@ -32,7 +32,8 @@ struct MapScreen: View {
             TrainMapView(
                 camera: $camera,
                 visibleRegion: $visibleRegion,
-                selectedTrainID: $selectedTrainID
+                selectedTrainID: $selectedTrainID,
+                selectedKey: selectedKey
             )
             .ignoresSafeArea(edges: isRegular ? [] : .all)
             .safeAreaInset(edge: .top, spacing: 0) { topOverlay }
