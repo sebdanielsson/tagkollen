@@ -12,7 +12,7 @@ final class JourneyStore {
     }
 
     private var entries: [String: Entry] = [:]
-    private var inFlight: [String: Task<TrainJourney?, Error>] = [:]
+    private var inFlight: [String: Task<TrainJourney?, any Error>] = [:]
     private let service: TrainService
     private static let maxAge: TimeInterval = 20
 
@@ -35,7 +35,7 @@ final class JourneyStore {
             return try await task.value
         }
         let service = service
-        let task = Task<TrainJourney?, Error> { try await service.journey(for: key) }
+        let task = Task<TrainJourney?, any Error> { try await service.journey(for: key) }
         inFlight[key.id] = task
         defer { inFlight[key.id] = nil }
         let journey = try await task.value

@@ -56,7 +56,7 @@ struct TrainJourneyTests {
         #expect(journey.status == .enRoute)
         #expect(journey.lastPassedStop?.signature == "Sö")
         #expect(journey.nextStop?.signature == "K")
-        #expect(journey.currentDelay == 5 * 60)
+        #expect(journey.currentDelay == 5 * 60.0)
         #expect(journey.productName == "SJ Snabbtåg")
         #expect(journey.expectedArrival == journey.destination?.arrival?.estimatedTimeAtLocation)
     }

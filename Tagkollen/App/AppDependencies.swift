@@ -32,13 +32,22 @@ final class AppDependencies {
         self.trains = trains
         journeys = JourneyStore(service: trains)
         do {
-            modelContainer = try ModelContainer(for: FavoriteTrain.self)
+            modelContainer = try Self.makeContainer()
         } catch {
             // Fall back to an in-memory store rather than crashing on a corrupt database.
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             // swiftlint:disable:next force_try
             modelContainer = try! ModelContainer(for: FavoriteTrain.self, configurations: config)
         }
+    }
+
+    /// Creates the SwiftData store inside Application Support, creating the folder first —
+    /// the default initializer fails on a fresh simulator when the folder does not exist yet.
+    private static func makeContainer() throws -> ModelContainer {
+        let support = URL.applicationSupportDirectory
+        try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
+        let config = ModelConfiguration("Tagkollen", url: support.appending(path: "Tagkollen.store"))
+        return try ModelContainer(for: FavoriteTrain.self, configurations: config)
     }
 
     func start() async {
