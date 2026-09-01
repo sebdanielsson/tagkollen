@@ -48,6 +48,8 @@ xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build test
 ```
 
+`Scripts/simulator.sh "iPhone 17 Pro"` builds, installs and launches the app on a named simulator (pass a second argument to save a screenshot).
+
 The networking layer lives in the `TrafikverketKit` Swift package under `Packages/` and can be tested on its own with `swift test`.
 
 ## Project layout
