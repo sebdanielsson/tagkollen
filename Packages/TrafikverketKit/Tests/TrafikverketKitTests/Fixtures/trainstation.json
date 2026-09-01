@@ -1,0 +1,4 @@
+{"RESPONSE":{"RESULT":[{"TrainStation":[
+ {"Advertised":true,"AdvertisedLocationName":"Stockholm Central","AdvertisedShortLocationName":"Stockholm C","CountryCode":"SE","CountyNo":[1],"Geometry":{"WGS84":"POINT (18.058151 59.330136)"},"LocationSignature":"Cst","OfficialLocationName":"Stockholm Central","PlatformLine":["1","2","3"],"Prognosticated":true,"ModifiedTime":"2025-12-01T10:00:00.000Z"},
+ {"Advertised":true,"AdvertisedLocationName":"Uppsala C","CountryCode":"SE","CountyNo":[3],"Geometry":{"WGS84":"POINT (17.646 59.858)"},"LocationSignature":"U","Prognosticated":true}
+]}]}}

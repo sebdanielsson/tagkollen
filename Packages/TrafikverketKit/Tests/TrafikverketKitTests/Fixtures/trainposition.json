@@ -1,0 +1,8 @@
+{"RESPONSE":{"RESULT":[{"TrainPosition":[
+ {"Train":{"OperationalTrainNumber":"10520","OperationalTrainDepartureDate":"2026-09-02T00:00:00.000+02:00","JourneyPlanNumber":"10520","JourneyPlanDepartureDate":"2026-09-02T00:00:00.000+02:00","AdvertisedTrainNumber":"520"},
+  "Position":{"SWEREF99TM":"POINT (674183 6580849)","WGS84":"POINT (18.05789 59.33033)"},
+  "TimeStamp":"2026-09-02T01:10:12.000+02:00","Status":{"Active":true},"Bearing":187,"Speed":92,"VersionNumber":13,"ModifiedTime":"2026-09-01T23:10:13.421Z"},
+ {"Train":{"OperationalTrainNumber":"3421","OperationalTrainDepartureDate":"2026-09-02T00:00:00.000+02:00","AdvertisedTrainNumber":"3421"},
+  "Position":{"WGS84":"POINT (13.00073 55.60587)"},
+  "TimeStamp":"2026-09-02T01:10:09.000+02:00","Status":{"Active":false},"Bearing":0,"Speed":0,"ModifiedTime":"2026-09-01T23:10:10.001Z"}
+],"INFO":{"LASTCHANGEID":"7130947329371865088","SSEURL":"https://api.trafikinfo.trafikverket.se/v2/sse?key=abc"}}]}}

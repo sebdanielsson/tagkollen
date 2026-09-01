@@ -1,0 +1,30 @@
+# Xcode
+*.xcodeproj/
+
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+*.xcuserstate
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/*/.build/
+Package.resolved
+
+# Secrets — never commit API keys
+.env
+.env.*
+Config/Secrets.xcconfig
+
+# macOS
+.DS_Store
+
+# Tooling
+.claude/
+*.log

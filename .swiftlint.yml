@@ -1,0 +1,47 @@
+included:
+  - Tagkollen
+  - Packages/TrafikverketKit/Sources
+  - Packages/TrafikverketKit/Tests
+excluded:
+  - .build
+  - Packages/*/.build
+opt_in_rules:
+  - array_init
+  - closure_spacing
+  - contains_over_filter_count
+  - empty_count
+  - explicit_init
+  - first_where
+  - joined_default_parameter
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - toggle_bool
+  - unneeded_parentheses_in_closure_argument
+  - vertical_whitespace_closing_braces
+disabled_rules:
+  - todo
+  - trailing_comma
+line_length:
+  warning: 140
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+identifier_name:
+  min_length:
+    warning: 1
+  max_length:
+    warning: 50
+type_body_length:
+  warning: 400
+  error: 600
+file_length:
+  warning: 600
+  error: 900
+function_body_length:
+  warning: 80
+  error: 120
+nesting:
+  type_level: 3
+cyclomatic_complexity:
+  warning: 25
+  error: 40

@@ -1,0 +1,1188 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%@ %@": {
+      "shouldTranslate": false
+    },
+    "%@ – %@": {
+      "shouldTranslate": false
+    },
+    "%@ → %@": {
+      "shouldTranslate": false
+    },
+    "%lld more": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld till"
+          }
+        }
+      }
+    },
+    "%lld stations": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld stationer"
+          }
+        }
+      }
+    },
+    "%lld trains live": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld tåg live"
+          }
+        }
+      }
+    },
+    "+%lld min": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%lld min"
+          }
+        }
+      }
+    },
+    "1. Create an account at data.trafikverket.se\n2. Create an API key under \"Mina sidor\"\n3. Paste it below": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. Skapa ett konto på data.trafikverket.se\n2. Skapa en API-nyckel under \"Mina sidor\"\n3. Klistra in den nedan"
+          }
+        }
+      }
+    },
+    "API key": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API-nyckel"
+          }
+        }
+      }
+    },
+    "About": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Om"
+          }
+        }
+      }
+    },
+    "Appearance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utseende"
+          }
+        }
+      }
+    },
+    "Arr": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ank"
+          }
+        }
+      }
+    },
+    "Arrivals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ankomster"
+          }
+        }
+      }
+    },
+    "Arrived": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ankommit"
+          }
+        }
+      }
+    },
+    "Board": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tavla"
+          }
+        }
+      }
+    },
+    "Built in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inbyggd"
+          }
+        }
+      }
+    },
+    "Cached stations": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cachade stationer"
+          }
+        }
+      }
+    },
+    "Canceled": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inställt"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stäng"
+          }
+        }
+      }
+    },
+    "Colour trains by delay": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Färga tåg efter försening"
+          }
+        }
+      }
+    },
+    "Connecting…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ansluter…"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsätt"
+          }
+        }
+      }
+    },
+    "Could not load": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte läsa in"
+          }
+        }
+      }
+    },
+    "Create an account, then create an API key under \"Mina sidor\". The key is free and the data is licensed CC0.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skapa ett konto och skapa sedan en API-nyckel under \"Mina sidor\". Nyckeln är gratis och datan är licensierad under CC0."
+          }
+        }
+      }
+    },
+    "Data comes from Trafikverket's open API and is licensed CC0. Tågkollen is not affiliated with Trafikverket.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data kommer från Trafikverkets öppna API och är licensierad under CC0. Tågkollen har ingen koppling till Trafikverket."
+          }
+        }
+      }
+    },
+    "Date": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum"
+          }
+        }
+      }
+    },
+    "Dep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avg"
+          }
+        }
+      }
+    },
+    "Departures": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avgångar"
+          }
+        }
+      }
+    },
+    "Details": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detaljer"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klar"
+          }
+        }
+      }
+    },
+    "Earlier": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidigare"
+          }
+        }
+      }
+    },
+    "Enter the train number from your ticket. Pick a future date to save an upcoming trip.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange tågnumret från din biljett. Välj ett framtida datum för att spara en kommande resa."
+          }
+        }
+      }
+    },
+    "Get a free key at data.trafikverket.se": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skaffa en gratis nyckel på data.trafikverket.se"
+          }
+        }
+      }
+    },
+    "Get a key at data.trafikverket.se": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skaffa en nyckel på data.trafikverket.se"
+          }
+        }
+      }
+    },
+    "Get started": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kom igång"
+          }
+        }
+      }
+    },
+    "Heading": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riktning"
+          }
+        }
+      }
+    },
+    "Information owner": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informationsägare"
+          }
+        }
+      }
+    },
+    "Last refreshed": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senast uppdaterad"
+          }
+        }
+      }
+    },
+    "Live connection": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liveanslutning"
+          }
+        }
+      }
+    },
+    "Live positions and timetables for every train in Sweden, straight from Trafikverket's open data.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livepositioner och tidtabeller för alla tåg i Sverige, direkt från Trafikverkets öppna data."
+          }
+        }
+      }
+    },
+    "Loading stations…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läser in stationer…"
+          }
+        }
+      }
+    },
+    "Major stations": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Större stationer"
+          }
+        }
+      }
+    },
+    "Map": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Karta"
+          }
+        }
+      }
+    },
+    "Missing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saknas"
+          }
+        }
+      }
+    },
+    "Muted": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dämpad"
+          }
+        }
+      }
+    },
+    "Next": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa"
+          }
+        }
+      }
+    },
+    "Next six hours": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kommande sex timmar"
+          }
+        }
+      }
+    },
+    "Next stop": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa station"
+          }
+        }
+      }
+    },
+    "Next: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa: %@"
+          }
+        }
+      }
+    },
+    "No %@ in the next six hours.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga %@ de kommande sex timmarna."
+          }
+        }
+      }
+    },
+    "No saved trains": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga sparade tåg"
+          }
+        }
+      }
+    },
+    "No station matches %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen station matchar %@."
+          }
+        }
+      }
+    },
+    "No timetable": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen tidtabell"
+          }
+        }
+      }
+    },
+    "No timetable found": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen tidtabell hittades"
+          }
+        }
+      }
+    },
+    "No train %1$@ is announced on %2$@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget tåg %1$@ är annonserat %2$@."
+          }
+        }
+      }
+    },
+    "No train found": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget tåg hittades"
+          }
+        }
+      }
+    },
+    "Offline": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline"
+          }
+        }
+      }
+    },
+    "On board": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ombord"
+          }
+        }
+      }
+    },
+    "On time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I tid"
+          }
+        }
+      }
+    },
+    "Operational train number": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operativt tågnummer"
+          }
+        }
+      }
+    },
+    "Operator website": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operatörens webbplats"
+          }
+        }
+      }
+    },
+    "Partly canceled": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delvis inställt"
+          }
+        }
+      }
+    },
+    "Paste your API key": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klistra in din API-nyckel"
+          }
+        }
+      }
+    },
+    "Paused": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausad"
+          }
+        }
+      }
+    },
+    "Polling": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hämtar periodiskt"
+          }
+        }
+      }
+    },
+    "Position": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Position"
+          }
+        }
+      }
+    },
+    "Reconnect": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anslut igen"
+          }
+        }
+      }
+    },
+    "Refresh stations": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppdatera stationer"
+          }
+        }
+      }
+    },
+    "Remove my key": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta bort min nyckel"
+          }
+        }
+      }
+    },
+    "Report a problem": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapportera ett problem"
+          }
+        }
+      }
+    },
+    "Results": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resultat"
+          }
+        }
+      }
+    },
+    "Satellite": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Satellit"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spara"
+          }
+        }
+      }
+    },
+    "Saved": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparade"
+          }
+        }
+      }
+    },
+    "Saved trains": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparade tåg"
+          }
+        }
+      }
+    },
+    "Scheduled": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planerat"
+          }
+        }
+      }
+    },
+    "Search": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök"
+          }
+        }
+      }
+    },
+    "Search by": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök efter"
+          }
+        }
+      }
+    },
+    "Search for a train number or a station.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök efter ett tågnummer eller en station."
+          }
+        }
+      }
+    },
+    "Select a train to see its details.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj ett tåg för att se detaljer."
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inställningar"
+          }
+        }
+      }
+    },
+    "Share": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dela"
+          }
+        }
+      }
+    },
+    "Show inactive trains": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa inaktiva tåg"
+          }
+        }
+      }
+    },
+    "Show on map": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa på kartan"
+          }
+        }
+      }
+    },
+    "Show train numbers": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa tågnummer"
+          }
+        }
+      }
+    },
+    "Source code on GitHub": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Källkod på GitHub"
+          }
+        }
+      }
+    },
+    "Speed": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hastighet"
+          }
+        }
+      }
+    },
+    "Standard": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standard"
+          }
+        }
+      }
+    },
+    "Station": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Station"
+          }
+        }
+      }
+    },
+    "Station name": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stationsnamn"
+          }
+        }
+      }
+    },
+    "Stations": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stationer"
+          }
+        }
+      }
+    },
+    "Stops": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stationer"
+          }
+        }
+      }
+    },
+    "Stored in the Keychain on this device only. Leave empty to use the key built into the app, if any.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparas endast i nyckelringen på den här enheten. Lämna tomt för att använda appens inbyggda nyckel, om det finns någon."
+          }
+        }
+      }
+    },
+    "Streaming": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strömmar"
+          }
+        }
+      }
+    },
+    "Tap the star on any train to keep it here. Great for a trip later this week.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på stjärnan på ett tåg för att spara det här. Perfekt för en resa senare i veckan."
+          }
+        }
+      }
+    },
+    "This train is not advertised for passengers, so Trafikverket publishes no stops for it. It is most likely a freight or service train.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det här tåget annonseras inte för resenärer, så Trafikverket publicerar inga uppehåll för det. Troligen är det ett gods- eller tjänstetåg."
+          }
+        }
+      }
+    },
+    "Today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idag"
+          }
+        }
+      }
+    },
+    "Tomorrow": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imorgon"
+          }
+        }
+      }
+    },
+    "Track %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spår %@"
+          }
+        }
+      }
+    },
+    "Traffic message": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trafikmeddelande"
+          }
+        }
+      }
+    },
+    "Traffic messages": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trafikmeddelanden"
+          }
+        }
+      }
+    },
+    "Trafikverket": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trafikverket"
+          }
+        }
+      }
+    },
+    "Trafikverket has no announcements for this train on the selected day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trafikverket har inga annonseringar för det här tåget den valda dagen."
+          }
+        }
+      }
+    },
+    "Train": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tåg"
+          }
+        }
+      }
+    },
+    "Train %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tåg %@"
+          }
+        }
+      }
+    },
+    "Train number": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tågnummer"
+          }
+        }
+      }
+    },
+    "Train number, e.g. 520": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tågnummer, t.ex. 520"
+          }
+        }
+      }
+    },
+    "Try again": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försök igen"
+          }
+        }
+      }
+    },
+    "Type of traffic": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trafiktyp"
+          }
+        }
+      }
+    },
+    "Tågkollen needs a free Trafikverket API key.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tågkollen behöver en gratis API-nyckel från Trafikverket."
+          }
+        }
+      }
+    },
+    "Upcoming": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kommande"
+          }
+        }
+      }
+    },
+    "Updated %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppdaterad %@"
+          }
+        }
+      }
+    },
+    "Version": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        }
+      }
+    },
+    "Welcome to Tågkollen": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välkommen till Tågkollen"
+          }
+        }
+      }
+    },
+    "Whole country": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hela landet"
+          }
+        }
+      }
+    },
+    "Yesterday": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Igår"
+          }
+        }
+      }
+    },
+    "Your key": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din nyckel"
+          }
+        }
+      }
+    },
+    "arrivals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ankomster"
+          }
+        }
+      }
+    },
+    "departures": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avgångar"
+          }
+        }
+      }
+    },
+    "· %@ %@": {
+      "shouldTranslate": false
+    },
+    "−%lld min": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "−%lld min"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

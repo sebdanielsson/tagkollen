@@ -1,0 +1,10 @@
+--swiftversion 6.0
+--indent 4
+--maxwidth 140
+--wraparguments before-first
+--wrapcollections before-first
+--stripunusedargs closure-only
+--self remove
+--header strip
+--exclude .build,Packages/*/.build
+--disable wrapMultilineStatementBraces

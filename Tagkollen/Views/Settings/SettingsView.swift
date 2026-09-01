@@ -1,0 +1,91 @@
+import SwiftUI
+
+struct SettingsView: View {
+    @Environment(AppSettings.self) private var settings
+    @Environment(APIKeyStore.self) private var keyStore
+    @Environment(LiveTrainStore.self) private var live
+    @Environment(StationDirectory.self) private var stations
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        @Bindable var settings = settings
+        Form {
+            Section("Map") {
+                Picker("Appearance", selection: $settings.mapAppearance) {
+                    Text("Standard").tag(AppSettings.MapAppearance.standard)
+                    Text("Muted").tag(AppSettings.MapAppearance.muted)
+                    Text("Satellite").tag(AppSettings.MapAppearance.hybrid)
+                }
+                Toggle("Show train numbers", isOn: $settings.showTrainLabels)
+                Toggle("Colour trains by delay", isOn: $settings.colorMarkersByDelay)
+                Toggle("Show inactive trains", isOn: $settings.showInactiveTrains)
+            }
+
+            Section {
+                NavigationLink {
+                    APIKeyView()
+                } label: {
+                    LabeledContent("API key") {
+                        switch keyStore.source {
+                        case .none: Text("Missing").foregroundStyle(.red)
+                        case .bundled: Text("Built in")
+                        case .userProvided: Text("Your key")
+                        }
+                    }
+                }
+                LabeledContent("Live connection") {
+                    Text(connectionText)
+                }
+                Button("Reconnect") { live.restart() }
+            } header: {
+                Text("Trafikverket")
+            } footer: {
+                Text("Data comes from Trafikverket's open API and is licensed CC0. Tågkollen is not affiliated with Trafikverket.")
+            }
+
+            Section("Stations") {
+                LabeledContent("Cached stations", value: stations.all.count.formatted())
+                if let date = stations.lastRefresh {
+                    LabeledContent("Last refreshed", value: date.formatted(date: .abbreviated, time: .shortened))
+                }
+                Button("Refresh stations") { Task { await stations.refresh() } }
+                    .disabled(stations.isLoading)
+            }
+
+            Section("About") {
+                LabeledContent("Version", value: Bundle.main.versionString)
+                Link(destination: URL(string: "https://github.com/sebdanielsson/tagkollen")!) {
+                    Label("Source code on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                }
+                Link(destination: URL(string: "https://github.com/sebdanielsson/tagkollen/issues")!) {
+                    Label("Report a problem", systemImage: "ladybug")
+                }
+            }
+        }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") { dismiss() }
+            }
+        }
+    }
+
+    private var connectionText: String {
+        switch live.state {
+        case .idle: String(localized: "Paused")
+        case .connecting: String(localized: "Connecting…")
+        case .streaming: String(localized: "Streaming")
+        case .polling: String(localized: "Polling")
+        case let .failed(reason): reason
+        }
+    }
+}
+
+extension Bundle {
+    var versionString: String {
+        let version = infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "\(version) (\(build))"
+    }
+}

@@ -1,0 +1,120 @@
+name: Tagkollen
+options:
+  bundleIdPrefix: se.sebastiandanielsson
+  deploymentTarget:
+    iOS: "26.0"
+  xcodeVersion: "26.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  groupSortPosition: top
+  defaultConfig: Debug
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: ""
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGNING_ALLOWED: NO
+configFiles:
+  Debug: Config/Secrets.xcconfig
+  Release: Config/Secrets.xcconfig
+packages:
+  TrafikverketKit:
+    path: Packages/TrafikverketKit
+targets:
+  Tagkollen:
+    type: application
+    platform: iOS
+    supportedDestinations: [iOS, iPadOS]
+    sources:
+      - path: Tagkollen
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - package: TrafikverketKit
+    info:
+      path: Tagkollen/Info.plist
+      properties:
+        CFBundleDisplayName: Tågkollen
+        CFBundleName: Tagkollen
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, sv]
+        LSRequiresIPhoneOS: true
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+        UIRequiresFullScreen: false
+        ITSAppUsesNonExemptEncryption: false
+        NSLocationWhenInUseUsageDescription: "Tågkollen använder din plats för att centrera kartan och visa tåg nära dig."
+        UIBackgroundModes: []
+        CFBundleURLTypes:
+          - CFBundleURLName: se.sebastiandanielsson.tagkollen
+            CFBundleURLSchemes: [tagkollen]
+        TRVAPIKey: "$(TRV_API_KEY)"
+        TRVAPIKeyRegistrationURL: "https://data.trafikverket.se"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.sebastiandanielsson.tagkollen
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_UISupportsDocumentBrowser: NO
+        SWIFT_OBJC_BRIDGING_HEADER: ""
+        ENABLE_PREVIEWS: YES
+        DEVELOPMENT_ASSET_PATHS: "Tagkollen/Preview\\ Content"
+    preBuildScripts:
+      - name: SwiftLint
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "$CI" = "true" ]; then exit 0; fi
+          if command -v swiftlint >/dev/null 2>&1; then
+            cd "$SRCROOT" && swiftlint --quiet || true
+          elif [ -x /opt/homebrew/bin/swiftlint ]; then
+            cd "$SRCROOT" && /opt/homebrew/bin/swiftlint --quiet || true
+          fi
+  TagkollenTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [TagkollenTests]
+    dependencies:
+      - target: Tagkollen
+      - package: TrafikverketKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.sebastiandanielsson.tagkollen.tests
+schemes:
+  Tagkollen:
+    build:
+      targets:
+        Tagkollen: all
+        TagkollenTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - TagkollenTests
+        - package: TrafikverketKit/TrafikverketKitTests
+    archive:
+      config: Release
