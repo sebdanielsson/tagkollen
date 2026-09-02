@@ -34,8 +34,16 @@ struct StationBoardView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
             }
-            if let text = station.locationInformationText, !text.isEmpty {
-                Section { Label(text, systemImage: "info.circle").font(.footnote).foregroundStyle(.secondary) }
+            if let markdown = station.informationMarkdown {
+                Section {
+                    Label {
+                        Text(Self.attributed(markdown))
+                    } icon: {
+                        Image(systemName: "info.circle")
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
             }
             Section {
                 if isLoading, rows.isEmpty {
@@ -63,6 +71,14 @@ struct StationBoardView: View {
         .navigationDestination(for: TrainKey.self) { TrainDetailView(key: $0) }
         .refreshable { await load() }
         .task(id: board) { await load() }
+    }
+
+    /// Renders the sanitised station text with tappable links.
+    private static func attributed(_ markdown: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: markdown,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(markdown.strippingHTML)
     }
 
     private func key(for row: TrainAnnouncement) -> TrainKey {

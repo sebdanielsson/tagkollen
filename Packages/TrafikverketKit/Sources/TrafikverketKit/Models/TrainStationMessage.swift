@@ -36,6 +36,7 @@ public struct TrainStationMessage: TRVObject, Hashable, Identifiable {
     /// Text with sign line breaks collapsed into spaces.
     public var displayText: String {
         (freeText ?? "")
+            .strippingHTML
             .replacingOccurrences(of: "\n", with: " ")
             .replacingOccurrences(of: "  ", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
