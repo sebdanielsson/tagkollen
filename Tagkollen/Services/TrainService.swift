@@ -41,8 +41,8 @@ struct TrainService: Sendable {
             .orderBy(Sort("AdvertisedTimeAtLocation"))
             .limit(1000)
         let result = try await client.fetch(query)
-        return result.objects
-            .filter { !($0.deleted ?? false) && ($0.advertised ?? true) }
+        // Non-advertised rows are passing points (no passenger stop) but carry actual times, so keep them.
+        return result.objects.filter { !($0.deleted ?? false) }
     }
 
     /// Departures from a station in a time window.

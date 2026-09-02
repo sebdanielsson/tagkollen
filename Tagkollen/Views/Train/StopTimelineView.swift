@@ -44,6 +44,7 @@ private struct StopRow: View {
     static let timeColumnWidth: CGFloat = 46
     static let railWidth: CGFloat = 14
     static let columnSpacing: CGFloat = 10
+    static let inlineInfoCount = 1
 
     let stop: TrainStop
     let name: String
@@ -86,23 +87,24 @@ private struct StopRow: View {
                     }
                 }
                 if !stop.deviations.isEmpty || !stop.otherInformation.isEmpty {
+                    let visibleInfo = expanded ? stop.otherInformation : Array(stop.otherInformation.prefix(Self.inlineInfoCount))
+                    let hidden = stop.otherInformation.count - visibleInfo.count
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(stop.deviations, id: \.self) { dev in
                             Label(dev.description ?? dev.code ?? "", systemImage: "exclamationmark.circle")
                                 .labelStyle(.compactIcon)
                                 .foregroundStyle(.orange)
                         }
-                        if expanded {
-                            ForEach(stop.otherInformation, id: \.self) { info in
-                                Label(info.description ?? info.code ?? "", systemImage: "info.circle")
-                                    .labelStyle(.compactIcon)
-                                    .foregroundStyle(.secondary)
-                            }
-                        } else if !stop.otherInformation.isEmpty {
+                        ForEach(visibleInfo, id: \.self) { info in
+                            Label(info.description ?? info.code ?? "", systemImage: "info.circle")
+                                .labelStyle(.compactIcon)
+                                .foregroundStyle(.secondary)
+                        }
+                        if hidden > 0 {
                             Button {
                                 withAnimation(.snappy) { expanded = true }
                             } label: {
-                                Text("\(stop.otherInformation.count) more")
+                                Text("\(hidden) more")
                                     .font(.caption2)
                             }
                             .buttonStyle(.plain)
@@ -147,6 +149,8 @@ private struct StopRow: View {
             .monospacedDigit()
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
+            .opacity(announcement.advertised == false ? 0.55 : 1)
+            .accessibilityHint(announcement.advertised == false ? Text("Not advertised") : Text(""))
         } else {
             Text("–")
                 .font(.callout)

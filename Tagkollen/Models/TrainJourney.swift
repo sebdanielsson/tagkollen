@@ -27,7 +27,23 @@ struct TrainJourney: Identifiable, Hashable, Sendable {
     // MARK: Derived summary
 
     private var representative: TrainAnnouncement? {
-        announcements.first { $0.activityType == .departure } ?? announcements.first
+        announcements.first { $0.activityType == .departure && ($0.advertised ?? true) } ?? announcements.first
+    }
+
+    /// Latest place the train was reported at, including passing points that are not passenger stops.
+    var lastReport: (signature: String, time: Date)? {
+        announcements
+            .compactMap { row -> (String, Date)? in
+                guard let sig = row.locationSignature, let time = row.timeAtLocation else { return nil }
+                return (sig, time)
+            }
+            .max { $0.1 < $1.1 }
+    }
+
+    /// Whether the last report came from somewhere other than an advertised stop.
+    var lastReportIsPassage: Bool {
+        guard let last = lastReport else { return false }
+        return !allSignatures.contains(last.signature)
     }
 
     var productName: String? {
@@ -141,10 +157,13 @@ struct TrainJourney: Identifiable, Hashable, Sendable {
 
     // MARK: Building
 
+    /// Stops are the stations with at least one advertised activity. A missing arrival or departure
+    /// at such a station is filled from a non-advertised row when one exists (e.g. drop-off-only stops),
+    /// so both columns can be shown; the view renders those muted.
     static func buildStops(from announcements: [TrainAnnouncement]) -> [TrainStop] {
         var byStation: [String: TrainStop] = [:]
         var order: [String] = []
-        for a in announcements {
+        for a in announcements where a.advertised ?? true {
             guard let sig = a.locationSignature else { continue }
             if byStation[sig] == nil {
                 byStation[sig] = TrainStop(signature: sig)
@@ -155,6 +174,15 @@ struct TrainJourney: Identifiable, Hashable, Sendable {
             case .departure: byStation[sig]?.departure = a
             case nil: break
             }
+        }
+        for a in announcements where a.advertised == false {
+            guard let sig = a.locationSignature, var stop = byStation[sig] else { continue }
+            switch a.activityType {
+            case .arrival where stop.arrival == nil: stop.arrival = a
+            case .departure where stop.departure == nil: stop.departure = a
+            default: continue
+            }
+            byStation[sig] = stop
         }
         return order.compactMap { byStation[$0] }.sorted { lhs, rhs in
             switch (lhs.sortTime, rhs.sortTime) {

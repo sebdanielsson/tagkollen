@@ -75,6 +75,11 @@ struct JourneyHeaderSection: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
+                if let last = journey.lastReport {
+                    Text("Passed \(stations.shortName(last.signature)) \(Format.clock(last.time))")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
         case .scheduled:
             if journey.hasPartialCancellation {
