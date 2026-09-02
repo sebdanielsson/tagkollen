@@ -65,6 +65,8 @@ targets:
           UIApplicationSupportsMultipleScenes: true
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: "Tågkollen använder din plats för att centrera kartan och visa tåg nära dig."
+        NSMicrophoneUsageDescription: "Mikrofonen används för att söka efter tåg och stationer med rösten."
+        NSSpeechRecognitionUsageDescription: "Taligenkänning används för att söka efter tåg och stationer med rösten."
         UIBackgroundModes: []
         CFBundleURLTypes:
           - CFBundleURLName: se.sebastiandanielsson.tagkollen

@@ -25,6 +25,7 @@ struct MapSheet: View {
     @Environment(StationDirectory.self) private var stations
     @Environment(JourneyStore.self) private var journeyStore
     @Environment(AppSettings.self) private var settings
+    @Environment(SpeechSearch.self) private var speech
     @Query(sort: \FavoriteTrain.departureDate) private var favorites: [FavoriteTrain]
     @Query(sort: \FavoriteStation.createdAt) private var favoriteStations: [FavoriteStation]
 
@@ -58,6 +59,18 @@ struct MapSheet: View {
         .onChange(of: searchFocused) { _, focused in
             if focused {
                 detent = .large
+            }
+        }
+        .onChange(of: speech.transcript) { _, text in
+            guard speech.isListening || !text.isEmpty else { return }
+            query = text
+            if !text.isEmpty {
+                detent = .large
+            }
+        }
+        .onChange(of: speech.errorMessage) { _, message in
+            if let message {
+                searchError = message
             }
         }
         .task(id: query) {
@@ -104,7 +117,7 @@ struct MapSheet: View {
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.words)
                     .onSubmit { Task { await searchTrains() } }
-                if !query.isEmpty {
+                if !query.isEmpty, !speech.isListening {
                     Button {
                         query = ""
                     } label: {
@@ -114,6 +127,18 @@ struct MapSheet: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text("Clear"))
                 }
+                Button {
+                    searchFocused = false
+                    speech.toggle()
+                } label: {
+                    Image(systemName: speech.isListening ? "waveform" : "mic.fill")
+                        .foregroundStyle(speech.isListening ? Color.red : Color.secondary)
+                        .symbolEffect(.variableColor.iterative, isActive: speech.isListening)
+                        .frame(width: 28, height: 28)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(speech.isListening ? "Stop listening" : "Search by voice"))
             }
             .padding(.horizontal, 12)
             .frame(height: 44)

@@ -14,6 +14,8 @@ final class AppDependencies {
     let delays: DelayIndex
     let trains: TrainService
     let journeys: JourneyStore
+    let location = LocationManager()
+    let speech = SpeechSearch()
     let modelContainer: ModelContainer
 
     private var started = false

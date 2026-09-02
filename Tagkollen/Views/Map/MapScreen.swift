@@ -26,7 +26,7 @@ struct MapScreen: View {
     )
 
     /// Height of the collapsed card: the search field with breathing room under the grabber.
-    static let collapsedSheetHeight: CGFloat = 70
+    static let collapsedSheetHeight: CGFloat = 76
     static let sheetTopPadding: CGFloat = 16
     private static let logger = Logger(subsystem: "se.sebastiandanielsson.tagkollen", category: "MapScreen")
 
@@ -111,7 +111,7 @@ struct MapScreen: View {
                 .padding(.bottom, 8)
             }
             .overlay(alignment: .bottomTrailing) {
-                MapControlsCluster(camera: $camera, scope: mapScope)
+                MapControlsCluster(camera: $camera)
                     .padding(.trailing, 12)
                     .padding(.bottom, controlsBottomPadding(containerHeight: containerHeight))
                     .animation(.smooth(duration: 0.35), value: sheetDetent)
@@ -158,14 +158,7 @@ struct MapScreen: View {
                     Button("Settings", systemImage: "gearshape") { showSettings = true }
                         .buttonStyle(.glass)
                         .labelStyle(.iconOnly)
-                    MapUserLocationButton(scope: mapScope)
-                        .frame(width: 44, height: 44)
-                        .glassEffect(.regular.interactive(), in: .circle)
-                    Button("Whole country", systemImage: "arrow.down.left.and.arrow.up.right") {
-                        withAnimation(.smooth) { camera = .region(Self.swedenRegion) }
-                    }
-                    .buttonStyle(.glass)
-                    .labelStyle(.iconOnly)
+                    MapControlsCluster(camera: $camera)
                 }
             }
         }
