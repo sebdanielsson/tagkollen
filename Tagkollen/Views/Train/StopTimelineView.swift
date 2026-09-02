@@ -8,6 +8,7 @@ struct StopTimelineView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            columnHeader
             ForEach(Array(journey.stops.enumerated()), id: \.element.id) { index, stop in
                 StopRow(
                     stop: stop,
@@ -21,7 +22,29 @@ struct StopTimelineView: View {
     }
 }
 
+extension StopTimelineView {
+    /// Column captions, aligned with the time cells in every row.
+    private var columnHeader: some View {
+        HStack(alignment: .firstTextBaseline, spacing: StopRow.columnSpacing) {
+            Text("Arr").frame(width: StopRow.timeColumnWidth, alignment: .leading)
+            Text("Dep").frame(width: StopRow.timeColumnWidth, alignment: .leading)
+            Color.clear.frame(width: StopRow.railWidth)
+            Text("Station")
+            Spacer()
+        }
+        .font(.caption2.weight(.medium))
+        .foregroundStyle(.secondary)
+        .textCase(.uppercase)
+        .padding(.bottom, 10)
+        .accessibilityHidden(true)
+    }
+}
+
 private struct StopRow: View {
+    static let timeColumnWidth: CGFloat = 46
+    static let railWidth: CGFloat = 14
+    static let columnSpacing: CGFloat = 10
+
     let stop: TrainStop
     let name: String
     let isFirst: Bool
@@ -34,9 +57,11 @@ private struct StopRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            timeColumn
-                .frame(width: 76, alignment: .leading)
+        HStack(alignment: .top, spacing: Self.columnSpacing) {
+            timeCell(stop.arrival)
+                .frame(width: Self.timeColumnWidth, alignment: .leading)
+            timeCell(stop.departure)
+                .frame(width: Self.timeColumnWidth, alignment: .leading)
             rail
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
@@ -94,33 +119,14 @@ private struct StopRow: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var timeColumn: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let arr = stop.arrival {
-                timeBlock(label: "Arr", announcement: arr, showLabel: stop.departure != nil)
-            }
-            if let dep = stop.departure {
-                timeBlock(label: "Dep", announcement: dep, showLabel: stop.arrival != nil)
-            }
-        }
-        .monospacedDigit()
-        .lineLimit(1)
-        .fixedSize(horizontal: true, vertical: false)
-    }
-
-    /// Best-known time on top; the timetable time struck through beneath it when they differ.
-    private func timeBlock(label: LocalizedStringKey, announcement: TrainAnnouncement, showLabel: Bool) -> some View {
-        let planned = announcement.advertisedTimeAtLocation
-        let known = announcement.timeAtLocation ?? announcement.estimatedTimeAtLocation
-        let differs = known != nil && known != planned && !announcement.isCanceled
-        let isEstimate = !announcement.hasDeparted && (announcement.estimatedTimeIsPreliminary ?? false)
-        return HStack(alignment: .firstTextBaseline, spacing: 4) {
-            if showLabel {
-                Text(label)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .frame(width: 24, alignment: .leading)
-            }
+    /// One column: best-known time on top, timetable time struck through beneath when they differ.
+    @ViewBuilder
+    private func timeCell(_ announcement: TrainAnnouncement?) -> some View {
+        if let announcement {
+            let planned = announcement.advertisedTimeAtLocation
+            let known = announcement.timeAtLocation ?? announcement.estimatedTimeAtLocation
+            let differs = known != nil && known != planned && !announcement.isCanceled
+            let isEstimate = !announcement.hasDeparted && (announcement.estimatedTimeIsPreliminary ?? false)
             VStack(alignment: .leading, spacing: 0) {
                 if differs, let known {
                     Text(Format.clock(known))
@@ -138,6 +144,13 @@ private struct StopRow: View {
                         .foregroundStyle(announcement.isCanceled ? .secondary : .primary)
                 }
             }
+            .monospacedDigit()
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+        } else {
+            Text("–")
+                .font(.callout)
+                .foregroundStyle(.quaternary)
         }
     }
 
@@ -161,7 +174,7 @@ private struct StopRow: View {
                 .frame(width: 3)
                 .frame(maxHeight: .infinity)
         }
-        .frame(width: 14)
+        .frame(width: Self.railWidth)
     }
 }
 
