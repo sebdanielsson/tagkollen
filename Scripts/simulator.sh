@@ -4,6 +4,10 @@
 #   Scripts/simulator.sh                      # iPhone 17 Pro
 #   Scripts/simulator.sh "iPad Pro 13-inch (M5)"
 #   Scripts/simulator.sh "iPhone 17 Pro" shot.png   # also save a screenshot after launch
+#   TAB=search Scripts/simulator.sh                   # open a specific tab (map|saved|search), debug builds only
+#   SKIP_BUILD=1 Scripts/simulator.sh                 # reuse the last build
+#
+# If .env.local defines TRV_API_KEY it is passed to the app as an environment variable.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -30,10 +34,12 @@ for runtime,devs in data.items():
 sys.exit(1)
 " "$DEVICE") || { echo "No simulator named '$DEVICE'. Available:"; xcrun simctl list devices available | grep -E "iPhone|iPad"; exit 1; }
 
+if [ -z "${SKIP_BUILD:-}" ]; then
 echo "▶ Building for $DEVICE ($UDID)"
 xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen -configuration Debug \
   -destination "id=$UDID" -derivedDataPath "$DERIVED" \
   CODE_SIGNING_ALLOWED=NO build -quiet
+fi
 
 APP=$(find "$DERIVED/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name "Tagkollen.app" | head -1)
 xcrun simctl boot "$UDID" 2>/dev/null || true
@@ -44,7 +50,9 @@ if [ -f .env.local ]; then
   # shellcheck disable=SC1091
   set -a; source .env.local; set +a
 fi
-xcrun simctl launch --terminate-running-process "$UDID" "$BUNDLE_ID" >/dev/null
+ARGS=()
+[ -n "${TAB:-}" ] && ARGS+=(-tab "$TAB")
+SIMCTL_CHILD_TRV_API_KEY="${TRV_API_KEY:-}" xcrun simctl launch --terminate-running-process "$UDID" "$BUNDLE_ID" "${ARGS[@]}" >/dev/null
 echo "▶ Launched $BUNDLE_ID"
 
 if [ -n "$SHOT" ]; then

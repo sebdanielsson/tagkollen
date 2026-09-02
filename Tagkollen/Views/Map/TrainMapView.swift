@@ -8,6 +8,7 @@ struct TrainMapView: View {
     @Binding var visibleRegion: MKCoordinateRegion
     @Binding var selectedTrainID: String?
     var selectedKey: TrainKey?
+    var scope: Namespace.ID
 
     @Environment(LiveTrainStore.self) private var live
     @Environment(JourneyStore.self) private var journeys
@@ -17,7 +18,7 @@ struct TrainMapView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Map(position: $camera, interactionModes: .all, selection: $selectedTrainID) {
+        Map(position: $camera, interactionModes: .all, selection: $selectedTrainID, scope: scope) {
             UserAnnotation()
             if let journey = journeys.cached(selectedKey) {
                 routeOverlay(for: journey)
@@ -39,11 +40,8 @@ struct TrainMapView: View {
         }
         .mapStyle(mapStyle)
         .mapControls {
-            MapUserLocationButton()
-            MapCompass()
             MapScaleView()
         }
-        .mapControlVisibility(.automatic)
         .onMapCameraChange(frequency: .onEnd) { context in
             visibleRegion = context.region
             delays.track(visibleTrains.compactMap(\.key))

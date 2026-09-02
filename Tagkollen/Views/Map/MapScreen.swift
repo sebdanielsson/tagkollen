@@ -17,6 +17,7 @@ struct MapScreen: View {
     @State private var selectedKey: TrainKey?
     @State private var showSettings = false
     @State private var followSelection = false
+    @Namespace private var mapScope
 
     static let swedenRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 62.0, longitude: 16.0),
@@ -33,19 +34,14 @@ struct MapScreen: View {
                 camera: $camera,
                 visibleRegion: $visibleRegion,
                 selectedTrainID: $selectedTrainID,
-                selectedKey: selectedKey
+                selectedKey: selectedKey,
+                scope: mapScope
             )
-            .ignoresSafeArea(edges: isRegular ? [] : .all)
+            .ignoresSafeArea()
             .safeAreaInset(edge: .top, spacing: 0) { topOverlay }
             .navigationTitle("Map")
-            .toolbar(isRegular ? .visible : .hidden, for: .navigationBar)
-            .toolbar {
-                if isRegular {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Settings", systemImage: "gearshape") { showSettings = true }
-                    }
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
+            .mapScope(mapScope)
             .sheet(isPresented: $showSettings) {
                 NavigationStack { SettingsView() }
             }
@@ -144,23 +140,24 @@ struct MapScreen: View {
         HStack(alignment: .top) {
             StatusPill(state: live.state, count: live.trains.count, lastUpdate: live.lastUpdate)
             Spacer()
-            if !isRegular {
-                GlassEffectContainer(spacing: 10) {
-                    VStack(spacing: 10) {
-                        Button("Settings", systemImage: "gearshape") { showSettings = true }
-                            .buttonStyle(.glass)
-                            .labelStyle(.iconOnly)
-                        Button("Whole country", systemImage: "arrow.down.left.and.arrow.up.right") {
-                            withAnimation(.smooth) { camera = .region(Self.swedenRegion) }
-                        }
+            GlassEffectContainer(spacing: 10) {
+                VStack(spacing: 10) {
+                    Button("Settings", systemImage: "gearshape") { showSettings = true }
                         .buttonStyle(.glass)
                         .labelStyle(.iconOnly)
+                    MapUserLocationButton(scope: mapScope)
+                        .frame(width: 44, height: 44)
+                        .glassEffect(.regular.interactive(), in: .circle)
+                    Button("Whole country", systemImage: "arrow.down.left.and.arrow.up.right") {
+                        withAnimation(.smooth) { camera = .region(Self.swedenRegion) }
                     }
+                    .buttonStyle(.glass)
+                    .labelStyle(.iconOnly)
                 }
             }
         }
         .padding(.horizontal)
-        .padding(.top, isRegular ? 8 : 4)
+        .padding(.top, 4)
         .padding(.bottom, 8)
     }
 }

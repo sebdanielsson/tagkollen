@@ -26,6 +26,15 @@ final class APIKeyStore: APIKeyProvider {
     }
 
     private func reload(bundle: Bundle) {
+        #if DEBUG
+            // Developer convenience: `SIMCTL_CHILD_TRV_API_KEY=… xcrun simctl launch …` (see Scripts/simulator.sh).
+            if let env = ProcessInfo.processInfo.environment["TRV_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !env.isEmpty {
+                key = env
+                source = .bundled
+                return
+            }
+        #endif
         if let stored = Keychain.string(for: Self.account)?.trimmingCharacters(in: .whitespacesAndNewlines), !stored.isEmpty {
             key = stored
             source = .userProvided

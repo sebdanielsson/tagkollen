@@ -23,7 +23,10 @@ struct RootView: View {
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
         .environment(navigation)
-        .onAppear { showOnboarding = !keyStore.hasKey }
+        .onAppear {
+            showOnboarding = !keyStore.hasKey
+            applyDebugLaunchArguments()
+        }
         .onOpenURL { navigation.handle($0) }
         .onChange(of: keyStore.hasKey) { _, hasKey in
             if hasKey {
@@ -36,6 +39,20 @@ struct RootView: View {
             }
             .interactiveDismissDisabled(!keyStore.hasKey)
         }
+    }
+}
+
+extension RootView {
+    /// `-tab map|saved|search` selects a tab at launch. Debug builds only; used by Scripts/simulator.sh.
+    private func applyDebugLaunchArguments() {
+        #if DEBUG
+            switch UserDefaults.standard.string(forKey: "tab") {
+            case "saved", "favorites": navigation.selectedTab = .favorites
+            case "search": navigation.selectedTab = .search
+            case "map": navigation.selectedTab = .map
+            default: break
+            }
+        #endif
     }
 }
 

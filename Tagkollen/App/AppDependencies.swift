@@ -53,7 +53,7 @@ final class AppDependencies {
     func start() async {
         guard !started else { return }
         started = true
-        await stations.load()
         live.start()
+        await stations.load()
     }
 }

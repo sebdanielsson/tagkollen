@@ -68,7 +68,9 @@ struct SearchScreen: View {
                 .pickerStyle(.segmented)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
-                if mode == .train {
+            }
+            if mode == .train {
+                Section {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                         .environment(\.timeZone, SwedishTime.timeZone)
                 }
