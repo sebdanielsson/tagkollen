@@ -50,7 +50,7 @@ struct MapScreen: View {
                 sheetPath = NavigationPath([MapSheetRoute.train(TrainSelection(key: train.key, liveID: id))])
                 sheetDetent = .medium
             }
-            withAnimation(.smooth) { camera = .camera(MapCamera(centerCoordinate: train.clCoordinate, distance: 60000)) }
+            withAnimation(.smooth) { camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.45) }
         }
         .onChange(of: navigation.pendingMapFocus) { _, key in
             guard let key else { return }
@@ -188,13 +188,20 @@ struct MapScreen: View {
         focus(on: key)
     }
 
+    /// Frames a coordinate; on iPhone the point is shifted up so the medium-height card does not cover it.
+    private func cameraFocusing(_ coordinate: CLLocationCoordinate2D, spanDegrees: CLLocationDegrees) -> MapCameraPosition {
+        let offset = isRegular ? 0 : spanDegrees * 0.22
+        let center = CLLocationCoordinate2D(latitude: coordinate.latitude - offset, longitude: coordinate.longitude)
+        return .region(MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: spanDegrees, longitudeDelta: spanDegrees)))
+    }
+
     private func focus(on key: TrainKey) {
         navigation.pendingMapFocus = nil
         if let train = live.train(for: key) {
             selectedKey = key
             selectedTrainID = train.id
             withAnimation(.smooth) {
-                camera = .camera(MapCamera(centerCoordinate: train.clCoordinate, distance: 40000))
+                camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.3)
             }
         } else if live.state.isLive || !live.trains.isEmpty {
             // No live position (yet); still open the timetable.
