@@ -13,7 +13,7 @@ Tågkollen is a native iOS and iPadOS app that shows every train in Sweden live 
 - **Search** by train number on any date, or browse a station's departure and arrival board.
 - **Saved trains**: pin an upcoming trip and see its status at a glance. Saved trains are stored on-device with SwiftData.
 - **Traffic messages** from Trafikverket that affect the stations on your train's route.
-- **iPhone and iPad** layouts. On iPad the tab bar adapts to a sidebar, lists get a split view, and the train detail opens as an inspector next to the full-size map.
+- **iPhone and iPad** layouts. On iPhone the map fills the screen and an Apple Maps-style bottom card holds search, saved trains, quick access to stations and the train and station details. On iPad the tab bar adapts to a sidebar, lists get a split view, and the train detail opens as an inspector next to the full-size map.
 - Built with SwiftUI, MapKit and the iOS 26 Liquid Glass design language. No third-party dependencies, no analytics, no tracking.
 
 ## Requirements

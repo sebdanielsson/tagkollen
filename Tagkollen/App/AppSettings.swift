@@ -32,6 +32,17 @@ final class AppSettings {
         didSet { defaults.set(pollingInterval, forKey: Keys.pollingInterval) }
     }
 
+    /// Station signatures the user opened most recently, newest first.
+    private(set) var recentStations: [String] {
+        didSet { defaults.set(recentStations, forKey: Keys.recentStations) }
+    }
+
+    func addRecentStation(_ signature: String) {
+        var list = recentStations.filter { $0 != signature }
+        list.insert(signature, at: 0)
+        recentStations = Array(list.prefix(8))
+    }
+
     private let defaults: UserDefaults
 
     private enum Keys {
@@ -40,6 +51,7 @@ final class AppSettings {
         static let showTrainLabels = "settings.showTrainLabels"
         static let colorMarkersByDelay = "settings.colorMarkersByDelay"
         static let pollingInterval = "settings.pollingInterval"
+        static let recentStations = "settings.recentStations"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -50,5 +62,6 @@ final class AppSettings {
         colorMarkersByDelay = defaults.object(forKey: Keys.colorMarkersByDelay) as? Bool ?? true
         let stored = defaults.double(forKey: Keys.pollingInterval)
         pollingInterval = stored > 0 ? stored : 15
+        recentStations = defaults.stringArray(forKey: Keys.recentStations) ?? []
     }
 }

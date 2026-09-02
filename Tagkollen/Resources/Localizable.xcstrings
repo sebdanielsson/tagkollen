@@ -160,6 +160,16 @@
         }
       }
     },
+    "Clear": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rensa"
+          }
+        }
+      }
+    },
     "Close": {
       "localizations": {
         "sv": {
@@ -236,6 +246,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Datum"
+          }
+        }
+      }
+    },
+    "Delays right now": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förseningar just nu"
           }
         }
       }
@@ -406,6 +426,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Karta"
+          }
+        }
+      }
+    },
+    "Map type": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Karttyp"
           }
         }
       }
@@ -970,6 +1000,16 @@
         }
       }
     },
+    "Tap the star on a train to keep it here. Handy for a trip later this week.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på stjärnan på ett tåg för att spara det här. Praktiskt inför en resa senare i veckan."
+          }
+        }
+      }
+    },
     "Tap the star on any train to keep it here. Great for a trip later this week.": {
       "localizations": {
         "sv": {
@@ -1090,12 +1130,32 @@
         }
       }
     },
+    "Train number or station": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tågnummer eller station"
+          }
+        }
+      }
+    },
     "Train number, e.g. 520": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Tågnummer, t.ex. 520"
+          }
+        }
+      }
+    },
+    "Trains": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tåg"
           }
         }
       }

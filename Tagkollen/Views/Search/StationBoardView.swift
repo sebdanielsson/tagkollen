@@ -17,6 +17,7 @@ struct StationBoardView: View {
     }
 
     @Environment(AppDependencies.self) private var deps
+    @Environment(AppSettings.self) private var settings
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var board: Board = .departures
     @State private var rows: [TrainAnnouncement] = []
@@ -71,6 +72,7 @@ struct StationBoardView: View {
         .navigationDestination(for: TrainKey.self) { TrainDetailView(key: $0) }
         .refreshable { await load() }
         .task(id: board) { await load() }
+        .onAppear { settings.addRecentStation(station.locationSignature) }
     }
 
     /// Renders the sanitised station text with tappable links.

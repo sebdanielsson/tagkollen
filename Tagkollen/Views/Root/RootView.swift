@@ -5,11 +5,36 @@ import SwiftUI
 struct RootView: View {
     @State private var navigation = AppNavigation()
     @Environment(APIKeyStore.self) private var keyStore
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showOnboarding = false
 
     var body: some View {
+        if sizeClass == .regular {
+            tabs
+        } else {
+            phone
+        }
+    }
+
+    /// iPhone: Apple Maps-like single screen. The bottom card carries search and saved trains.
+    @ViewBuilder
+    private var phone: some View {
+        if keyStore.hasKey {
+            MapScreen()
+                .environment(navigation)
+                .onOpenURL { navigation.handle($0) }
+                .onAppear { applyDebugLaunchArguments() }
+        } else {
+            NavigationStack {
+                APIKeyOnboardingView()
+            }
+        }
+    }
+
+    /// iPad: adaptive tab bar / sidebar with full-width screens.
+    private var tabs: some View {
         @Bindable var navigation = navigation
-        TabView(selection: $navigation.selectedTab) {
+        return TabView(selection: $navigation.selectedTab) {
             Tab("Map", systemImage: "map", value: AppNavigation.Tab.map) {
                 MapScreen()
             }
