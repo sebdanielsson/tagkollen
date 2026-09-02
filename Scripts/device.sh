@@ -42,5 +42,12 @@ APP=$(find .build/DerivedData/Build/Products/Debug-iphoneos -maxdepth 1 -name "T
 echo "▶ Installing"
 xcrun devicectl device install app --device "$UDID" "$APP"
 echo "▶ Launching"
-xcrun devicectl device process launch --device "$UDID" se.sebastiandanielsson.tagkollen >/dev/null
-echo "Done. If the app refuses to open, trust the developer certificate under Settings > General > VPN & Device Management."
+if xcrun devicectl device process launch --device "$UDID" se.sebastiandanielsson.tagkollen >/dev/null 2>&1; then
+  echo "Done."
+else
+  cat <<'MSG'
+Installed, but iOS refused to launch it. On a free Personal Team this happens once per device:
+  Settings > General > VPN & Device Management > Developer App > "Apple Development: …" > Trust
+Then tap the Tågkollen icon (or rerun this script). Personal Team builds expire after 7 days; rerun to refresh.
+MSG
+fi
