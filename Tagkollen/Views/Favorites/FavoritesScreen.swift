@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import TrafikverketKit
 
 /// Pinned trains with live status. Regular width shows the selected train alongside.
 struct FavoritesScreen: View {
@@ -8,6 +9,7 @@ struct FavoritesScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Query(sort: \FavoriteTrain.departureDate) private var favorites: [FavoriteTrain]
+    @Query(sort: \FavoriteStation.createdAt) private var favoriteStations: [FavoriteStation]
 
     @State private var journeys: [String: TrainJourney] = [:]
     @State private var selected: TrainKey?
@@ -31,6 +33,7 @@ struct FavoritesScreen: View {
                 list
                     .navigationTitle("Saved")
                     .navigationDestination(for: TrainKey.self) { TrainDetailView(key: $0) }
+                    .navigationDestination(for: TrainStation.self) { StationBoardView(station: $0) }
             }
         }
     }
@@ -50,7 +53,24 @@ struct FavoritesScreen: View {
 
     private var list: some View {
         List(selection: $selected) {
-            if favorites.isEmpty {
+            if !favoriteStations.isEmpty {
+                Section("Stations") {
+                    ForEach(favoriteStations) { fav in
+                        if let station = stations.station(fav.signature) {
+                            NavigationLink(value: station) {
+                                Label(station.name, systemImage: "building.columns")
+                            }
+                        }
+                    }
+                    .onDelete { offsets in
+                        for index in offsets {
+                            modelContext.delete(favoriteStations[index])
+                        }
+                        try? modelContext.save()
+                    }
+                }
+            }
+            if favorites.isEmpty, favoriteStations.isEmpty {
                 Section {
                     EmptyStateView(
                         systemImage: "star",

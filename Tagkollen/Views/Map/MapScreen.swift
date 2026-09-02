@@ -84,6 +84,21 @@ struct MapScreen: View {
     // MARK: iPhone
 
     private var compactLayout: some View {
+        GeometryReader { geometry in
+            compactMap(containerHeight: geometry.size.height)
+        }
+    }
+
+    /// Bottom padding that keeps the controls just above the card at the current detent.
+    private func controlsBottomPadding(containerHeight: CGFloat) -> CGFloat {
+        switch sheetDetent {
+        case .medium: containerHeight * 0.55 + 40 // medium ≈ 55 % of the safe-area height
+        case .large: containerHeight + 200 // pushed off-screen
+        default: Self.collapsedSheetHeight + 16
+        }
+    }
+
+    private func compactMap(containerHeight: CGFloat) -> some View {
         map
             .ignoresSafeArea(edges: .top)
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -98,7 +113,8 @@ struct MapScreen: View {
             .overlay(alignment: .bottomTrailing) {
                 MapControlsCluster(camera: $camera, scope: mapScope)
                     .padding(.trailing, 12)
-                    .padding(.bottom, Self.collapsedSheetHeight + 16)
+                    .padding(.bottom, controlsBottomPadding(containerHeight: containerHeight))
+                    .animation(.smooth(duration: 0.35), value: sheetDetent)
             }
             .mapScope(mapScope)
             .sheet(isPresented: $sheetPresented) {

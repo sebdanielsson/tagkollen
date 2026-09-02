@@ -17,6 +17,7 @@ struct TrainDetailView: View {
     @Environment(AppNavigation.self) private var navigation
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @Query private var favorites: [FavoriteTrain]
 
     @State private var journey: TrainJourney?
@@ -156,7 +157,7 @@ struct TrainDetailView: View {
                     .tint(favorite == nil ? nil : .yellow)
                     .sensoryFeedback(.success, trigger: favorite != nil)
                 }
-                if liveTrain != nil, onClose == nil {
+                if liveTrain != nil, onClose == nil, sizeClass == .regular {
                     Button("Show on map", systemImage: "map") {
                         if let effectiveKey {
                             navigation.showOnMap(effectiveKey)

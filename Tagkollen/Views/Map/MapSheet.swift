@@ -26,6 +26,7 @@ struct MapSheet: View {
     @Environment(JourneyStore.self) private var journeyStore
     @Environment(AppSettings.self) private var settings
     @Query(sort: \FavoriteTrain.departureDate) private var favorites: [FavoriteTrain]
+    @Query(sort: \FavoriteStation.createdAt) private var favoriteStations: [FavoriteStation]
 
     @State private var query = ""
     @State private var date = Date.now
@@ -191,13 +192,41 @@ struct MapSheet: View {
         }
     }
 
-    private var quickStations: [TrainStation] {
+    private enum QuickStationKind {
+        case favorite, recent, major
+
+        var symbol: String {
+            switch self {
+            case .favorite: "star.fill"
+            case .recent: "clock.arrow.circlepath"
+            case .major: "building.columns.fill"
+            }
+        }
+
+        var tint: Color {
+            self == .favorite ? .yellow : .accentColor
+        }
+    }
+
+    private struct QuickStation: Identifiable {
+        let station: TrainStation
+        let kind: QuickStationKind
+        var id: String {
+            station.id
+        }
+    }
+
+    /// Starred stations first, then recently opened ones, then the big hubs.
+    private var quickStations: [QuickStation] {
         let majors = ["Cst", "G", "M", "U", "Lp", "Nr", "Vå", "Öb", "Hb", "Lu", "Gä", "Suc", "Umå"]
         var seen = Set<String>()
-        return (settings.recentStations + majors)
-            .filter { seen.insert($0).inserted }
-            .compactMap { stations.station($0) }
-            .prefix(12)
+        let ordered: [(String, QuickStationKind)] = favoriteStations.map { ($0.signature, .favorite) }
+            + settings.recentStations.map { ($0, .recent) }
+            + majors.map { ($0, .major) }
+        return ordered
+            .filter { seen.insert($0.0).inserted }
+            .compactMap { sig, kind in stations.station(sig).map { QuickStation(station: $0, kind: kind) } }
+            .prefix(14)
             .map(\.self)
     }
 
@@ -207,17 +236,17 @@ struct MapSheet: View {
                 .font(.title3.weight(.semibold))
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: 14) {
-                    ForEach(quickStations) { station in
+                    ForEach(quickStations) { item in
+                        let station = item.station
                         Button {
                             open(station)
                         } label: {
                             VStack(spacing: 6) {
-                                Image(systemName: settings.recentStations.contains(station.locationSignature)
-                                    ? "clock.arrow.circlepath" : "building.columns.fill")
+                                Image(systemName: item.kind.symbol)
                                     .font(.title3)
                                     .foregroundStyle(.white)
                                     .frame(width: 56, height: 56)
-                                    .background(Color.accentColor.gradient, in: .circle)
+                                    .background(item.kind.tint.gradient, in: .circle)
                                 Text(station.advertisedShortLocationName ?? station.name)
                                     .font(.caption)
                                     .multilineTextAlignment(.center)

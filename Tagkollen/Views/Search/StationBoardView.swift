@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 import TrafikverketKit
 
@@ -19,6 +20,8 @@ struct StationBoardView: View {
     @Environment(AppDependencies.self) private var deps
     @Environment(AppSettings.self) private var settings
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.modelContext) private var modelContext
+    @Query private var favoriteStations: [FavoriteStation]
     @State private var board: Board = .departures
     @State private var rows: [TrainAnnouncement] = []
     @State private var isLoading = false
@@ -69,6 +72,15 @@ struct StationBoardView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(station.name)
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(isFavorite ? "Saved" : "Save", systemImage: isFavorite ? "star.fill" : "star") {
+                    toggleFavorite()
+                }
+                .tint(isFavorite ? .yellow : nil)
+                .sensoryFeedback(.success, trigger: isFavorite)
+            }
+        }
         .navigationDestination(for: TrainKey.self) { TrainDetailView(key: $0) }
         .refreshable { await load() }
         .task(id: board) { await load() }
@@ -81,6 +93,19 @@ struct StationBoardView: View {
             markdown: markdown,
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         )) ?? AttributedString(markdown.strippingHTML)
+    }
+
+    private var isFavorite: Bool {
+        favoriteStations.contains { $0.signature == station.locationSignature }
+    }
+
+    private func toggleFavorite() {
+        if let existing = favoriteStations.first(where: { $0.signature == station.locationSignature }) {
+            modelContext.delete(existing)
+        } else {
+            modelContext.insert(FavoriteStation(signature: station.locationSignature, name: station.name))
+        }
+        try? modelContext.save()
     }
 
     private func key(for row: TrainAnnouncement) -> TrainKey {

@@ -37,7 +37,7 @@ final class AppDependencies {
             // Fall back to an in-memory store rather than crashing on a corrupt database.
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             // swiftlint:disable:next force_try
-            modelContainer = try! ModelContainer(for: FavoriteTrain.self, configurations: config)
+            modelContainer = try! ModelContainer(for: FavoriteTrain.self, FavoriteStation.self, configurations: config)
         }
     }
 
@@ -47,7 +47,7 @@ final class AppDependencies {
         let support = URL.applicationSupportDirectory
         try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
         let config = ModelConfiguration("Tagkollen", url: support.appending(path: "Tagkollen.store"))
-        return try ModelContainer(for: FavoriteTrain.self, configurations: config)
+        return try ModelContainer(for: FavoriteTrain.self, FavoriteStation.self, configurations: config)
     }
 
     func start() async {
