@@ -520,7 +520,7 @@
         }
       }
     },
-    "No train %1$@ is announced on %2$@.": {
+    "No train %@ is announced on %@.": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -610,7 +610,7 @@
         }
       }
     },
-    "Passed %1$@ %2$@": {
+    "Passed %@ %@": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -945,7 +945,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stationer"
+            "value": "Uppehåll"
           }
         }
       }
@@ -1130,7 +1130,7 @@
         }
       }
     },
-    "Until %1$@ %2$@": {
+    "Until %@ %@": {
       "localizations": {
         "sv": {
           "stringUnit": {
