@@ -71,9 +71,6 @@ public final class TrafikverketClient: Sendable {
         case 401: throw TrafikverketError.invalidAuthentication
         default:
             // The API returns its own error body even on non-2xx; surface it when present.
-            if let envelopeError = try? ResponseEnvelope.decode(data, as: TrainStation.self) {
-                _ = envelopeError
-            }
             if let apiMessage = Self.extractErrorMessage(from: data) {
                 throw TrafikverketError.api(source: nil, message: apiMessage)
             }
@@ -97,20 +94,56 @@ public final class TrafikverketClient: Sendable {
 
     /// Requests an SSE URL for the query and streams decoded objects as they change.
     ///
-    /// The first element yielded is the initial snapshot; subsequent elements are deltas.
+    /// With `includeSnapshot` the first element yielded is the result of the SSE-URL request itself;
+    /// subsequent elements are deltas. Note that the API rejects `$dateadd`/`$now` filters together with
+    /// `sseurl`, so callers typically fetch a filtered snapshot separately and stream an unfiltered query.
     /// The stream ends when the task is cancelled or the connection drops (callers should reconnect).
-    public func stream<Object: TRVObject>(_ query: Query<Object>) -> AsyncThrowingStream<QueryResult<Object>, Error> {
+    public func stream<Object: TRVObject>(
+        _ query: Query<Object>,
+        includeSnapshot: Bool = true
+    ) -> AsyncThrowingStream<QueryResult<Object>, any Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
                     let initial = try await fetch(query.sseURL(true))
-                    continuation.yield(initial)
+                    if includeSnapshot {
+                        continuation.yield(initial)
+                    }
                     guard let url = initial.info.sseURL else { throw TrafikverketError.sseUnavailable }
+                    for try await result in events(from: url, as: Object.self) {
+                        continuation.yield(result)
+                    }
+                    continuation.finish()
+                } catch is CancellationError {
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Step one of a live subscription: asks the API for the SSE URL matching `query`.
+    public func liveURL(for query: Query<some TRVObject>) async throws -> URL {
+        let result = try await fetch(query.sseURL(true))
+        guard let url = result.info.sseURL else { throw TrafikverketError.sseUnavailable }
+        return url
+    }
+
+    /// Step two: connects to the SSE URL and decodes each event into objects.
+    public func events<Object: TRVObject>(
+        from url: URL,
+        as _: Object.Type
+    ) -> AsyncThrowingStream<QueryResult<Object>, any Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
                     let sse = SSEConnection(url: url, session: session, userAgent: userAgent)
                     for try await event in sse.events() {
                         try Task.checkCancellation()
-                        guard let data = event.data.data(using: .utf8), !event.data.isEmpty else { continue }
-                        let result = try ResponseEnvelope.decode(data, as: Object.self)
+                        guard !event.data.isEmpty else { continue }
+                        let result = try ResponseEnvelope.decode(Data(event.data.utf8), as: Object.self)
                         continuation.yield(result)
                     }
                     continuation.finish()

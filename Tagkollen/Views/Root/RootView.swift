@@ -43,9 +43,13 @@ struct RootView: View {
 }
 
 extension RootView {
-    /// `-tab map|saved|search` selects a tab at launch. Debug builds only; used by Scripts/simulator.sh.
+    /// `-tab map|saved|search` selects a tab and `-train <number>` opens a train at launch. Debug builds only; used by
+    /// Scripts/simulator.sh.
     private func applyDebugLaunchArguments() {
         #if DEBUG
+            if let ident = UserDefaults.standard.string(forKey: "train"), !ident.isEmpty {
+                navigation.showOnMap(TrainKey(id: ident) ?? .today(ident))
+            }
             switch UserDefaults.standard.string(forKey: "tab") {
             case "saved", "favorites": navigation.selectedTab = .favorites
             case "search": navigation.selectedTab = .search

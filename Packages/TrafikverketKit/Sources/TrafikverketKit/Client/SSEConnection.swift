@@ -19,7 +19,7 @@ public struct SSEConnection: Sendable {
         self.userAgent = userAgent
     }
 
-    public func events() -> AsyncThrowingStream<SSEEvent, Error> {
+    public func events() -> AsyncThrowingStream<SSEEvent, any Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 var request = URLRequest(url: url)

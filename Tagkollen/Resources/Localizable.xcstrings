@@ -800,6 +800,26 @@
         }
       }
     },
+    "Show all %lld messages": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa alla %lld meddelanden"
+          }
+        }
+      }
+    },
+    "Show fewer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa färre"
+          }
+        }
+      }
+    },
     "Show inactive trains": {
       "localizations": {
         "sv": {
@@ -866,6 +886,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Station"
+          }
+        }
+      }
+    },
+    "Station messages": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stationsmeddelanden"
           }
         }
       }
@@ -1076,6 +1106,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tågkollen behöver en gratis API-nyckel från Trafikverket."
+          }
+        }
+      }
+    },
+    "Until %1$@ %2$@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Till %1$@ %2$@"
           }
         }
       }

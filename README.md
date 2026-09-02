@@ -75,7 +75,7 @@ Everything comes from the [Trafikverket Open API](https://data.trafikverket.se):
 | `TrainPosition` | Live GPS positions, speed and bearing |
 | `TrainAnnouncement` | Timetable, estimated and actual times, deviations |
 | `TrainStation` | Station names and coordinates |
-| `TrainMessage` | Traffic disruptions |
+| `TrainStationMessage` | Disruption notices shown on station monitors and signs |
 
 ## Contributing
 

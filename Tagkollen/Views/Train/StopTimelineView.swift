@@ -36,7 +36,7 @@ private struct StopRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             timeColumn
-                .frame(width: 92, alignment: .leading)
+                .frame(width: 76, alignment: .leading)
             rail
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
@@ -64,11 +64,13 @@ private struct StopRow: View {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(stop.deviations, id: \.self) { dev in
                             Label(dev.description ?? dev.code ?? "", systemImage: "exclamationmark.circle")
+                                .labelStyle(.compactIcon)
                                 .foregroundStyle(.orange)
                         }
                         if expanded {
                             ForEach(stop.otherInformation, id: \.self) { info in
                                 Label(info.description ?? info.code ?? "", systemImage: "info.circle")
+                                    .labelStyle(.compactIcon)
                                     .foregroundStyle(.secondary)
                             }
                         } else if !stop.otherInformation.isEmpty {
@@ -93,35 +95,48 @@ private struct StopRow: View {
     }
 
     private var timeColumn: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 6) {
             if let arr = stop.arrival {
-                timeLine(label: "Arr", announcement: arr)
+                timeBlock(label: "Arr", announcement: arr, showLabel: stop.departure != nil)
             }
             if let dep = stop.departure {
-                timeLine(label: "Dep", announcement: dep)
+                timeBlock(label: "Dep", announcement: dep, showLabel: stop.arrival != nil)
             }
         }
-        .font(.callout)
         .monospacedDigit()
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
-    private func timeLine(label: LocalizedStringKey, announcement: TrainAnnouncement) -> some View {
+    /// Best-known time on top; the timetable time struck through beneath it when they differ.
+    private func timeBlock(label: LocalizedStringKey, announcement: TrainAnnouncement, showLabel: Bool) -> some View {
         let planned = announcement.advertisedTimeAtLocation
         let known = announcement.timeAtLocation ?? announcement.estimatedTimeAtLocation
-        let differs = known != nil && known != planned
-        return HStack(spacing: 4) {
-            if stop.arrival != nil, stop.departure != nil {
-                Text(label).font(.caption2).foregroundStyle(.tertiary).frame(width: 24, alignment: .leading)
+        let differs = known != nil && known != planned && !announcement.isCanceled
+        let isEstimate = !announcement.hasDeparted && (announcement.estimatedTimeIsPreliminary ?? false)
+        return HStack(alignment: .firstTextBaseline, spacing: 4) {
+            if showLabel {
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 24, alignment: .leading)
             }
-            Text(Format.clock(planned))
-                .strikethrough(announcement.isCanceled || differs, color: announcement.isCanceled ? .red : .secondary)
-                .foregroundStyle(announcement.isCanceled || differs ? .secondary : .primary)
-            if differs, !announcement.isCanceled, let known {
-                Text(Format.clock(known))
-                    .fontWeight(.semibold)
-                    .foregroundStyle(DelayIndex.severity(delay: announcement.delay, canceled: false).color)
-                    .opacity(announcement.hasDeparted ? 1 : 0.9)
-                    .italic(!announcement.hasDeparted && (announcement.estimatedTimeIsPreliminary ?? false))
+            VStack(alignment: .leading, spacing: 0) {
+                if differs, let known {
+                    Text(Format.clock(known))
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(DelayIndex.severity(delay: announcement.delay, canceled: false).color)
+                        .italic(isEstimate)
+                    Text(Format.clock(planned))
+                        .font(.caption)
+                        .strikethrough(color: .secondary)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(Format.clock(planned))
+                        .font(.callout)
+                        .strikethrough(announcement.isCanceled, color: .red)
+                        .foregroundStyle(announcement.isCanceled ? .secondary : .primary)
+                }
             }
         }
     }
@@ -147,5 +162,21 @@ private struct StopRow: View {
                 .frame(maxHeight: .infinity)
         }
         .frame(width: 14)
+    }
+}
+
+/// Icon and text on one line with tight spacing, unlike the default label style's aligned icon column.
+private struct CompactIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            configuration.icon.imageScale(.small)
+            configuration.title
+        }
+    }
+}
+
+private extension LabelStyle where Self == CompactIconLabelStyle {
+    static var compactIcon: CompactIconLabelStyle {
+        CompactIconLabelStyle()
     }
 }

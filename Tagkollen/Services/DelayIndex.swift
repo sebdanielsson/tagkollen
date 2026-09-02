@@ -99,7 +99,7 @@ final class DelayIndex {
                 .greaterThan("AdvertisedTimeAtLocation", "$dateadd(-0.01:30:00)")
             )
             .include(
-                "ActivityType", "AdvertisedTrainIdent", "AdvertisedTimeAtLocation", "EstimatedTimeAtLocation",
+                "ActivityId", "ActivityType", "AdvertisedTrainIdent", "AdvertisedTimeAtLocation", "EstimatedTimeAtLocation",
                 "TimeAtLocation", "Canceled", "LocationSignature", "ScheduledDepartureDateTime",
                 "ProductInformation.Description", "ToLocation.LocationName"
             )

@@ -15,10 +15,10 @@ Reference for how Tågkollen talks to the [Trafikverket Open API](https://data.t
 
 | Object | Namespace | Version | Used for |
 | --- | --- | --- | --- |
-| `TrainPosition` | `rail.trafficinfo` | 1.1 | Live GPS, speed, bearing. `Position.WGS84` is WKT `POINT (lon lat)`. |
+| `TrainPosition` | `järnväg.trafikinfo` | 1.1 | Live GPS, speed, bearing. `Position.WGS84` is WKT `POINT (lon lat)`. |
 | `TrainAnnouncement` | `rail.trafficinfo` | 2.0 | One row per arrival/departure per station. `Deviation`, `ProductInformation`, `OtherInformation`, `Service`, `Booking`, `TrainComposition`, `TypeOfTraffic` are `{Code, Description}` arrays. |
 | `TrainStation` | `rail.infrastructure` | 1.5 | Station names and coordinates; cached on device for a week. |
-| `TrainMessage` | `rail.trafficinfo` | 1.7 | Traffic disruptions with affected stations. |
+| `TrainStationMessage` | `rail.trafficinfo` | 1 | Free-text notices shown on station monitors, platform signs and announcements (`MediaType`). The old `TrainMessage` type is no longer served. |
 | `ReasonCode` | `rail.trafficinfo` | 1 | Lookup for deviation codes (not currently fetched). |
 
 ## Key concepts
@@ -31,13 +31,13 @@ Reference for how Tågkollen talks to the [Trafikverket Open API](https://data.t
 
 ## Live updates
 
-Adding `sseurl="true"` to a query returns `INFO.SSEURL`. Connecting to it yields Server-Sent Events whose `data:` payload has the same shape as a normal response and contains only changed objects. Tågkollen streams `TrainPosition` this way and falls back to polling the snapshot query every 15 s if the stream fails.
+Adding `sseurl="true"` to a query returns `INFO.SSEURL`. `$now`/`$dateadd` filters are rejected together with `sseurl`, so the live stream uses an unfiltered query (with `limit="1"` to keep the initial response small) and the map fetches a filtered snapshot separately. On connect the stream first replays the cached objects (thousands of events in a few seconds), then delivers live changes. Connecting to it yields Server-Sent Events whose `data:` payload has the same shape as a normal response and contains only changed objects. Tågkollen streams `TrainPosition` this way and falls back to polling the snapshot query every 15 s if the stream fails.
 
 ## Queries the app makes
 
 - **Map**: `TrainPosition` where `TimeStamp > $dateadd(-0.00:15:00)`, streamed.
 - **Marker colours**: `TrainAnnouncement` for the visible trains (`IN AdvertisedTrainIdent`, today, `AdvertisedTimeAtLocation > $dateadd(-0.01:30:00)`), refreshed every 45 s.
-- **Train detail**: all `TrainAnnouncement` rows for `AdvertisedTrainIdent` on the day, ordered by `AdvertisedTimeAtLocation`, plus active `TrainMessage`s touching its stations.
+- **Train detail**: all `TrainAnnouncement` rows for `AdvertisedTrainIdent` on the day, ordered by `AdvertisedTimeAtLocation`, plus active `TrainStationMessage`s at its stations (de-duplicated by text).
 - **Station board**: `TrainAnnouncement` with `ActivityType = Avgang|Ankomst`, `LocationSignature`, six-hour window.
 - **Stations**: `TrainStation` where `Advertised = true`, cached.
 

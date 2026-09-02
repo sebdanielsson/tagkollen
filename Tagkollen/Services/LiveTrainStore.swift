@@ -59,6 +59,9 @@ final class LiveTrainStore {
     func stop() {
         task?.cancel()
         task = nil
+        flushTask?.cancel()
+        flushTask = nil
+        pending.removeAll()
         state = .idle
     }
 
@@ -67,28 +70,49 @@ final class LiveTrainStore {
         start()
     }
 
+    private static let fields = [
+        "Train", "Position.WGS84", "TimeStamp", "Status", "Bearing", "Speed", "VersionNumber", "ModifiedTime", "Deleted",
+    ]
+
+    /// Everything reported in the last 15 minutes.
     private var snapshotQuery: Query<TrainPosition> {
         Query<TrainPosition>()
             .filter(.greaterThan("TimeStamp", "$dateadd(-0.00:15:00)"))
-            .include(
-                "Train", "Position.WGS84", "TimeStamp", "Status", "Bearing", "Speed", "VersionNumber",
-                "ModifiedTime", "Deleted"
-            )
+            .include(Self.fields)
             .limit(5000)
     }
+
+    /// The API rejects `$dateadd` together with `sseurl`, so the stream is unfiltered; `limit(1)` keeps
+    /// the SSE handshake response tiny. Stale positions are pruned client-side.
+    private var streamQuery: Query<TrainPosition> {
+        Query<TrainPosition>().include(Self.fields).limit(1)
+    }
+
+    /// Incoming SSE events are coalesced so the UI re-renders at most a few times per second,
+    /// even during the initial replay burst of several thousand events.
+    private var pending: [TrainPosition] = []
+    private var flushTask: Task<Void, Never>?
+    private static let flushInterval: Duration = .milliseconds(400)
 
     private func runLoop() async {
         var backoff: TimeInterval = 2
         while !Task.isCancelled {
             do {
-                for try await result in client.stream(snapshotQuery) {
-                    merge(result.objects)
-                    if state != .streaming {
-                        state = .streaming
-                        backoff = 2
+                let snapshot = try await client.fetch(snapshotQuery)
+                merge(snapshot.objects, replacing: true)
+                let url = try await client.liveURL(for: streamQuery)
+                state = .streaming
+                backoff = 2
+                var received = 0
+                for try await result in client.events(from: url, as: TrainPosition.self) {
+                    enqueue(result.objects)
+                    received += result.objects.count
+                    if received % 500 == 0 {
+                        logger.debug("SSE received \(received) position events")
                     }
                 }
                 // Stream ended cleanly; reconnect after a short pause.
+                flush()
                 state = .connecting
                 try await Task.sleep(for: .seconds(1))
             } catch is CancellationError {
@@ -121,6 +145,24 @@ final class LiveTrainStore {
             }
             try? await Task.sleep(for: .seconds(settings.pollingInterval))
         }
+    }
+
+    private func enqueue(_ incoming: [TrainPosition]) {
+        pending.append(contentsOf: incoming)
+        guard flushTask == nil else { return }
+        flushTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.flushInterval)
+            self?.flush()
+        }
+    }
+
+    private func flush() {
+        flushTask?.cancel()
+        flushTask = nil
+        guard !pending.isEmpty else { return }
+        let batch = pending
+        pending.removeAll(keepingCapacity: true)
+        merge(batch)
     }
 
     private func merge(_ incoming: [TrainPosition], replacing: Bool = false) {

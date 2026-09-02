@@ -14,7 +14,7 @@ struct TrainStop: Identifiable, Hashable, Sendable {
     var track: String? {
         let dep = departure?.trackAtLocation?.trimmingCharacters(in: .whitespaces)
         let arr = arrival?.trackAtLocation?.trimmingCharacters(in: .whitespaces)
-        return [dep, arr].compactMap(\.self).first { !$0.isEmpty }
+        return [dep, arr].compactMap(\.self).first { !$0.isEmpty && $0.lowercased() != "x" }
     }
 
     var isOrigin: Bool {

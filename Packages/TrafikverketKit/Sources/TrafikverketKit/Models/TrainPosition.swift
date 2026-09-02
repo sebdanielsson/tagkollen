@@ -3,7 +3,8 @@ import Foundation
 /// Live GPS position for a train. Updated roughly every few seconds per train.
 public struct TrainPosition: TRVObject, Hashable, Identifiable {
     public static let objectType = "TrainPosition"
-    public static let namespace: String? = "rail.trafficinfo"
+    /// Note: TrainPosition still lives in the legacy namespace; the newer `rail.*` namespaces do not expose it.
+    public static let namespace: String? = "järnväg.trafikinfo"
     public static let schemaVersion = "1.1"
 
     public struct Train: Codable, Hashable, Sendable {

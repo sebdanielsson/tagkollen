@@ -15,7 +15,7 @@ struct RequestRenderingTests {
 
         let xml = query.renderXML()
         #expect(xml.contains("objecttype=\"TrainPosition\""))
-        #expect(xml.contains("namespace=\"rail.trafficinfo\""))
+        #expect(xml.contains("namespace=\"järnväg.trafikinfo\""))
         #expect(xml.contains("schemaversion=\"1.1\""))
         #expect(xml.contains("limit=\"500\""))
         #expect(xml.contains("orderby=\"TimeStamp desc\""))

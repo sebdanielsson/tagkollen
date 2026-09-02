@@ -6,12 +6,27 @@ struct TrainMarker: View {
     let severity: DelayIndex.Severity
     let isSelected: Bool
     let showLabel: Bool
+    var compact = false
 
     private var color: Color {
         train.isActive ? severity.markerColor : .gray
     }
 
     var body: some View {
+        if compact, !isSelected {
+            Circle()
+                .fill(color.gradient)
+                .frame(width: 11, height: 11)
+                .overlay { Circle().strokeBorder(.white.opacity(0.9), lineWidth: 1.5) }
+                .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
+                .opacity(train.isStale ? 0.55 : 1)
+                .accessibilityLabel(Text("Train \(train.displayNumber)"))
+        } else {
+            full
+        }
+    }
+
+    private var full: some View {
         VStack(spacing: 2) {
             ZStack {
                 if let bearing = train.bearing, (train.speed ?? 0) > 3 {

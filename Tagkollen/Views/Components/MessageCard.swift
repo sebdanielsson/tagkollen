@@ -1,9 +1,10 @@
 import SwiftUI
 import TrafikverketKit
 
-/// A traffic message from Trafikverket, shown on journeys it affects.
+/// A station sign/monitor message from Trafikverket, shown on journeys whose stations display it.
 struct MessageCard: View {
-    let message: TrainMessage
+    let message: TrainStationMessage
+    @Environment(StationDirectory.self) private var stations
     @State private var expanded = false
 
     var body: some View {
@@ -11,28 +12,29 @@ struct MessageCard: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                Text(message.header ?? message.reasonCode?.first?.description ?? String(localized: "Traffic message"))
+                Text(stations.name(message.locationCode))
                     .font(.subheadline.weight(.semibold))
                 Spacer()
+                if let start = message.startDateTime {
+                    Text(Format.clock(start))
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
                 Image(systemName: "chevron.down")
                     .rotationEffect(.degrees(expanded ? 180 : 0))
                     .foregroundStyle(.secondary)
                     .imageScale(.small)
             }
-            if let text = message.externalDescription, !text.isEmpty {
-                Text(text)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(expanded ? nil : 2)
-            }
-            if expanded {
-                HStack(spacing: 12) {
-                    if let start = message.startDateTime {
-                        Label(Format.clock(start) + " " + Format.day(start), systemImage: "clock")
-                    }
-                    if let end = message.prognosticatedEndDateTimeTrafficImpact ?? message.endDateTime {
-                        Label(Format.clock(end) + " " + Format.day(end), systemImage: "clock.badge.checkmark")
-                    }
+            Text(message.displayText)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(expanded ? nil : 3)
+            if expanded, let end = message.endDateTime {
+                Label {
+                    Text("Until \(Format.clock(end)) \(Format.day(end))")
+                } icon: {
+                    Image(systemName: "clock.badge.checkmark")
                 }
                 .font(.caption2)
                 .foregroundStyle(.tertiary)

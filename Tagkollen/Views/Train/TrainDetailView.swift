@@ -20,7 +20,8 @@ struct TrainDetailView: View {
     @Query private var favorites: [FavoriteTrain]
 
     @State private var journey: TrainJourney?
-    @State private var messages: [TrainMessage] = []
+    @State private var messages: [TrainStationMessage] = []
+    @State private var showAllMessages = false
     @State private var isLoading = false
     @State private var error: String?
     @State private var refreshTask: Task<Void, Never>?
@@ -56,11 +57,26 @@ struct TrainDetailView: View {
                     .listRowBackground(Color.clear)
                 }
                 if !messages.isEmpty {
-                    Section("Traffic messages") {
-                        ForEach(messages) { MessageCard(message: $0) }
+                    Section {
+                        ForEach(showAllMessages ? messages : Array(messages.prefix(2))) { MessageCard(message: $0) }
                             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
+                        if messages.count > 2 {
+                            Button {
+                                withAnimation(.snappy) { showAllMessages.toggle() }
+                            } label: {
+                                Text(showAllMessages ? "Show fewer" : "Show all \(messages.count) messages")
+                                    .font(.footnote.weight(.medium))
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.glass)
+                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 4, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                        }
+                    } header: {
+                        Text("Station messages")
                     }
                 }
                 Section {
@@ -186,7 +202,7 @@ struct TrainDetailView: View {
             error = nil
             if let loaded {
                 favorite?.update(from: loaded)
-                let related = try? await deps.trains.messages(affecting: loaded.allSignatures)
+                let related = try? await deps.trains.stationMessages(at: loaded.allSignatures)
                 messages = related ?? []
             }
         } catch {

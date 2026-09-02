@@ -29,7 +29,8 @@ struct TrainMapView: View {
                         train: train,
                         severity: settings.colorMarkersByDelay ? delays.severity(for: train.key) : .unknown,
                         isSelected: train.id == selectedTrainID,
-                        showLabel: showLabels
+                        showLabel: showLabels,
+                        compact: visibleRegion.span.latitudeDelta > 5
                     )
                 } label: {
                     Text(train.displayNumber)

@@ -65,7 +65,6 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
-        UIRequiresFullScreen: false
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: "Tågkollen använder din plats för att centrera kartan och visa tåg nära dig."
         UIBackgroundModes: []
@@ -82,16 +81,6 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: ""
         ENABLE_PREVIEWS: YES
         DEVELOPMENT_ASSET_PATHS: "Tagkollen/Preview\\ Content"
-    preBuildScripts:
-      - name: SwiftLint
-        basedOnDependencyAnalysis: false
-        script: |
-          if [ "$CI" = "true" ]; then exit 0; fi
-          if command -v swiftlint >/dev/null 2>&1; then
-            cd "$SRCROOT" && swiftlint --quiet || true
-          elif [ -x /opt/homebrew/bin/swiftlint ]; then
-            cd "$SRCROOT" && /opt/homebrew/bin/swiftlint --quiet || true
-          fi
   TagkollenTests:
     type: bundle.unit-test
     platform: iOS

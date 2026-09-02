@@ -79,20 +79,28 @@ struct TrainService: Sendable {
         return try await client.fetch(query).objects.filter { !($0.deleted ?? false) }
     }
 
-    /// Current traffic messages, optionally narrowed to those touching the given stations.
-    func messages(affecting signatures: Set<String>? = nil) async throws -> [TrainMessage] {
-        let query = Query<TrainMessage>()
+    /// Active sign/monitor messages at the given stations, de-duplicated by text.
+    /// Monitor texts (the long-form disruption notices) win over announcements and platform signs.
+    func stationMessages(at signatures: Set<String>) async throws -> [TrainStationMessage] {
+        guard !signatures.isEmpty else { return [] }
+        let query = Query<TrainStationMessage>()
             .filter(
-                .or([
-                    .exists("EndDateTime", false),
-                    .greaterThan("EndDateTime", "$now"),
-                ]),
-                .lessThanOrEqual("StartDateTime", "$dateadd(0.06:00:00)")
+                .in("LocationCode", signatures.sorted()),
+                .lessThanOrEqual("StartDateTime", "$now"),
+                .or([.greaterThanOrEqual("EndDateTime", "$now"), .exists("EndDateTime", false)]),
+                .equal("Deleted", false)
             )
             .orderBy(Sort("StartDateTime", .descending))
-            .limit(300)
-        let all = try await client.fetch(query).objects.filter { !($0.deleted ?? false) }
-        guard let signatures else { return all }
-        return all.filter { !$0.affectedSignatures.isDisjoint(with: signatures) }
+            .limit(200)
+        let rows = try await client.fetch(query).objects.filter(\.isActive)
+        let rank: (TrainStationMessage) -> Int = { $0.mediaType == "Monitor" ? 0 : ($0.mediaType == "Utrop" ? 1 : 2) }
+        var seen = Set<String>()
+        return rows
+            .sorted { (rank($0), $1.startDateTime ?? .distantPast) < (rank($1), $0.startDateTime ?? .distantPast) }
+            .filter { seen.insert(Self.normalized($0.displayText)).inserted }
+    }
+
+    private static func normalized(_ text: String) -> String {
+        text.lowercased().filter { !$0.isWhitespace && !$0.isPunctuation }
     }
 }

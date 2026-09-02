@@ -5,6 +5,7 @@
 #   Scripts/simulator.sh "iPad Pro 13-inch (M5)"
 #   Scripts/simulator.sh "iPhone 17 Pro" shot.png   # also save a screenshot after launch
 #   TAB=search Scripts/simulator.sh                   # open a specific tab (map|saved|search), debug builds only
+#   TRAIN=520 Scripts/simulator.sh                    # open a train's detail at launch, debug builds only
 #   SKIP_BUILD=1 Scripts/simulator.sh                 # reuse the last build
 #
 # If .env.local defines TRV_API_KEY it is passed to the app as an environment variable.
@@ -52,6 +53,7 @@ if [ -f .env.local ]; then
 fi
 ARGS=()
 [ -n "${TAB:-}" ] && ARGS+=(-tab "$TAB")
+[ -n "${TRAIN:-}" ] && ARGS+=(-train "$TRAIN")
 SIMCTL_CHILD_TRV_API_KEY="${TRV_API_KEY:-}" xcrun simctl launch --terminate-running-process "$UDID" "$BUNDLE_ID" "${ARGS[@]}" >/dev/null
 echo "▶ Launched $BUNDLE_ID"
 

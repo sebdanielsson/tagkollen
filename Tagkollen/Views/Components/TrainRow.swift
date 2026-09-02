@@ -45,7 +45,7 @@ struct AnnouncementRow: View {
             Spacer(minLength: 4)
 
             VStack(alignment: .trailing, spacing: 4) {
-                if let track = announcement.trackAtLocation, !track.isEmpty {
+                if let track = announcement.trackAtLocation, !track.isEmpty, track.lowercased() != "x" {
                     Text(track)
                         .font(.caption.weight(.bold))
                         .monospacedDigit()
