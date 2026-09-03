@@ -3,9 +3,9 @@ import Security
 
 /// Tiny wrapper around the generic-password keychain item API.
 enum Keychain {
-    private static let service = "se.sebastiandanielsson.tagkollen"
+    private static let service = "se.tagkollen.app"
 
-    /// `<TeamID>.se.sebastiandanielsson.tagkollen`; reads search every group the process can access,
+    /// `<TeamID>.se.tagkollen.app`; reads search every group the process can access,
     /// so keys stored before the group existed are still found.
     private static var accessGroup: String {
         (Bundle.main.object(forInfoDictionaryKey: "AppIdentifierPrefix") as? String ?? "") + SharedStorage.keychainAccessGroup

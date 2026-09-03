@@ -1,6 +1,6 @@
 name: Tagkollen
 options:
-  bundleIdPrefix: se.sebastiandanielsson
+  bundleIdPrefix: se.tagkollen
   deploymentTarget:
     iOS: "26.0"
   xcodeVersion: "26.0"
@@ -23,6 +23,7 @@ settings:
     SWIFT_EMIT_LOC_STRINGS: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: "$(DEVELOPMENT_TEAM)"
+    CURRENT_PROJECT_VERSION: "1"
 configFiles:
   Debug: Config/Secrets.xcconfig
   Release: Config/Secrets.xcconfig
@@ -49,15 +50,15 @@ targets:
     entitlements:
       path: Tagkollen/Tagkollen.entitlements
       properties:
-        com.apple.security.application-groups: [group.se.sebastiandanielsson.tagkollen]
-        keychain-access-groups: ["$(AppIdentifierPrefix)se.sebastiandanielsson.tagkollen"]
+        com.apple.security.application-groups: [group.se.tagkollen.app]
+        keychain-access-groups: ["$(AppIdentifierPrefix)se.tagkollen.app"]
     info:
       path: Tagkollen/Info.plist
       properties:
         CFBundleDisplayName: Tågkollen
         CFBundleName: Tagkollen
         CFBundleShortVersionString: "0.1.0"
-        CFBundleVersion: "1"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, sv]
         LSRequiresIPhoneOS: true
@@ -79,18 +80,18 @@ targets:
         NSMicrophoneUsageDescription: "Mikrofonen används för att söka efter tåg och stationer med rösten."
         NSSpeechRecognitionUsageDescription: "Taligenkänning används för att söka efter tåg och stationer med rösten."
         UIBackgroundModes: [fetch]
-        BGTaskSchedulerPermittedIdentifiers: [se.sebastiandanielsson.tagkollen.refresh]
+        BGTaskSchedulerPermittedIdentifiers: [se.tagkollen.app.refresh]
         NSSupportsLiveActivities: true
         NSSupportsLiveActivitiesFrequentUpdates: false
         AppIdentifierPrefix: "$(AppIdentifierPrefix)"
         CFBundleURLTypes:
-          - CFBundleURLName: se.sebastiandanielsson.tagkollen
+          - CFBundleURLName: se.tagkollen.app
             CFBundleURLSchemes: [tagkollen]
         TRVAPIKey: "$(TRV_API_KEY)"
         TRVAPIKeyRegistrationURL: "https://data.trafikverket.se"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: se.sebastiandanielsson.tagkollen
+        PRODUCT_BUNDLE_IDENTIFIER: se.tagkollen.app
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_UISupportsDocumentBrowser: NO
@@ -125,8 +126,8 @@ targets:
     entitlements:
       path: TagkollenWidgets/TagkollenWidgets.entitlements
       properties:
-        com.apple.security.application-groups: [group.se.sebastiandanielsson.tagkollen]
-        keychain-access-groups: ["$(AppIdentifierPrefix)se.sebastiandanielsson.tagkollen"]
+        com.apple.security.application-groups: [group.se.tagkollen.app]
+        keychain-access-groups: ["$(AppIdentifierPrefix)se.tagkollen.app"]
     info:
       path: TagkollenWidgets/Info.plist
       properties:
@@ -142,7 +143,7 @@ targets:
         AppIdentifierPrefix: "$(AppIdentifierPrefix)"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: se.sebastiandanielsson.tagkollen.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: se.tagkollen.app.widgets
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: WidgetBackground
@@ -156,7 +157,7 @@ targets:
       - package: TrafikverketKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: se.sebastiandanielsson.tagkollen.tests
+        PRODUCT_BUNDLE_IDENTIFIER: se.tagkollen.app.tests
         GENERATE_INFOPLIST_FILE: YES
 schemes:
   Tagkollen:

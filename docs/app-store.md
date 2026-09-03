@@ -5,7 +5,7 @@ What Tågkollen needs before it can be submitted, what is already in the reposit
 ## Account
 
 - [ ] Paid Apple Developer Program membership. The free Personal Team can build to your own devices but cannot upload to App Store Connect, and it cannot use push notifications. Everything else the app does (App Groups, Live Activities, local notifications, background refresh) works on both.
-- [ ] Bundle ID `se.sebastiandanielsson.tagkollen` registered with capabilities: App Groups (`group.se.sebastiandanielsson.tagkollen`), Keychain Sharing, Background Modes. Xcode's automatic signing does this on first archive.
+- [ ] Bundle ID `se.tagkollen.app` registered with capabilities: App Groups (`group.se.tagkollen.app`), Keychain Sharing, Background Modes. Xcode's automatic signing does this on first archive.
 - [ ] `DEVELOPMENT_TEAM` in `.env.local` set to the paid team.
 
 ## App icon (done)

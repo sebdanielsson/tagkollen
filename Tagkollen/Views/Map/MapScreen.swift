@@ -29,7 +29,7 @@ struct MapScreen: View {
     /// Height of the collapsed card: the search field with breathing room under the grabber.
     static let collapsedSheetHeight: CGFloat = 76
     static let sheetTopPadding: CGFloat = 16
-    private static let logger = Logger(subsystem: "se.sebastiandanielsson.tagkollen", category: "MapScreen")
+    private static let logger = Logger(subsystem: "se.tagkollen.app", category: "MapScreen")
 
     private var isRegular: Bool {
         sizeClass == .regular

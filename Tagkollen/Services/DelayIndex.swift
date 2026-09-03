@@ -22,7 +22,7 @@ final class DelayIndex {
     private var tracked: Set<TrainKey> = []
     private var task: Task<Void, Never>?
     private let client: TrafikverketClient
-    private let logger = Logger(subsystem: "se.sebastiandanielsson.tagkollen", category: "Delays")
+    private let logger = Logger(subsystem: "se.tagkollen.app", category: "Delays")
     private static let refreshInterval: TimeInterval = 45
     private static let batchSize = 120
 
