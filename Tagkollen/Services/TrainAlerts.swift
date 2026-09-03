@@ -17,7 +17,7 @@ final class TrainAlerts {
     private var states: [String: TrainAlertState]
 
     private let center = UNUserNotificationCenter.current()
-    private let logger = Logger(subsystem: "se.sebastiandanielsson.tagkollen", category: "Alerts")
+    private let logger = Logger(subsystem: "se.tagkollen.app", category: "Alerts")
     private static let statesKey = "alerts.states"
     private static let mutedKey = "alerts.muted"
     private static let reminderLead: TimeInterval = 30 * 60

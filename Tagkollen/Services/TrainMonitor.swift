@@ -11,7 +11,7 @@ import WidgetKit
 @MainActor
 @Observable
 final class TrainMonitor {
-    nonisolated static let backgroundTaskID = "se.sebastiandanielsson.tagkollen.refresh"
+    nonisolated static let backgroundTaskID = "se.tagkollen.app.refresh"
 
     private(set) var lastRefresh: Date?
     private(set) var isRefreshing = false
@@ -24,7 +24,7 @@ final class TrainMonitor {
     private let settings: AppSettings
     private let modelContainer: ModelContainer
     private var loop: Task<Void, Never>?
-    private let logger = Logger(subsystem: "se.sebastiandanielsson.tagkollen", category: "Monitor")
+    private let logger = Logger(subsystem: "se.tagkollen.app", category: "Monitor")
     private static let foregroundInterval: Duration = .seconds(30)
 
     init(

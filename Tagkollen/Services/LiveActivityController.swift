@@ -9,7 +9,7 @@ final class LiveActivityController {
     typealias Content = ActivityContent<TrainActivityAttributes.ContentState>
 
     private(set) var followedIDs: Set<String> = []
-    private let logger = Logger(subsystem: "se.sebastiandanielsson.tagkollen", category: "LiveActivity")
+    private let logger = Logger(subsystem: "se.tagkollen.app", category: "LiveActivity")
     /// How long a state stays fresh before the system dims it. Matches the background refresh cadence.
     private static let staleAfter: TimeInterval = 20 * 60
 

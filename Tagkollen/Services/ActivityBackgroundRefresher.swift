@@ -17,13 +17,13 @@ import UIKit
 /// (or the user's part of it) has arrived.
 @MainActor
 final class ActivityBackgroundRefresher: NSObject {
-    static let sessionIdentifier = "se.sebastiandanielsson.tagkollen.activity-refresh"
+    static let sessionIdentifier = "se.tagkollen.app.activity-refresh"
 
     private let trains: TrainService
     private let client: TrafikverketClient
     private let activities: LiveActivityController
     private let modelContainer: () -> [String: TripSegment?]
-    private let logger = Logger(subsystem: "se.sebastiandanielsson.tagkollen", category: "ActivityRefresh")
+    private let logger = Logger(subsystem: "se.tagkollen.app", category: "ActivityRefresh")
     private var received: [Int: Data] = [:]
     private var systemCompletion: (() -> Void)?
     private lazy var session: URLSession = {

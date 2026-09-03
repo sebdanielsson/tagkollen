@@ -14,7 +14,7 @@ cd "$(dirname "$0")/.."
 
 DEVICE="${1:-iPhone 17 Pro}"
 SHOT="${2:-}"
-BUNDLE_ID="se.sebastiandanielsson.tagkollen"
+BUNDLE_ID="se.tagkollen.app"
 DERIVED=".build/DerivedData"
 
 if [ -d /Applications/Xcode.app ] && [ -z "${DEVELOPER_DIR:-}" ]; then

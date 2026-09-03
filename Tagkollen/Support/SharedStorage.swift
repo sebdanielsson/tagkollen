@@ -5,9 +5,9 @@ import SwiftData
 /// Files and defaults shared between the app and its widget extension through the App Group.
 /// Falls back to the app's own container when the group is unavailable (e.g. unit tests).
 enum SharedStorage {
-    static let appGroup = "group.se.sebastiandanielsson.tagkollen"
-    static let keychainAccessGroup = "se.sebastiandanielsson.tagkollen"
-    private static let logger = Logger(subsystem: "se.sebastiandanielsson.tagkollen", category: "SharedStorage")
+    static let appGroup = "group.se.tagkollen.app"
+    static let keychainAccessGroup = "se.tagkollen.app"
+    private static let logger = Logger(subsystem: "se.tagkollen.app", category: "SharedStorage")
 
     /// The App Group container, or Application Support when the group is not provisioned.
     static let containerURL: URL = {

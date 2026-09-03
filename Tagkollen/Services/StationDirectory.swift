@@ -14,7 +14,7 @@ final class StationDirectory {
     private(set) var error: String?
 
     private let client: TrafikverketClient
-    private let logger = Logger(subsystem: "se.sebastiandanielsson.tagkollen", category: "Stations")
+    private let logger = Logger(subsystem: "se.tagkollen.app", category: "Stations")
     private static let maxCacheAge: TimeInterval = 7 * 24 * 3600
 
     init(client: TrafikverketClient) {

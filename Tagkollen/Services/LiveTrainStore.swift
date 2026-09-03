@@ -28,7 +28,7 @@ final class LiveTrainStore {
     private var task: Task<Void, Never>?
     private let client: TrafikverketClient
     private let settings: AppSettings
-    private let logger = Logger(subsystem: "se.sebastiandanielsson.tagkollen", category: "Live")
+    private let logger = Logger(subsystem: "se.tagkollen.app", category: "Live")
 
     /// Positions older than this are dropped from the map.
     private static let staleAfter: TimeInterval = 15 * 60
