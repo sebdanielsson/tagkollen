@@ -19,6 +19,7 @@ final class AppDependencies {
     let activities = LiveActivityController()
     let alerts = TrainAlerts()
     let monitor: TrainMonitor
+    let activityRefresher: ActivityBackgroundRefresher
     let modelContainer: ModelContainer
     /// A deep link that arrived from a notification tap; `RootView` consumes it.
     var pendingOpenURL: URL?
@@ -50,6 +51,11 @@ final class AppDependencies {
             trains: trains, journeys: journeys, stations: stations, activities: activities, alerts: alerts,
             settings: settings, modelContainer: modelContainer
         )
+        let container = modelContainer
+        activityRefresher = ActivityBackgroundRefresher(trains: trains, client: client, activities: activities) {
+            let favorites = (try? container.mainContext.fetch(FetchDescriptor<FavoriteTrain>())) ?? []
+            return Dictionary(favorites.map { ($0.id, $0.segment) }, uniquingKeysWith: { a, _ in a })
+        }
     }
 
     func start() async {

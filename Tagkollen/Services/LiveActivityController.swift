@@ -30,6 +30,14 @@ final class LiveActivityController {
         followedIDs.contains(id)
     }
 
+    /// The latest content state per followed train, for deciding how soon to refresh next.
+    func currentStates() -> [String: TrainActivityAttributes.ContentState] {
+        Dictionary(
+            Activity<TrainActivityAttributes>.activities.map { ($0.attributes.trainID, $0.content.state) },
+            uniquingKeysWith: { a, _ in a }
+        )
+    }
+
     func follow(_ snapshot: TrainSnapshot, names: StationNames) throws {
         let content = Self.content(for: snapshot, names: names)
         if followedIDs.contains(snapshot.id) {
@@ -69,11 +77,12 @@ final class LiveActivityController {
         followedIDs = []
     }
 
+    /// Content is marked stale a few refresh intervals after it was produced, so the activity can
+    /// show "Updated HH:MM" when background polling has been held back.
     private static func content(for snapshot: TrainSnapshot, names: StationNames) -> Content {
-        ActivityContent(
-            state: TrainActivityAttributes.ContentState(snapshot: snapshot, names: names),
-            staleDate: .now.addingTimeInterval(staleAfter)
-        )
+        let state = TrainActivityAttributes.ContentState(snapshot: snapshot, names: names)
+        let interval = ActivityBackgroundRefresher.interval(for: state) ?? staleAfter
+        return ActivityContent(state: state, staleDate: .now.addingTimeInterval(max(interval * 3, 5 * 60)))
     }
 
     // `Activity` is not Sendable, so it is looked up and used within one nonisolated context.

@@ -49,8 +49,20 @@ public final class TrafikverketClient: Sendable {
         return try ResponseEnvelope.decode(data, as: Object.self)
     }
 
-    /// Raw request for callers that compose several queries in one round trip.
-    public func post(body: String) async throws -> Data {
+    /// The HTTP request for a query, for callers that run it through their own `URLSession`
+    /// (for example a background session that wakes the app when the response arrives).
+    /// The body is the rendered request document; `TrafikverketClient.decode` parses the response.
+    public func request(for query: Query<some TRVObject>) async throws -> URLRequest {
+        guard let key = await keyProvider.apiKey(), !key.isEmpty else { throw TrafikverketError.missingAPIKey }
+        return makeRequest(body: RequestDocument.render(apiKey: key, queries: [query.renderXML()]))
+    }
+
+    /// Decodes a response body produced by a request from `request(for:)`.
+    public static func decode<Object: TRVObject>(_ data: Data, as type: Object.Type) throws -> QueryResult<Object> {
+        try ResponseEnvelope.decode(data, as: type)
+    }
+
+    private func makeRequest(body: String) -> URLRequest {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("text/xml; charset=utf-8", forHTTPHeaderField: "Content-Type")
@@ -58,6 +70,12 @@ public final class TrafikverketClient: Sendable {
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.httpBody = Data(body.utf8)
         request.timeoutInterval = 30
+        return request
+    }
+
+    /// Raw request for callers that compose several queries in one round trip.
+    public func post(body: String) async throws -> Data {
+        let request = makeRequest(body: body)
 
         let (data, response): (Data, URLResponse)
         do {

@@ -30,8 +30,21 @@ struct TrainService: Sendable {
             .sorted { ($0.scheduledDeparture ?? .distantFuture) < ($1.scheduledDeparture ?? .distantFuture) }
     }
 
-    private func announcements(ident: String, day: String) async throws -> [TrainAnnouncement] {
-        let query = Query<TrainAnnouncement>()
+    /// The query behind `journey(for:)`, exposed so a background `URLSession` can run it.
+    func journeyQuery(for key: TrainKey) -> Query<TrainAnnouncement> {
+        Self.announcementsQuery(ident: key.ident, day: key.dateString)
+    }
+
+    /// Assembles a journey from a raw response to `journeyQuery(for:)`.
+    static func journey(for key: TrainKey, responseData: Data) throws -> TrainJourney? {
+        let result = try TrafikverketClient.decode(responseData, as: TrainAnnouncement.self)
+        let rows = result.objects.filter { !($0.deleted ?? false) }
+        guard !rows.isEmpty else { return nil }
+        return TrainJourney(key: key, announcements: rows)
+    }
+
+    private static func announcementsQuery(ident: String, day: String) -> Query<TrainAnnouncement> {
+        Query<TrainAnnouncement>()
             .filter(
                 .equal("AdvertisedTrainIdent", ident),
                 .greaterThanOrEqual("ScheduledDepartureDateTime", "\(day)T00:00:00"),
@@ -40,7 +53,10 @@ struct TrainService: Sendable {
             .include(TrainAnnouncement.appFields)
             .orderBy(Sort("AdvertisedTimeAtLocation"))
             .limit(1000)
-        let result = try await client.fetch(query)
+    }
+
+    private func announcements(ident: String, day: String) async throws -> [TrainAnnouncement] {
+        let result = try await client.fetch(Self.announcementsQuery(ident: ident, day: day))
         // Non-advertised rows are passing points (no passenger stop) but carry actual times, so keep them.
         return result.objects.filter { !($0.deleted ?? false) }
     }

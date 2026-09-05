@@ -11,7 +11,7 @@ All notable changes to this project are documented in this file. The format foll
 - Search by train number and date; station departure and arrival boards.
 - Saved trains with live status, optionally limited to the stations where you board and get off.
 - Local notifications for saved trains: delays, cancellations, track changes, arrival and a departure reminder, with a map attachment.
-- Live Activities for followed trains (Lock Screen and Dynamic Island).
+- Live Activities for followed trains (Lock Screen and Dynamic Island), refreshed in the background about once a minute via background URLSession wake-ups, with a self-running countdown, progress bar and upcoming stops.
 - Home Screen and Lock Screen widgets: saved train and station departures.
 - Background app refresh keeps notifications, Live Activities and widgets updated when iOS allows it.
 - Icon Composer app icon in Trafikverket red with dark, clear and tinted appearances; original train glyph.

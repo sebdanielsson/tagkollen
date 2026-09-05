@@ -165,3 +165,29 @@ struct TrainAlertEngineTests {
             .isEmpty)
     }
 }
+
+@Suite("Live Activity background cadence")
+struct ActivityRefreshIntervalTests {
+    private let now = Date(timeIntervalSince1970: 1_788_000_000)
+
+    private func state(status: TrainJourney.Status, departureIn: TimeInterval = 0) -> TrainActivityAttributes.ContentState {
+        var snapshot = TrainSnapshot(favorite: FavoriteTrain(key: SampleRun.key, journey: nil))
+        snapshot.status = status
+        snapshot.expectedDeparture = now.addingTimeInterval(departureIn)
+        return TrainActivityAttributes.ContentState(snapshot: snapshot, names: .empty)
+    }
+
+    private func interval(_ status: TrainJourney.Status, departureIn: TimeInterval = 0) -> TimeInterval? {
+        ActivityBackgroundRefresher.interval(for: state(status: status, departureIn: departureIn), now: now)
+    }
+
+    @Test("Once a minute while running, slower while waiting, off when done")
+    func intervals() {
+        #expect(interval(.enRoute) == 60)
+        #expect(interval(.scheduled, departureIn: 20 * 60) == 180)
+        #expect(interval(.scheduled, departureIn: 8 * 3600) == 3600)
+        #expect(interval(.scheduled, departureIn: 2 * 3600) == 1800)
+        #expect(interval(.arrived) == nil)
+        #expect(interval(.canceled) == nil)
+    }
+}

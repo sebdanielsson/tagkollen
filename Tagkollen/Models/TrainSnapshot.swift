@@ -28,6 +28,14 @@ struct TrainSnapshot: Hashable, Sendable, Identifiable {
     var lastPassedTime: Date?
     var progress: Double = 0
     var updatedAt: Date?
+    /// Stops after the next one, within the segment.
+    var upcomingStops: [UpcomingStop] = []
+
+    struct UpcomingStop: Hashable, Sendable {
+        var signature: String
+        var expected: Date?
+        var track: String?
+    }
 
     init(favorite: FavoriteTrain) {
         id = favorite.id
@@ -124,7 +132,11 @@ struct TrainSnapshot: Hashable, Sendable, Identifiable {
             status = .scheduled
         }
 
-        let next = part.first { !$0.hasPassed && !$0.isCanceled }
+        let remaining = part.filter { !$0.hasPassed && !$0.isCanceled }
+        let next = remaining.first
+        upcomingStops = remaining.dropFirst().prefix(4).map {
+            UpcomingStop(signature: $0.signature, expected: $0.arrival?.bestKnownTime ?? $0.departure?.bestKnownTime, track: $0.track)
+        }
         nextStopSignature = boarded ? next?.signature : nil
         nextStopPlanned = next?.arrival?.advertisedTimeAtLocation ?? next?.departure?.advertisedTimeAtLocation
         nextStopExpected = next?.arrival?.bestKnownTime ?? next?.departure?.bestKnownTime

@@ -76,10 +76,14 @@ private struct LockScreenTrainView: View {
                 .lineLimit(1)
             NextStopLine(attributes: context.attributes, state: context.state)
             JourneyProgress(attributes: context.attributes, state: context.state)
-            if context.isStale {
-                Text("Updated \(Format.clock(context.state.updatedAt))")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+            HStack {
+                UpcomingStopsLine(state: context.state)
+                Spacer(minLength: 0)
+                if context.isStale {
+                    Text("Updated \(Format.clock(context.state.updatedAt))")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
         }
         .padding(14)
@@ -156,6 +160,14 @@ private struct NextStopLine: View {
                     Text(next).font(.subheadline.weight(.semibold)).lineLimit(1)
                     TimePair(planned: state.nextStopPlanned, expected: state.nextStopExpected, font: .subheadline)
                     TrackChip(track: state.nextStopTrack)
+                    if let expected = state.nextStopExpected ?? state.nextStopPlanned, expected > .now {
+                        // Counts down on its own between refreshes.
+                        Text(timerInterval: Date.now ... expected, countsDown: true, showsHours: false)
+                            .font(.caption.weight(.medium))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: 48, alignment: .leading)
+                    }
                 }
             case .scheduled:
                 Text("Departs").font(.caption).foregroundStyle(.secondary)
@@ -173,8 +185,14 @@ private struct JourneyProgress: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ProgressView(value: state.status == .arrived ? 1 : state.progress)
-                .tint(WidgetStyle.statusColor(state.status, delay: state.delay))
+            if let leg = state.legInterval, leg.upperBound > .now {
+                // Advances by itself until the next stop; the next refresh snaps it to the real position.
+                ProgressView(timerInterval: leg, countsDown: false) { EmptyView() } currentValueLabel: { EmptyView() }
+                    .tint(WidgetStyle.statusColor(state.status, delay: state.delay))
+            } else {
+                ProgressView(value: state.status == .arrived ? 1 : state.progress)
+                    .tint(WidgetStyle.statusColor(state.status, delay: state.delay))
+            }
             if state.status != .canceled {
                 HStack(spacing: 3) {
                     Image(systemName: "flag.checkered").font(.caption2)
@@ -184,6 +202,21 @@ private struct JourneyProgress: View {
                 }
                 .foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+/// "Then Alvesta 17:31 · Hässleholm 18:11", from the state alone.
+private struct UpcomingStopsLine: View {
+    let state: TrainActivityAttributes.ContentState
+
+    var body: some View {
+        if state.status == .enRoute, !state.upcoming.isEmpty {
+            let parts = state.upcoming.prefix(2).map { "\($0.name) \(Format.clock($0.expected))" }
+            Text("Then \(parts.joined(separator: " · "))")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
     }
 }

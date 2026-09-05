@@ -73,7 +73,8 @@ final class TrainMonitor {
 
     func scheduleBackgroundRefresh() {
         let request = BGAppRefreshTaskRequest(identifier: Self.backgroundTaskID)
-        request.earliestBeginDate = .now.addingTimeInterval(15 * 60)
+        // iOS decides the actual time; asking sooner while a train is followed does no harm.
+        request.earliestBeginDate = .now.addingTimeInterval(activities.followedIDs.isEmpty ? 15 * 60 : 5 * 60)
         do {
             try BGTaskScheduler.shared.submit(request)
         } catch {

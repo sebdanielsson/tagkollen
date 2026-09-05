@@ -23,6 +23,23 @@ struct TrainActivityAttributes: ActivityAttributes {
         /// 0…1 share of the stops already passed.
         var progress: Double
         var updatedAt: Date
+        /// The stops after the next one, so the activity can show what is coming without another update.
+        var upcoming: [UpcomingStop] = []
+
+        struct UpcomingStop: Codable, Hashable, Sendable {
+            var name: String
+            var expected: Date?
+            var track: String?
+        }
+
+        /// Interval the UI can animate through between refreshes: from the last report to the next
+        /// expected stop. Nil when the train is not en route or either end is unknown.
+        var legInterval: ClosedRange<Date>? {
+            guard status == .enRoute, let from = lastPassedTime, let to = nextStopExpected ?? nextStopPlanned, from < to else {
+                return nil
+            }
+            return from ... to
+        }
 
         var delay: TimeInterval? {
             delaySeconds.map(TimeInterval.init)
@@ -47,6 +64,9 @@ struct TrainActivityAttributes: ActivityAttributes {
             originTrack = snapshot.originTrack
             progress = snapshot.progress
             updatedAt = snapshot.updatedAt ?? .now
+            upcoming = snapshot.upcomingStops.prefix(3).map {
+                UpcomingStop(name: names.shortName($0.signature), expected: $0.expected, track: $0.track)
+            }
         }
     }
 

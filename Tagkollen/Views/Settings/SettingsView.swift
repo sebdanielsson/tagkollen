@@ -109,7 +109,7 @@ struct SettingsView: View {
     }
 
     // swiftlint:disable:next line_length
-    private static let notificationsFooter: LocalizedStringKey = "Tågkollen tells you about delays of five minutes or more, cancellations, track changes and arrival for saved trains, plus a reminder 30 minutes before departure. Set your own stops on a saved train to only hear about changes that affect them. While the app is open it checks every 30 seconds; in the background iOS decides how often the app may refresh, usually every 15 minutes or more, so alerts and widgets can lag behind."
+    private static let notificationsFooter: LocalizedStringKey = "Tågkollen tells you about delays of five minutes or more, cancellations, track changes and arrival for saved trains, plus a reminder 30 minutes before departure. Set your own stops on a saved train to only hear about changes that affect them. While the app is open it checks every 30 seconds. A followed train's Live Activity keeps refreshing about once a minute in the background while the train runs; alerts and widgets refresh when iOS allows, usually every 15 minutes or more, so they can lag behind."
 
     private var connectionText: String {
         switch live.state {

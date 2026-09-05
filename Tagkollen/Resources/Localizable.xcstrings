@@ -1470,6 +1470,16 @@
         }
       }
     },
+    "Then %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sedan %@"
+          }
+        }
+      }
+    },
     "This train is not advertised for passengers, so Trafikverket publishes no stops for it. It is most likely a freight or service train.": {
       "localizations": {
         "sv": {
@@ -1680,12 +1690,12 @@
         }
       }
     },
-    "Tågkollen tells you about delays of five minutes or more, cancellations, track changes and arrival for saved trains, plus a reminder 30 minutes before departure. Set your own stops on a saved train to only hear about changes that affect them. While the app is open it checks every 30 seconds; in the background iOS decides how often the app may refresh, usually every 15 minutes or more, so alerts and widgets can lag behind.": {
+    "Tågkollen tells you about delays of five minutes or more, cancellations, track changes and arrival for saved trains, plus a reminder 30 minutes before departure. Set your own stops on a saved train to only hear about changes that affect them. While the app is open it checks every 30 seconds. A followed train's Live Activity keeps refreshing about once a minute in the background while the train runs; alerts and widgets refresh when iOS allows, usually every 15 minutes or more, so they can lag behind.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tågkollen berättar om förseningar på fem minuter eller mer, inställda tåg, spårändringar och ankomst för sparade tåg, samt påminner 30 minuter före avgång. Ange dina egna stationer på ett sparat tåg för att bara få veta om ändringar som påverkar dem. När appen är öppen kontrolleras tågen var 30:e sekund; i bakgrunden bestämmer iOS hur ofta appen får uppdatera, oftast var 15:e minut eller mer sällan, så aviseringar och widgetar kan släpa efter."
+            "value": "Tågkollen berättar om förseningar på fem minuter eller mer, inställda tåg, spårändringar och ankomst för sparade tåg, samt påminner 30 minuter före avgång. Ange dina egna stationer på ett sparat tåg för att bara få veta om ändringar som påverkar dem. När appen är öppen kontrolleras tågen var 30:e sekund. Live Activity för ett följt tåg uppdateras ungefär en gång i minuten i bakgrunden medan tåget kör; aviseringar och widgetar uppdateras när iOS tillåter, oftast var 15:e minut eller mer sällan, så de kan släpa efter."
           }
         }
       }
