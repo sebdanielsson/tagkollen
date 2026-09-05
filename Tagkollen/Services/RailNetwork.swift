@@ -57,7 +57,9 @@ final class RailNetwork {
                 adjacency[edge.b].append(Edge(to: edge.a, points: points.reversed(), length: length))
             }
             stationNode = raw.stations
-            logger.debug("Loaded rail network: \(self.nodeCoordinates.count) nodes, \(raw.edges.count) edges, \(self.stationNode.count) stations")
+            let nodeCount = nodeCoordinates.count
+            let stationCount = stationNode.count
+            logger.debug("Loaded rail network: \(nodeCount) nodes, \(raw.edges.count) edges, \(stationCount) stations")
         } catch {
             logger.error("Failed to load RailNetwork.json: \(error.localizedDescription, privacy: .public)")
         }
@@ -89,7 +91,9 @@ final class RailNetwork {
         while let node = heap.popMin() {
             guard !visited.contains(node) else { continue }
             visited.insert(node)
-            if node == goal { break }
+            if node == goal {
+                break
+            }
             let base = distance[node] ?? .infinity
             for edge in adjacency[node] where !visited.contains(edge.to) {
                 let candidate = base + edge.length
@@ -169,8 +173,12 @@ private struct MinHeap<Element> {
         while true {
             let left = 2 * i + 1, right = 2 * i + 2
             var smallest = i
-            if left < items.count, items[left].priority < items[smallest].priority { smallest = left }
-            if right < items.count, items[right].priority < items[smallest].priority { smallest = right }
+            if left < items.count, items[left].priority < items[smallest].priority {
+                smallest = left
+            }
+            if right < items.count, items[right].priority < items[smallest].priority {
+                smallest = right
+            }
             guard smallest != i else { break }
             items.swapAt(i, smallest)
             i = smallest
