@@ -17,13 +17,20 @@ struct TrainMapView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(\.colorScheme) private var colorScheme
 
+    /// The trains actually handed to the map. Populated from `live.trains` outside of `body` (see
+    /// `refreshDisplayedTrains`) so the nationwide position stream — which can update several times a
+    /// second — only triggers a re-render when the filtered, on-screen set actually changes, instead
+    /// of on every position update anywhere in Sweden.
+    @State private var displayedTrains: [LiveTrain] = []
+    @State private var refreshTask: Task<Void, Never>?
+
     var body: some View {
         Map(position: $camera, interactionModes: .all, selection: $selectedTrainID, scope: scope) {
             UserAnnotation()
             if let journey = journeys.cached(selectedKey) {
                 routeOverlay(for: journey)
             }
-            ForEach(visibleTrains) { train in
+            ForEach(displayedTrains) { train in
                 Annotation(coordinate: train.clCoordinate, anchor: .center) {
                     TrainMarker(
                         train: train,
@@ -45,10 +52,13 @@ struct TrainMapView: View {
         }
         .onMapCameraChange(frequency: .onEnd) { context in
             visibleRegion = context.region
-            delays.track(visibleTrains.compactMap(\.key))
+            refreshDisplayedTrains()
         }
-        .onChange(of: live.updateCount) { _, _ in
-            delays.track(visibleTrains.compactMap(\.key))
+        .onChange(of: live.updateCount, initial: true) { _, _ in
+            scheduleRefresh()
+        }
+        .onDisappear {
+            refreshTask?.cancel()
         }
         .onChange(of: selectedKey) { _, _ in
             fitCameraToRouteIfNeeded()
@@ -56,6 +66,35 @@ struct TrainMapView: View {
         .onChange(of: journeys.cached(selectedKey)) { _, _ in
             fitCameraToRouteIfNeeded()
         }
+    }
+
+    /// Zoomed out over most/all of the country, hundreds of trains can be on screen at once and most
+    /// barely move between ticks at that scale, so refreshing as often as the stream flushes (every
+    /// ~400 ms) only burns main-thread time without a visible benefit. Zoomed into a city or line,
+    /// refresh at full speed.
+    private var refreshInterval: Duration {
+        visibleRegion.span.latitudeDelta > 3 ? .milliseconds(1500) : Self.minRefreshInterval
+    }
+
+    private static let minRefreshInterval: Duration = .milliseconds(400)
+
+    private func scheduleRefresh() {
+        guard refreshTask == nil else { return }
+        refreshTask = Task {
+            try? await Task.sleep(for: refreshInterval)
+            refreshTask = nil
+            guard !Task.isCancelled else { return }
+            refreshDisplayedTrains()
+        }
+    }
+
+    /// Recomputes the on-screen train set and only touches `displayedTrains` (and re-tracks delays)
+    /// when it actually changed, so an update elsewhere in the country doesn't re-render this map.
+    private func refreshDisplayedTrains() {
+        let next = visibleTrains
+        guard next != displayedTrains else { return }
+        displayedTrains = next
+        delays.track(next.compactMap(\.key))
     }
 
     /// Frames the selected train's route when it has no live position to zoom to instead — e.g. a
