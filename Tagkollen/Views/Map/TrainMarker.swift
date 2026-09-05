@@ -29,7 +29,7 @@ struct TrainMarker: View {
     private var full: some View {
         VStack(spacing: 2) {
             ZStack {
-                if let bearing = train.bearing, (train.speed ?? 0) > 3 {
+                if let bearing = train.bearing {
                     Image(systemName: "location.north.fill")
                         .font(.system(size: isSelected ? 13 : 10, weight: .bold))
                         .foregroundStyle(color)

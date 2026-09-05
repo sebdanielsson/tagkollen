@@ -74,6 +74,9 @@ struct MapScreen: View {
         .onChange(of: live.updateCount) { _, _ in
             if let key = navigation.pendingMapFocus {
                 focus(on: key)
+            } else if let selectedKey, selectedTrainID == nil, live.train(for: selectedKey) != nil {
+                // The selected train had no live position when chosen; it just started reporting one.
+                focus(on: selectedKey)
             }
         }
         .onChange(of: sheetPath) { _, path in
