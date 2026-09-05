@@ -118,7 +118,7 @@ struct TrainMapView: View {
             return (stop, CLLocationCoordinate2D(latitude: c.latitude, longitude: c.longitude))
         }
         if points.count > 1 {
-            MapPolyline(coordinates: points.map(\.1))
+            MapPolyline(coordinates: routePolyline(for: points))
                 .stroke(Color.accentColor.opacity(0.65), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round, dash: [8, 6]))
         }
         ForEach(points, id: \.0.id) { stop, coordinate in
@@ -133,6 +133,24 @@ struct TrainMapView: View {
             }
             .annotationTitles(visibleRegion.span.latitudeDelta < 1.5 ? .visible : .hidden)
         }
+    }
+
+    /// Stitches each consecutive stop pair's real track shape (when both stations are in the
+    /// bundled rail network) into one continuous polyline, falling back to a straight segment
+    /// where either side is missing (e.g. a foreign border station).
+    private func routePolyline(for points: [(TrainStop, CLLocationCoordinate2D)]) -> [CLLocationCoordinate2D] {
+        guard let first = points.first?.1 else { return [] }
+        var result = [first]
+        for i in 0 ..< points.count - 1 {
+            let from = points[i].0.signature
+            let to = points[i + 1].0.signature
+            if let real = RailNetwork.shared.route(from: from, to: to) {
+                result.append(contentsOf: real.dropFirst())
+            } else {
+                result.append(points[i + 1].1)
+            }
+        }
+        return result
     }
 
     private var mapStyle: MapStyle {
