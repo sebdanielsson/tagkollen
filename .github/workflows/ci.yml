@@ -34,13 +34,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      # Independent checks share one runner instead of three. SwiftLint, SwiftFormat and
-      # xcbeautify are preinstalled on the macos-26 image; XcodeGen is not.
+      # Independent checks share one runner instead of three. SwiftFormat and xcbeautify are preinstalled on
+      # the macos-26 image; SwiftLint and XcodeGen are not.
       - parallel:
           - name: SwiftFormat (check only)
             run: swiftformat --lint .
           - name: SwiftLint
-            run: swiftlint --strict --reporter github-actions-logging
+            run: |
+              brew install --quiet swiftlint
+              swiftlint --strict --reporter github-actions-logging
           - name: Install XcodeGen
             run: brew install --quiet xcodegen
 
