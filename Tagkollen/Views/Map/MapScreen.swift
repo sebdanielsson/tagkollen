@@ -118,7 +118,7 @@ struct MapScreen: View {
             .ignoresSafeArea(edges: .top)
             .safeAreaInset(edge: .top, spacing: 0) {
                 HStack {
-                    StatusPill(state: live.state, count: live.trains.count, lastUpdate: live.lastUpdate)
+                    StatusPill(state: live.state, count: live.trainCount, lastUpdate: live.lastUpdate)
                     Spacer()
                 }
                 .padding(.horizontal)
@@ -166,7 +166,7 @@ struct MapScreen: View {
 
     private var regularTopOverlay: some View {
         HStack(alignment: .top) {
-            StatusPill(state: live.state, count: live.trains.count, lastUpdate: live.lastUpdate)
+            StatusPill(state: live.state, count: live.trainCount, lastUpdate: live.lastUpdate)
             Spacer()
             GlassEffectContainer(spacing: 10) {
                 VStack(spacing: 10) {

@@ -20,6 +20,9 @@ final class LiveTrainStore {
     }
 
     private(set) var trains: [LiveTrain] = []
+    /// Mirrors `trains.count` as its own property so views that only need the count (e.g. a status
+    /// pill) don't take a read dependency on the whole array and re-render on every position update.
+    private(set) var trainCount = 0
     private(set) var state: ConnectionState = .idle
     private(set) var lastUpdate: Date?
     private(set) var updateCount = 0
@@ -192,5 +195,6 @@ final class LiveTrainStore {
 
     private func rebuild() {
         trains = positions.values.compactMap(LiveTrain.init).sorted { $0.id < $1.id }
+        trainCount = trains.count
     }
 }
