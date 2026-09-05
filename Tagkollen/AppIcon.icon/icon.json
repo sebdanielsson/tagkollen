@@ -1,0 +1,61 @@
+{
+  "fill-specializations" : [
+    {
+      "value" : {
+        "solid" : "extended-srgb:0.84314,0.00000,0.00000,1.00000"
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "solid" : "extended-srgb:0.68627,0.00000,0.00000,1.00000"
+      }
+    }
+  ],
+  "groups" : [
+    {
+      "name" : "train",
+      "layers" : [
+        {
+          "glass" : true,
+          "image-name" : "train.png",
+          "name" : "train"
+        }
+      ],
+      "lighting" : "individual",
+      "specular" : true,
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "name" : "rails",
+      "layers" : [
+        {
+          "glass" : false,
+          "image-name" : "rails.png",
+          "name" : "rails",
+          "opacity" : 0.55
+        }
+      ],
+      "lighting" : "individual",
+      "specular" : false,
+      "shadow" : {
+        "kind" : "none",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}

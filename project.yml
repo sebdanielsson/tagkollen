@@ -38,6 +38,11 @@ targets:
       - path: Tagkollen
         excludes:
           - "**/.DS_Store"
+          - "AppIcon.icon/**"
+      # Icon Composer package; Xcode compiles every appearance (default, dark, clear, tinted) from it.
+      - path: Tagkollen/AppIcon.icon
+        type: file
+        buildPhase: resources
     dependencies:
       - package: TrafikverketKit
       - target: TagkollenWidgets
@@ -87,6 +92,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.sebastiandanielsson.tagkollen
         TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_UISupportsDocumentBrowser: NO
         SWIFT_OBJC_BRIDGING_HEADER: ""
         ENABLE_PREVIEWS: YES

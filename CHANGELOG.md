@@ -14,5 +14,7 @@ All notable changes to this project are documented in this file. The format foll
 - Live Activities for followed trains (Lock Screen and Dynamic Island).
 - Home Screen and Lock Screen widgets: saved train and station departures.
 - Background app refresh keeps notifications, Live Activities and widgets updated when iOS allows it.
+- Icon Composer app icon in Trafikverket red with dark, clear and tinted appearances; original train glyph.
+- Privacy policy, App Store submission checklist and screenshot script.
 - iPhone and iPad layouts using iOS 26 Liquid Glass.
 - `TrafikverketKit` Swift package with a typed request builder and models for the Trafikverket Open API.

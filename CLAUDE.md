@@ -8,3 +8,4 @@
 - Notifications are local only (no push server): `TrainMonitor` refreshes saved/followed trains every 30 s in the foreground and via `BGAppRefreshTask` in the background, then feeds `TrainAlerts` (rules in `TrainAlertEngine`), `LiveActivityController` and `WidgetCenter`. A saved train's optional `TripSegment` (boarding/alighting) is applied in `TrainSnapshot`, so all consumers see segment-relative delays.
 - User-facing strings are English source keys in `Tagkollen/Resources/Localizable.xcstrings` with Swedish translations. Code, comments and commits are in English.
 - Build: `xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build`.
+- App icon: `Tagkollen/AppIcon.icon` (Icon Composer package, layers rendered by `Scripts/make-app-icon.swift`). Never use SF Symbols in the icon (licence). Preview appearances with the `ictool` inside Icon Composer.app (see `docs/app-store.md`).
