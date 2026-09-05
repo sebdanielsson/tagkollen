@@ -23,6 +23,8 @@ settings:
     SWIFT_EMIT_LOC_STRINGS: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: "$(DEVELOPMENT_TEAM)"
+    # Bumped by release-please (see release-please-config.json); CI stamps the build number.
+    MARKETING_VERSION: 0.1.0 # x-release-please-version
     CURRENT_PROJECT_VERSION: "1"
 configFiles:
   Debug: Config/Secrets.xcconfig
@@ -57,7 +59,7 @@ targets:
       properties:
         CFBundleDisplayName: Tågkollen
         CFBundleName: Tagkollen
-        CFBundleShortVersionString: "0.1.0"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, sv]
@@ -133,7 +135,7 @@ targets:
       properties:
         CFBundleDisplayName: Tågkollen
         CFBundleName: TagkollenWidgets
-        CFBundleShortVersionString: "0.1.0"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "1"
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, sv]

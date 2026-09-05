@@ -1,58 +1,254 @@
-name: CI
+# One workflow for everything:
+#   verify          lint, format, tests and a simulator build on every push and pull request
+#   testflight      Release archive uploaded to TestFlight on every push to main (and on demand)
+#   release-please  opens or updates the release PR from Conventional Commits; creates the tag and
+#                   GitHub release when that PR is merged
+#   appstore        right after a release was created: archive, upload, push metadata and
+#                   screenshots, submit for review
+# Setup, secrets and the release flow: docs/release.md
+name: CI/CD
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      testflight:
+        description: Upload a TestFlight build from this ref
+        type: boolean
+        default: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
-  lint:
-    name: Lint
+  verify:
+    name: Verify
     runs-on: macos-26
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - name: Install tools
-        run: brew install swiftlint swiftformat
-      - name: SwiftFormat (check only)
-        run: swiftformat --lint .
-      - name: SwiftLint
-        run: swiftlint --strict --reporter github-actions-logging
+      - uses: actions/checkout@v7.0.1
 
-  kit-tests:
-    name: TrafikverketKit tests
-    runs-on: macos-26
-    steps:
-      - uses: actions/checkout@v4
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.app || sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
-      - name: swift test
-        working-directory: Packages/TrafikverketKit
-        run: swift test
+      # Independent checks share one runner instead of three. SwiftLint, SwiftFormat and
+      # xcbeautify are preinstalled on the macos-26 image; XcodeGen is not.
+      - parallel:
+          - name: SwiftFormat (check only)
+            run: swiftformat --lint .
+          - name: SwiftLint
+            run: swiftlint --strict --reporter github-actions-logging
+          - name: Install XcodeGen
+            run: brew install --quiet xcodegen
 
-  app:
-    name: Build and test app
-    runs-on: macos-26
-    steps:
-      - uses: actions/checkout@v4
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.app || sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
-      - name: Install XcodeGen
-        run: brew install xcodegen
+      - name: TrafikverketKit tests
+        id: kit-tests
+        background: true
+        run: swift test --package-path Packages/TrafikverketKit
+
       - name: Generate project
         run: |
           mkdir -p Config
-          echo "TRV_API_KEY =" > Config/Secrets.xcconfig
-          xcodegen generate
-      - name: Build and test
-        env:
-          CI: "true"
+          printf 'TRV_API_KEY =\nDEVELOPMENT_TEAM =\n' > Config/Secrets.xcconfig
+          xcodegen generate --quiet
+
+      - name: Build and test app
         run: |
           set -o pipefail
           xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             -skipPackagePluginValidation \
-            CODE_SIGNING_ALLOWED=NO build test
+            CODE_SIGNING_ALLOWED=NO build test | xcbeautify --renderer github-actions
+
+      - name: TrafikverketKit tests (result)
+        wait: [kit-tests]
+
+  testflight:
+    name: TestFlight
+    needs: verify
+    if: >-
+      github.repository == 'sebdanielsson/tagkollen' &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'workflow_dispatch' && inputs.testflight))
+    runs-on: macos-26
+    timeout-minutes: 60
+    environment: testflight
+    concurrency:
+      group: testflight-upload
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Install XcodeGen
+        run: brew install --quiet xcodegen
+
+      - name: Generate project
+        env:
+          TRV_API_KEY: ${{ secrets.TRV_API_KEY }}
+          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          mkdir -p Config
+          printf 'TRV_API_KEY = %s\nDEVELOPMENT_TEAM = %s\n' "$TRV_API_KEY" "$DEVELOPMENT_TEAM" > Config/Secrets.xcconfig
+          xcodegen generate --quiet
+
+      - name: Write App Store Connect API key
+        env:
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: Scripts/ci/write-asc-key.sh
+
+      # Cloud-managed signing: Xcode creates the distribution certificate and profiles through the
+      # API key, so no certificate or private key is stored in GitHub. Needs a *team* key with the
+      # Admin role (docs/release.md).
+      - name: Archive
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project Tagkollen.xcodeproj -scheme Tagkollen -configuration Release \
+            -archivePath "$RUNNER_TEMP/Tagkollen.xcarchive" \
+            -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            MARKETING_VERSION="$(cat version.txt)" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" | xcbeautify --renderer github-actions
+
+      - name: Export and upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Tagkollen.xcarchive" \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo "Uploaded Tågkollen $(cat version.txt) (build ${{ github.run_number }}) to TestFlight." >> "$GITHUB_STEP_SUMMARY"
+
+  release-please:
+    name: Release PR
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+      body: ${{ steps.release.outputs.body }}
+    steps:
+      - uses: googleapis/release-please-action@v5.0.0
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  appstore:
+    name: App Store
+    needs: [verify, release-please]
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: macos-26
+    timeout-minutes: 90
+    environment: app-store
+    concurrency:
+      group: appstore-submit
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Install XcodeGen
+        run: brew install --quiet xcodegen
+
+      - name: Generate project
+        env:
+          TRV_API_KEY: ${{ secrets.TRV_API_KEY }}
+          DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          mkdir -p Config
+          printf 'TRV_API_KEY = %s\nDEVELOPMENT_TEAM = %s\n' "$TRV_API_KEY" "$DEVELOPMENT_TEAM" > Config/Secrets.xcconfig
+          xcodegen generate --quiet
+
+      - name: Write App Store Connect API key
+        env:
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: Scripts/ci/write-asc-key.sh
+
+      - name: Archive
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          VERSION: ${{ needs.release-please.outputs.version }}
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project Tagkollen.xcodeproj -scheme Tagkollen -configuration Release \
+            -archivePath "$RUNNER_TEMP/Tagkollen.xcarchive" \
+            -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" | xcbeautify --renderer github-actions
+
+      - name: Export .ipa
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Tagkollen.xcarchive" \
+            -exportOptionsPlist ExportOptions-export.plist \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          ls "$RUNNER_TEMP/export"
+
+      - name: Release notes from the GitHub release
+        env:
+          BODY: ${{ needs.release-please.outputs.body }}
+        run: Scripts/ci/release-notes.sh
+
+      - name: Upload to App Store Connect and submit for review
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_KEY_BASE64 }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_HIDE_CHANGELOG: "1"
+          VERSION: ${{ needs.release-please.outputs.version }}
+        run: fastlane release ipa:"$RUNNER_TEMP/export/Tagkollen.ipa" version:"$VERSION"
+
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: Tagkollen-${{ needs.release-please.outputs.tag_name }}
+          path: |
+            ${{ runner.temp }}/export/*.ipa
+            ${{ runner.temp }}/Tagkollen.xcarchive/dSYMs
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Summary
+        env:
+          VERSION: ${{ needs.release-please.outputs.version }}
+        run: |
+          echo "Tågkollen $VERSION (build ${{ github.run_number }}) uploaded and submitted for review. Release it in App Store Connect once approved." >> "$GITHUB_STEP_SUMMARY"

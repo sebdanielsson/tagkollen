@@ -2,7 +2,7 @@
 # Captures App Store screenshots on the simulators whose pixel sizes App Store Connect requires:
 #   iPhone 6.9" (iPhone 17 Pro Max)   1320 × 2868
 #   iPad 13"    (iPad Pro 13-inch)    2064 × 2752
-# Output: Marketing/Screenshots/<device>/<nn>-<name>.png. Needs a booted-capable simulator per device
+# Output: fastlane/screenshots/<locale>/<iphone|ipad>-<nn>-<name>.png (LOCALE=sv for Swedish). Needs a booted-capable simulator per device
 # and TRV_API_KEY in .env.local. Uses `idb` (https://fbidb.io) for taps when available; otherwise it
 # only captures the map.
 #
@@ -21,13 +21,15 @@ if [ $# -eq 0 ]; then
 fi
 TRAIN="${TRAIN:-537}"
 IDB="${IDB:-$HOME/.local/bin/idb}"
-OUT_ROOT="Marketing/Screenshots"
+# deliver (fastlane) picks the device type from the pixel size, so every locale is one flat folder.
+OUT_ROOT="fastlane/screenshots"
+LOCALE="${LOCALE:-en-US}"
 
 for DEVICE in "${DEVICES[@]}"; do
-  SLUG=$(echo "$DEVICE" | tr ' ()' '---' | tr -s '-' | sed 's/-$//')
-  OUT="$OUT_ROOT/$SLUG"
+  case "$DEVICE" in iPad*) PREFIX="ipad";; *) PREFIX="iphone";; esac
+  OUT="$OUT_ROOT/$LOCALE"
   mkdir -p "$OUT"
-  echo "▶ $DEVICE → $OUT"
+  echo "▶ $DEVICE → $OUT/$PREFIX-*.png"
   UDID=$(xcrun simctl list devices available -j | python3 -c "
 import json,sys
 for runtime,devs in json.load(sys.stdin)['devices'].items():
@@ -45,10 +47,10 @@ sys.exit(1)" "$DEVICE")
 
   launch ""
   sleep 8
-  shot "01-map" 1
+  shot "$PREFIX-01-map" 1
   launch "$TRAIN"
   sleep 8
-  shot "02-train" 1
+  shot "$PREFIX-02-train" 1
   if [ -x "$IDB" ]; then
     "$IDB" ui button HOME >/dev/null 2>&1 || true
   fi

@@ -28,3 +28,10 @@ Config/Secrets.xcconfig
 # Tooling
 .claude/
 *.log
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/README.md
+fastlane/test_output/
+*.p8

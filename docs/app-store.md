@@ -2,6 +2,8 @@
 
 What Tågkollen needs before it can be submitted, what is already in the repository, and what has to be done by hand in App Store Connect. Sources: Apple's [App information](https://developer.apple.com/help/app-store-connect/reference/app-information/) and [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications/) references, the [App icons](https://developer.apple.com/design/human-interface-guidelines/app-icons) Human Interface Guidelines and [Creating your app icon using Icon Composer](https://developer.apple.com/documentation/xcode/creating-your-app-icon-using-icon-composer).
 
+The automated pipeline (TestFlight on every push to `main`, App Store submission on release) is described in `docs/release.md`. This page is about the store listing itself.
+
 ## Account
 
 - [ ] Paid Apple Developer Program membership. The free Personal Team can build to your own devices but cannot upload to App Store Connect, and it cannot use push notifications. Everything else the app does (App Groups, Live Activities, local notifications, background refresh) works on both.
@@ -33,15 +35,17 @@ App Store Connect requires at least one set per device family the app runs on. A
 | iPhone 6.9" | required | 1320 × 2868 | iPhone 17 Pro Max |
 | iPad 13" | required (app runs on iPad) | 2064 × 2752 | iPad Pro 13-inch (M5) |
 
-`Scripts/screenshots.sh` boots both simulators, sets a 9:41 status bar and captures the map and a train detail into `Marketing/Screenshots/`. Add more captures there (station board, saved trains, widgets) as the app evolves. Both English and Swedish screenshots are worth uploading; run with the simulator language switched (`xcrun simctl spawn <udid> defaults write .GlobalPreferences AppleLanguages -array sv`).
+`Scripts/screenshots.sh` boots both simulators, sets a 9:41 status bar and captures the map and a train detail into `fastlane/screenshots/en-US/`, from where the release job uploads them. Add more captures there (station board, saved trains, widgets) as the app evolves. Both English and Swedish screenshots are worth uploading; run with the simulator language switched (`xcrun simctl spawn <udid> defaults write .GlobalPreferences AppleLanguages -array sv`).
 
 ## Version and build
 
-- `CFBundleShortVersionString` is `0.1.0` in `project.yml`; set it to `1.0.0` for the first submission and bump `CFBundleVersion` for every upload.
-- Archive: Product > Archive in Xcode (or `xcodebuild -scheme Tagkollen archive`), then Distribute > App Store Connect. `ITSAppUsesNonExemptEncryption` is already `false`, so no export-compliance questions appear.
+- The version comes from `version.txt` / `MARKETING_VERSION` and is bumped by release-please; the build number is the CI run number. For the first store release add `Release-As: 1.0.0` to a commit on `main` (see `docs/release.md`).
+- Archives are produced by CI with cloud-managed signing. `ITSAppUsesNonExemptEncryption` is already `false`, so no export-compliance questions appear.
 - `PrivacyInfo.xcprivacy` declares the required-reason API usage (UserDefaults, file timestamps); update it if new APIs are added.
 
-## App Store Connect metadata (drafts)
+## App Store Connect metadata
+
+The texts below are checked in as `fastlane/metadata/{en-US,sv}/*.txt` and uploaded by every release; edit them there.
 
 **Name:** Tågkollen
 **Subtitle (en):** Live trains across Sweden

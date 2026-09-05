@@ -1,0 +1,12 @@
+Se alla Sveriges tåg live på en karta, direkt från Trafikverkets öppna data.
+
+• Livekarta över alla tåg med GPS-position, färgade efter försening
+• Alla uppehåll för ett tåg med planerade, beräknade och verkliga tider, spår och trafikmeddelanden
+• Sök på tågnummer eller station; avgångs- och ankomsttavlor
+• Spara tåg du ska åka med och ange var du kliver på och av
+• Aviseringar om förseningar, inställda tåg, spårändringar och ankomst, samt påminnelse före avgång
+• Live Activities på låsskärmen och i Dynamic Island under resan
+• Widgetar för hemskärm och låsskärm med ett sparat tåg eller en stations avgångar
+• Svenska och engelska. Inget konto, inga annonser, ingen spårning.
+
+Tågkollen är öppen källkod och har ingen koppling till Trafikverket. Data: Trafikverkets öppna API (CC0).

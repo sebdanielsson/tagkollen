@@ -1,10 +1,12 @@
 # Changelog
 
-All notable changes to this project are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
+Releases are cut by [release-please](https://github.com/googleapis/release-please) from [Conventional Commits](https://www.conventionalcommits.org/) on `main`; new sections are added above this one automatically. The project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## 0.1.0 (2026-09-05)
 
-### Added
+Initial development, before automated releases.
+
+### Features
 
 - Live map of all trains in Sweden with SSE updates and polling fallback.
 - Train detail with all stops, planned/estimated/actual times, delays, deviations and traffic messages.

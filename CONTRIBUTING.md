@@ -24,6 +24,7 @@ The `.xcodeproj` is generated and git-ignored. Edit `project.yml` instead and re
 ## Pull requests
 
 - Keep pull requests focused. One feature or fix per PR.
+- Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages and PR titles (`feat: …`, `fix: …`, `docs: …`, `chore: …`). PRs are squash-merged and the title becomes the commit on `main`; release-please derives the next version and the changelog from it. See `docs/release.md`.
 - Describe what changed and why, and add screenshots for UI changes (iPhone and iPad).
 - Make sure `xcodebuild test` passes for the `Tagkollen` scheme.
 - Follow the existing code style; the linters encode most of it.

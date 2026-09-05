@@ -9,3 +9,4 @@
 - User-facing strings are English source keys in `Tagkollen/Resources/Localizable.xcstrings` with Swedish translations. Code, comments and commits are in English.
 - Build: `xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build`.
 - App icon: `Tagkollen/AppIcon.icon` (Icon Composer package, layers rendered by `Scripts/make-app-icon.swift`). Never use SF Symbols in the icon (licence). Preview appearances with the `ictool` inside Icon Composer.app (see `docs/app-store.md`).
+- Commits and PR titles follow Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `ci:`…); release-please turns them into versions and `CHANGELOG.md`. `version.txt` and `MARKETING_VERSION` in `project.yml` are bumped by the release PR only. CI/CD lives in one workflow (`.github/workflows/ci.yml`): verify → TestFlight on `main`, release PR, App Store submission on release (see `docs/release.md`).

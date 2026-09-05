@@ -1,0 +1,12 @@
+See every train in Sweden live on a map, straight from Trafikverket's open data.
+
+• Live map of all trains with GPS positions, coloured by delay
+• Every stop of a train with planned, expected and actual times, tracks and disruption messages
+• Search by train number or station; departure and arrival boards
+• Save trains you plan to take and mark where you board and get off
+• Notifications for delays, cancellations, track changes and arrival, plus a departure reminder
+• Live Activities on the Lock Screen and in the Dynamic Island while you travel
+• Home Screen and Lock Screen widgets for a saved train or a station's departures
+• Swedish and English. No account, no ads, no tracking.
+
+Tågkollen is open source and not affiliated with Trafikverket. Data: Trafikverket Open API (CC0).
