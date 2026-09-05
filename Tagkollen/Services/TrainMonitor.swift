@@ -11,7 +11,10 @@ import WidgetKit
 @MainActor
 @Observable
 final class TrainMonitor {
-    nonisolated static let backgroundTaskID = "se.tagkollen.app.refresh"
+    /// The identifier registered in Info.plist (`BGTaskSchedulerPermittedIdentifiers`).
+    nonisolated static let backgroundTaskID: String =
+        (Bundle.main.object(forInfoDictionaryKey: "BGTaskSchedulerPermittedIdentifiers") as? [String])?.first
+            ?? "se.tagkollen.app.refresh"
 
     private(set) var lastRefresh: Date?
     private(set) var isRefreshing = false

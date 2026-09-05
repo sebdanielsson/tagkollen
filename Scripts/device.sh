@@ -42,7 +42,7 @@ APP=$(find .build/DerivedData/Build/Products/Debug-iphoneos -maxdepth 1 -name "T
 echo "▶ Installing"
 xcrun devicectl device install app --device "$UDID" "$APP"
 echo "▶ Launching"
-if xcrun devicectl device process launch --device "$UDID" se.tagkollen.app >/dev/null 2>&1; then
+if xcrun devicectl device process launch --device "$UDID" "${APP_BUNDLE_ID:-se.tagkollen.app}" >/dev/null 2>&1; then
   echo "Done."
 else
   cat <<'MSG'

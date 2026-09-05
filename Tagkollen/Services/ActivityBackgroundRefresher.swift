@@ -20,7 +20,7 @@ import WidgetKit
 /// departure, sparser before that, and nothing once the train (or the user's part of it) has arrived.
 @MainActor
 final class ActivityBackgroundRefresher: NSObject {
-    static let sessionIdentifier = "se.tagkollen.app.activity-refresh"
+    static let sessionIdentifier = (Bundle.main.bundleIdentifier ?? "se.tagkollen.app") + ".activity-refresh"
     /// Upper bound on pre-scheduled polls per train; at one a minute that is two and a half hours.
     nonisolated static let maxScheduledPolls = 150
     /// Keep polling this long past the expected arrival, in case the train is later than estimated.

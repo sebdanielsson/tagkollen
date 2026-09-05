@@ -23,6 +23,10 @@ settings:
     SWIFT_EMIT_LOC_STRINGS: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: "$(DEVELOPMENT_TEAM)"
+    # Bundle identifier prefix. The release build uses se.tagkollen.app; a developer on another Apple
+    # team sets APP_BUNDLE_ID in Config/Secrets.xcconfig (via .env.local), because bundle IDs and App
+    # Groups are unique across teams and cannot be registered twice.
+    TAGKOLLEN_BUNDLE_ID: "$(APP_BUNDLE_ID:default=se.tagkollen.app)"
     # Bumped by release-please (see release-please-config.json); CI stamps the build number.
     MARKETING_VERSION: 0.1.0 # x-release-please-version
     CURRENT_PROJECT_VERSION: "1"
@@ -52,8 +56,8 @@ targets:
     entitlements:
       path: Tagkollen/Tagkollen.entitlements
       properties:
-        com.apple.security.application-groups: [group.se.tagkollen.app]
-        keychain-access-groups: ["$(AppIdentifierPrefix)se.tagkollen.app"]
+        com.apple.security.application-groups: ["group.$(TAGKOLLEN_BUNDLE_ID)"]
+        keychain-access-groups: ["$(AppIdentifierPrefix)$(TAGKOLLEN_BUNDLE_ID)"]
     info:
       path: Tagkollen/Info.plist
       properties:
@@ -82,18 +86,20 @@ targets:
         NSMicrophoneUsageDescription: "Mikrofonen används för att söka efter tåg och stationer med rösten."
         NSSpeechRecognitionUsageDescription: "Taligenkänning används för att söka efter tåg och stationer med rösten."
         UIBackgroundModes: [fetch]
-        BGTaskSchedulerPermittedIdentifiers: [se.tagkollen.app.refresh]
+        BGTaskSchedulerPermittedIdentifiers: ["$(TAGKOLLEN_BUNDLE_ID).refresh"]
+        TagkollenAppGroup: "group.$(TAGKOLLEN_BUNDLE_ID)"
+        TagkollenKeychainGroup: "$(AppIdentifierPrefix)$(TAGKOLLEN_BUNDLE_ID)"
         NSSupportsLiveActivities: true
         NSSupportsLiveActivitiesFrequentUpdates: false
         AppIdentifierPrefix: "$(AppIdentifierPrefix)"
         CFBundleURLTypes:
-          - CFBundleURLName: se.tagkollen.app
+          - CFBundleURLName: "$(TAGKOLLEN_BUNDLE_ID)"
             CFBundleURLSchemes: [tagkollen]
         TRVAPIKey: "$(TRV_API_KEY)"
         TRVAPIKeyRegistrationURL: "https://data.trafikverket.se"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: se.tagkollen.app
+        PRODUCT_BUNDLE_IDENTIFIER: "$(TAGKOLLEN_BUNDLE_ID)"
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_UISupportsDocumentBrowser: NO
@@ -128,8 +134,8 @@ targets:
     entitlements:
       path: TagkollenWidgets/TagkollenWidgets.entitlements
       properties:
-        com.apple.security.application-groups: [group.se.tagkollen.app]
-        keychain-access-groups: ["$(AppIdentifierPrefix)se.tagkollen.app"]
+        com.apple.security.application-groups: ["group.$(TAGKOLLEN_BUNDLE_ID)"]
+        keychain-access-groups: ["$(AppIdentifierPrefix)$(TAGKOLLEN_BUNDLE_ID)"]
     info:
       path: TagkollenWidgets/Info.plist
       properties:
@@ -145,7 +151,7 @@ targets:
         AppIdentifierPrefix: "$(AppIdentifierPrefix)"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: se.tagkollen.app.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: "$(TAGKOLLEN_BUNDLE_ID).widgets"
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: WidgetBackground
@@ -159,7 +165,7 @@ targets:
       - package: TrafikverketKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: se.tagkollen.app.tests
+        PRODUCT_BUNDLE_IDENTIFIER: "$(TAGKOLLEN_BUNDLE_ID).tests"
         GENERATE_INFOPLIST_FILE: YES
 schemes:
   Tagkollen:

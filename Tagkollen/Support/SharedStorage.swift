@@ -5,8 +5,13 @@ import SwiftData
 /// Files and defaults shared between the app and its widget extension through the App Group.
 /// Falls back to the app's own container when the group is unavailable (e.g. unit tests).
 enum SharedStorage {
-    static let appGroup = "group.se.tagkollen.app"
-    static let keychainAccessGroup = "se.tagkollen.app"
+    /// `group.<bundle id>` from Info.plist, so a developer building under another Apple team
+    /// (APP_BUNDLE_ID in Config/Secrets.xcconfig) gets a group that team can register.
+    static let appGroup: String = Bundle.main.object(forInfoDictionaryKey: "TagkollenAppGroup") as? String
+        ?? "group.se.tagkollen.app"
+    /// `<TeamID>.<bundle id>`, shared with the widget extension.
+    static let keychainAccessGroup: String = Bundle.main.object(forInfoDictionaryKey: "TagkollenKeychainGroup") as? String
+        ?? "se.tagkollen.app"
     private static let logger = Logger(subsystem: "se.tagkollen.app", category: "SharedStorage")
 
     /// The App Group container, or Application Support when the group is not provisioned.

@@ -68,6 +68,17 @@ Repository → Settings → Secrets and variables → Actions → *Repository se
 - Store text lives in `fastlane/metadata/<locale>/*.txt` (English `en-US`, Swedish `sv`); screenshots in `fastlane/screenshots/<locale>/` (`Scripts/screenshots.sh` regenerates them at the sizes App Store Connect requires; `LOCALE=sv` for Swedish). Both are uploaded with every release and overwrite what is in App Store Connect.
 - App Privacy details cannot be updated through the API key; change them in App Store Connect if the app ever starts collecting data.
 
+## Building to your own device from another team
+
+Bundle IDs and App Groups are unique across Apple teams, so a developer who is not on the release team cannot sign `se.tagkollen.app`. Put your own prefix in `.env.local` and run `Scripts/bootstrap.sh`:
+
+```bash
+APP_BUNDLE_ID=se.example.tagkollen
+DEVELOPMENT_TEAM=XXXXXXXXXX
+```
+
+Everything derived from it (widget bundle ID, App Group, Keychain group, background task identifier) follows. CI and release builds do not set `APP_BUNDLE_ID` and therefore use `se.tagkollen.app`.
+
 ## Local equivalents
 
 ```bash

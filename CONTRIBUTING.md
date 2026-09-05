@@ -7,6 +7,7 @@ Thanks for taking the time to contribute. This document explains how to get set 
 1. Install Xcode 26 and [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
 2. Register a free API key at [data.trafikverket.se](https://data.trafikverket.se) and put it in `.env.local` as `TRV_API_KEY=...`.
 3. Run `Scripts/bootstrap.sh` to generate `Tagkollen.xcodeproj`, then open it.
+4. To run on your own iPhone, add `DEVELOPMENT_TEAM` and, unless you are on the release team, `APP_BUNDLE_ID=<your own prefix>` to `.env.local` (see `docs/release.md`).
 
 The `.xcodeproj` is generated and git-ignored. Edit `project.yml` instead and re-run `xcodegen`.
 

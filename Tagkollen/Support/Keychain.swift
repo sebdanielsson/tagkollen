@@ -5,10 +5,10 @@ import Security
 enum Keychain {
     private static let service = "se.tagkollen.app"
 
-    /// `<TeamID>.se.tagkollen.app`; reads search every group the process can access,
-    /// so keys stored before the group existed are still found.
+    /// `<TeamID>.<bundle id>`; reads search every group the process can access, so keys stored
+    /// before the group existed are still found.
     private static var accessGroup: String {
-        (Bundle.main.object(forInfoDictionaryKey: "AppIdentifierPrefix") as? String ?? "") + SharedStorage.keychainAccessGroup
+        SharedStorage.keychainAccessGroup
     }
 
     static func string(for account: String) -> String? {

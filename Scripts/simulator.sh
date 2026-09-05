@@ -12,9 +12,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+if [ -f .env.local ]; then
+  # shellcheck disable=SC1091
+  set -a; source .env.local; set +a
+fi
 DEVICE="${1:-iPhone 17 Pro}"
 SHOT="${2:-}"
-BUNDLE_ID="se.tagkollen.app"
+BUNDLE_ID="${APP_BUNDLE_ID:-se.tagkollen.app}"
 DERIVED=".build/DerivedData"
 
 if [ -d /Applications/Xcode.app ] && [ -z "${DEVELOPER_DIR:-}" ]; then
