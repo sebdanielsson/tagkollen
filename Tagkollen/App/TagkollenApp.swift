@@ -61,11 +61,14 @@ struct TagkollenApp: App {
                 dependencies.activityRefresher.cancelAll()
                 dependencies.monitor.startForeground()
                 Task { await dependencies.alerts.refreshAuthorization() }
+            case .inactive:
+                // Still counts as foreground for URLSession, so polls scheduled here are not discretionary.
+                dependencies.activityRefresher.prepareForBackground()
             case .background:
                 dependencies.monitor.stopForeground()
                 dependencies.monitor.scheduleBackgroundRefresh()
-                dependencies.activityRefresher.scheduleAll()
-            default:
+                dependencies.activityRefresher.ensureScheduled()
+            @unknown default:
                 break
             }
         }
