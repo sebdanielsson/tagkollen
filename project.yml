@@ -142,7 +142,7 @@ targets:
         CFBundleDisplayName: Tågkollen
         CFBundleName: TagkollenWidgets
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
-        CFBundleVersion: "1"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, sv]
         NSExtension:
