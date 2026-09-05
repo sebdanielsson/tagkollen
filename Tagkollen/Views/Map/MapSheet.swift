@@ -46,7 +46,7 @@ struct MapSheet: View {
                     case let .train(selection):
                         TrainDetailView(key: selection.key, liveID: selection.liveID)
                     case let .station(station):
-                        StationBoardView(station: station)
+                        StationBoardView(station: station, onSelectTrain: onSelectTrain)
                     }
                 }
                 .navigationDestination(for: TrainKey.self) { key in
