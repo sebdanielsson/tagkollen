@@ -16,7 +16,7 @@ struct MapScreen: View {
     @State private var selectedKey: TrainKey?
     @State private var showSettings = false
     @State private var sheetPath = NavigationPath()
-    @State private var sheetDetent: PresentationDetent = .height(MapScreen.collapsedSheetHeight)
+    @State private var sheetDetent: PresentationDetent = .medium
     @State private var sheetPresented = true
     @Namespace private var mapScope
 

@@ -1,4 +1,3 @@
-import MapKit
 import SwiftData
 import SwiftUI
 import TrafikverketKit
@@ -52,10 +51,8 @@ struct TrainDetailView: View {
                 JourneyHeaderSection(journey: journey, liveTrain: liveTrain)
                 if let liveTrain {
                     Section {
-                        LivePositionCard(train: liveTrain, journey: journey)
+                        LivePositionCard(train: liveTrain)
                     }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
                 }
                 if !messages.isEmpty {
                     Section {
@@ -103,10 +100,8 @@ struct TrainDetailView: View {
                 }
             } else if let liveTrain, effectiveKey == nil {
                 Section {
-                    LivePositionCard(train: liveTrain, journey: nil)
+                    LivePositionCard(train: liveTrain)
                 }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
                 Section {
                     EmptyStateView(
                         systemImage: "shippingbox",
