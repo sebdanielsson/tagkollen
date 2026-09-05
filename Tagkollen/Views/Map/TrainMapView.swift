@@ -50,6 +50,25 @@ struct TrainMapView: View {
         .onChange(of: live.updateCount) { _, _ in
             delays.track(visibleTrains.compactMap(\.key))
         }
+        .onChange(of: selectedKey) { _, _ in
+            fitCameraToRouteIfNeeded()
+        }
+        .onChange(of: journeys.cached(selectedKey)) { _, _ in
+            fitCameraToRouteIfNeeded()
+        }
+    }
+
+    /// Frames the selected train's route when it has no live position to zoom to instead — e.g. a
+    /// scheduled or already-arrived train opened from search or favorites. Live trains are already
+    /// framed directly wherever they're selected (tapping a marker, `MapScreen.focus(on:)`), so this
+    /// only fills the gap the schematic `routeOverlay` would otherwise leave off-screen.
+    private func fitCameraToRouteIfNeeded() {
+        guard let selectedKey, live.train(for: selectedKey) == nil,
+              let journey = journeys.cached(selectedKey) else { return }
+        let coordinates = journey.stops.compactMap { stations.station($0.signature)?.coordinate }
+            .map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        guard let region = MKCoordinateRegion(fitting: coordinates) else { return }
+        withAnimation(.smooth) { camera = .region(region) }
     }
 
     /// Schematic route (straight segments between stations) and stop dots for the selected train.
@@ -90,11 +109,20 @@ struct TrainMapView: View {
         settings.showTrainLabels && visibleRegion.span.latitudeDelta < 2.2
     }
 
+    /// Ambient trains for the current view, plus the explicitly selected one regardless of the
+    /// active/region filters — a train the user searched for or saved shouldn't silently disappear
+    /// just because Trafikverket marked it inactive (e.g. it already arrived) or it's off-screen
+    /// mid-animation while the camera is still flying to it.
     private var visibleTrains: [LiveTrain] {
         let region = visibleRegion.padded(by: 0.25)
-        return live.trains.filter { train in
+        var result = live.trains.filter { train in
             (settings.showInactiveTrains || train.isActive) && region.contains(train.clCoordinate)
         }
+        if let selectedTrainID, !result.contains(where: { $0.id == selectedTrainID }),
+           let selected = live.train(id: selectedTrainID) {
+            result.append(selected)
+        }
+        return result
     }
 }
 
@@ -112,5 +140,22 @@ extension MKCoordinateRegion {
     func contains(_ coordinate: CLLocationCoordinate2D) -> Bool {
         abs(coordinate.latitude - center.latitude) <= span.latitudeDelta / 2
             && abs(coordinate.longitude - center.longitude) <= span.longitudeDelta / 2
+    }
+
+    /// A region tightly framing every coordinate, padded so edge stops and their labels aren't
+    /// clipped. `nil` if there's nothing to fit.
+    init?(fitting coordinates: [CLLocationCoordinate2D]) {
+        guard !coordinates.isEmpty else { return nil }
+        let lats = coordinates.map(\.latitude)
+        let lons = coordinates.map(\.longitude)
+        guard let minLat = lats.min(), let maxLat = lats.max(),
+              let minLon = lons.min(), let maxLon = lons.max() else { return nil }
+        self.init(
+            center: CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2),
+            span: MKCoordinateSpan(
+                latitudeDelta: max((maxLat - minLat) * 1.4, 0.15),
+                longitudeDelta: max((maxLon - minLon) * 1.4, 0.15)
+            )
+        )
     }
 }

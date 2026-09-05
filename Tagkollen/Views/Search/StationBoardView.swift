@@ -5,6 +5,10 @@ import TrafikverketKit
 /// Departure / arrival board for one station.
 struct StationBoardView: View {
     let station: TrainStation
+    /// When set (the map card on iPhone), selecting a train goes through this instead of a plain
+    /// push, so the map behind can update too. `nil` falls back to a normal navigation push — used
+    /// where there's no map to update (the Search and Saved tabs on iPad).
+    var onSelectTrain: ((TrainKey) -> Void)?
 
     enum Board: String, CaseIterable, Identifiable {
         case departures, arrivals
@@ -60,8 +64,15 @@ struct StationBoardView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(rows) { row in
-                        NavigationLink(value: key(for: row)) {
-                            AnnouncementRow(announcement: row)
+                        if let onSelectTrain {
+                            Button { onSelectTrain(key(for: row)) } label: {
+                                AnnouncementRow(announcement: row)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            NavigationLink(value: key(for: row)) {
+                                AnnouncementRow(announcement: row)
+                            }
                         }
                     }
                 }
