@@ -161,12 +161,12 @@ private struct NextStopLine: View {
                     TimePair(planned: state.nextStopPlanned, expected: state.nextStopExpected, font: .subheadline)
                     TrackChip(track: state.nextStopTrack)
                     if let expected = state.nextStopExpected ?? state.nextStopPlanned, expected > .now {
-                        // Counts down on its own between refreshes.
-                        Text(timerInterval: Date.now ... expected, countsDown: true, showsHours: false)
+                        // Minute granularity: the Lock Screen does not tick seconds, and it costs less.
+                        Text(expected, style: .relative)
                             .font(.caption.weight(.medium))
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
-                            .frame(maxWidth: 48, alignment: .leading)
+                            .lineLimit(1)
                     }
                 }
             case .scheduled:
