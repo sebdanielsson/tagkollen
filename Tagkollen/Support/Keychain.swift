@@ -5,6 +5,12 @@ import Security
 enum Keychain {
     private static let service = "se.sebastiandanielsson.tagkollen"
 
+    /// `<TeamID>.se.sebastiandanielsson.tagkollen`; reads search every group the process can access,
+    /// so keys stored before the group existed are still found.
+    private static var accessGroup: String {
+        (Bundle.main.object(forInfoDictionaryKey: "AppIdentifierPrefix") as? String ?? "") + SharedStorage.keychainAccessGroup
+    }
+
     static func string(for account: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -29,6 +35,8 @@ enum Keychain {
         SecItemDelete(base as CFDictionary)
         guard let value, !value.isEmpty else { return true }
         var attributes = base
+        // Shared with the widget extension so widgets can use a user-provided key too.
+        attributes[kSecAttrAccessGroup as String] = accessGroup
         attributes[kSecValueData as String] = Data(value.utf8)
         attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
         return SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess

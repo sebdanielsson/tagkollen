@@ -107,28 +107,22 @@ final class StationDirectory {
 
     // MARK: Disk cache
 
-    private struct Cache: Codable {
-        var savedAt: Date
-        var stations: [TrainStation]
-    }
-
     private static var cacheURL: URL {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appending(path: "stations-v1.json")
+        try? FileManager.default.createDirectory(at: SharedStorage.containerURL, withIntermediateDirectories: true)
+        return SharedStorage.stationsCacheURL
     }
 
-    private static func readCache() -> Cache? {
+    private static func readCache() -> CachedStations? {
         guard let data = try? Data(contentsOf: cacheURL) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try? decoder.decode(Cache.self, from: data)
+        return try? decoder.decode(CachedStations.self, from: data)
     }
 
     private static func writeCache(_ stations: [TrainStation]) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        if let data = try? encoder.encode(Cache(savedAt: .now, stations: stations)) {
+        if let data = try? encoder.encode(CachedStations(savedAt: .now, stations: stations)) {
             try? data.write(to: cacheURL, options: .atomic)
         }
     }

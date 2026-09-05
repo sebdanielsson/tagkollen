@@ -4,6 +4,16 @@
     "%@ %@": {
       "shouldTranslate": false
     },
+    "%@ departs soon": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ avgår snart"
+          }
+        }
+      }
+    },
     "%@ – %@": {
       "shouldTranslate": false
     },
@@ -80,6 +90,26 @@
         }
       }
     },
+    "Add a Trafikverket key in Settings.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till en nyckel från Trafikverket i Inställningar."
+          }
+        }
+      }
+    },
+    "Alerts for saved trains": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aviseringar för sparade tåg"
+          }
+        }
+      }
+    },
     "Appearance": {
       "localizations": {
         "sv": {
@@ -120,12 +150,92 @@
         }
       }
     },
+    "Arrived %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ankom %@"
+          }
+        }
+      }
+    },
+    "Arrived %@ %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ankom %@ %@"
+          }
+        }
+      }
+    },
+    "Arrived %@ %@, %lld min late.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ankom %@ %@, %lld min sen."
+          }
+        }
+      }
+    },
+    "Arrived %@ %@, on time.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ankom %@ %@, i tid."
+          }
+        }
+      }
+    },
+    "Arrives %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ankommer %@."
+          }
+        }
+      }
+    },
+    "Back on time.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Åter i tid."
+          }
+        }
+      }
+    },
+    "Back on time. Arrives %@ %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Åter i tid. Ankommer %@ %@."
+          }
+        }
+      }
+    },
     "Board": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Tavla"
+          }
+        }
+      }
+    },
+    "Board at": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kliv på vid"
           }
         }
       }
@@ -220,6 +330,16 @@
         }
       }
     },
+    "Could not start Live Activity": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte starta Live Activity"
+          }
+        }
+      }
+    },
     "Create an account, then create an API key under \"Mina sidor\". The key is free and the data is licensed CC0.": {
       "localizations": {
         "sv": {
@@ -260,12 +380,52 @@
         }
       }
     },
+    "Delays, alerts, widgets and the Live Activity then only consider this part of the trip.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förseningar, aviseringar, widgetar och Live Activity tar då bara hänsyn till den här delen av resan."
+          }
+        }
+      }
+    },
     "Dep": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Avg"
+          }
+        }
+      }
+    },
+    "Departs": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avgår"
+          }
+        }
+      }
+    },
+    "Departs in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avgår om"
+          }
+        }
+      }
+    },
+    "Departure, delay and next stop for a saved train.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avgång, försening och nästa uppehåll för ett sparat tåg."
           }
         }
       }
@@ -310,12 +470,52 @@
         }
       }
     },
+    "Edit the widget to pick a station, or star one in Tågkollen.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigera widgeten för att välja station, eller stjärnmärk en i Tågkollen."
+          }
+        }
+      }
+    },
     "Enter the train number from your ticket. Pick a future date to save an upcoming trip.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Ange tågnumret från din biljett. Välj ett framtida datum för att spara en kommande resa."
+          }
+        }
+      }
+    },
+    "Follow": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Följ"
+          }
+        }
+      }
+    },
+    "Follow one of your saved trains from the Home Screen or Lock Screen.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Följ ett av dina sparade tåg från hemskärmen eller låsskärmen."
+          }
+        }
+      }
+    },
+    "Following": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Följer"
           }
         }
       }
@@ -336,6 +536,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Skaffa en nyckel på data.trafikverket.se"
+          }
+        }
+      }
+    },
+    "Get off at": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kliv av vid"
           }
         }
       }
@@ -376,6 +586,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Senast uppdaterad"
+          }
+        }
+      }
+    },
+    "Leave empty to always show the next upcoming saved train.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lämna tomt för att alltid visa nästa kommande sparade tåg."
+          }
+        }
+      }
+    },
+    "Leave empty to use your first favorite station.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lämna tomt för att använda din första favoritstation."
+          }
+        }
+      }
+    },
+    "Leaves %@ at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avgår från %@ kl. %@"
+          }
+        }
+      }
+    },
+    "Live Activities": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Activities"
           }
         }
       }
@@ -460,12 +710,42 @@
         }
       }
     },
+    "New departure %@ from %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ny avgång %@ från %@."
+          }
+        }
+      }
+    },
     "Next": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Nästa"
+          }
+        }
+      }
+    },
+    "Next %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa %@"
+          }
+        }
+      }
+    },
+    "Next %@ %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa %@ %@."
           }
         }
       }
@@ -510,12 +790,42 @@
         }
       }
     },
+    "No API key": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen API-nyckel"
+          }
+        }
+      }
+    },
+    "No departures in the next six hours.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga avgångar de närmaste sex timmarna."
+          }
+        }
+      }
+    },
     "No saved trains": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Inga sparade tåg"
+          }
+        }
+      }
+    },
+    "No station chosen": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen station vald"
           }
         }
       }
@@ -580,12 +890,72 @@
         }
       }
     },
+    "Notifications": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notiser"
+          }
+        }
+      }
+    },
+    "Notifications are off for Tågkollen. Turn them on in Settings.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notiser är avstängda för Tågkollen. Slå på dem i Inställningar."
+          }
+        }
+      }
+    },
+    "Now %lld min late.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu %lld min sen."
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Av"
+          }
+        }
+      }
+    },
     "Offline": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Offline"
+          }
+        }
+      }
+    },
+    "On": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "På"
           }
         }
       }
@@ -766,6 +1136,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sparade"
+          }
+        }
+      }
+    },
+    "Saved train": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparat tåg"
           }
         }
       }
@@ -970,6 +1350,26 @@
         }
       }
     },
+    "Stop alerts for this train": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sluta avisera om det här tåget"
+          }
+        }
+      }
+    },
+    "Stop following %lld trains": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sluta följa %lld tåg"
+          }
+        }
+      }
+    },
     "Stops": {
       "localizations": {
         "sv": {
@@ -1000,6 +1400,16 @@
         }
       }
     },
+    "Tap the star on a train in Tågkollen.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på stjärnan på ett tåg i Tågkollen."
+          }
+        }
+      }
+    },
     "Tap the star on a train to keep it here. Handy for a trip later this week.": {
       "localizations": {
         "sv": {
@@ -1016,6 +1426,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tryck på stjärnan på ett tåg för att spara det här. Perfekt för en resa senare i veckan."
+          }
+        }
+      }
+    },
+    "The next departures from a station of your choice.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De närmaste avgångarna från en station du väljer."
+          }
+        }
+      }
+    },
+    "The next departures from a station.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De närmaste avgångarna från en station."
+          }
+        }
+      }
+    },
+    "The train is canceled.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tåget är inställt."
+          }
+        }
+      }
+    },
+    "The train is canceled. Check the operator's app for replacement traffic.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tåget är inställt. Kolla operatörens app för ersättningstrafik."
           }
         }
       }
@@ -1060,6 +1510,16 @@
         }
       }
     },
+    "Track changed from %@ to %@ at %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spårändring från %@ till %@ vid %@."
+          }
+        }
+      }
+    },
     "Traffic message": {
       "localizations": {
         "sv": {
@@ -1086,6 +1546,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Trafikverket"
+          }
+        }
+      }
+    },
+    "Trafikverket did not answer. Trying again shortly.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trafikverket svarade inte. Försöker igen snart."
           }
         }
       }
@@ -1150,6 +1620,26 @@
         }
       }
     },
+    "Train's first station": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tågets första station"
+          }
+        }
+      }
+    },
+    "Train's last station": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tågets sista station"
+          }
+        }
+      }
+    },
     "Trains": {
       "localizations": {
         "sv": {
@@ -1186,6 +1676,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tågkollen behöver en gratis API-nyckel från Trafikverket."
+          }
+        }
+      }
+    },
+    "Tågkollen tells you about delays of five minutes or more, cancellations, track changes and arrival for saved trains, plus a reminder 30 minutes before departure. Set your own stops on a saved train to only hear about changes that affect them. While the app is open it checks every 30 seconds; in the background iOS decides how often the app may refresh, usually every 15 minutes or more, so alerts and widgets can lag behind.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tågkollen berättar om förseningar på fem minuter eller mer, inställda tåg, spårändringar och ankomst för sparade tåg, samt påminner 30 minuter före avgång. Ange dina egna stationer på ett sparat tåg för att bara få veta om ändringar som påverkar dem. När appen är öppen kontrolleras tågen var 30:e sekund; i bakgrunden bestämmer iOS hur ofta appen får uppdatera, oftast var 15:e minut eller mer sällan, så aviseringar och widgetar kan släpa efter."
           }
         }
       }
@@ -1270,6 +1770,16 @@
         }
       }
     },
+    "Your stops": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina stationer"
+          }
+        }
+      }
+    },
     "arrivals": {
       "localizations": {
         "sv": {
@@ -1292,6 +1802,26 @@
     },
     "· %@ %@": {
       "shouldTranslate": false
+    },
+    "· Next %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· Nästa %@"
+          }
+        }
+      }
+    },
+    "· Track %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· Spår %@"
+          }
+        }
+      }
     },
     "−%lld min": {
       "localizations": {

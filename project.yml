@@ -40,6 +40,12 @@ targets:
           - "**/.DS_Store"
     dependencies:
       - package: TrafikverketKit
+      - target: TagkollenWidgets
+    entitlements:
+      path: Tagkollen/Tagkollen.entitlements
+      properties:
+        com.apple.security.application-groups: [group.se.sebastiandanielsson.tagkollen]
+        keychain-access-groups: ["$(AppIdentifierPrefix)se.sebastiandanielsson.tagkollen"]
     info:
       path: Tagkollen/Info.plist
       properties:
@@ -67,7 +73,11 @@ targets:
         NSLocationWhenInUseUsageDescription: "Tågkollen använder din plats för att centrera kartan och visa tåg nära dig."
         NSMicrophoneUsageDescription: "Mikrofonen används för att söka efter tåg och stationer med rösten."
         NSSpeechRecognitionUsageDescription: "Taligenkänning används för att söka efter tåg och stationer med rösten."
-        UIBackgroundModes: []
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [se.sebastiandanielsson.tagkollen.refresh]
+        NSSupportsLiveActivities: true
+        NSSupportsLiveActivitiesFrequentUpdates: false
+        AppIdentifierPrefix: "$(AppIdentifierPrefix)"
         CFBundleURLTypes:
           - CFBundleURLName: se.sebastiandanielsson.tagkollen
             CFBundleURLSchemes: [tagkollen]
@@ -81,6 +91,56 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: ""
         ENABLE_PREVIEWS: YES
         DEVELOPMENT_ASSET_PATHS: "Tagkollen/Preview\\ Content"
+  TagkollenWidgets:
+    type: app-extension
+    platform: iOS
+    supportedDestinations: [iOS, iPadOS]
+    sources:
+      - path: TagkollenWidgets
+        excludes:
+          - "**/.DS_Store"
+      # Shared with the app. Each target compiles its own copy.
+      - path: Tagkollen/Models
+      - path: Tagkollen/Services/TrainService.swift
+      - path: Tagkollen/Support/APIKeyStore.swift
+      - path: Tagkollen/Support/Formatters.swift
+      - path: Tagkollen/Support/Keychain.swift
+      - path: Tagkollen/Support/SharedStorage.swift
+      - path: Tagkollen/Support/StationNames.swift
+      - path: Tagkollen/Views/Components/DelayBadge.swift
+      - path: Tagkollen/Resources/Localizable.xcstrings
+    dependencies:
+      - package: TrafikverketKit
+      # Explicit links so the App Intents metadata processor runs for the widget configuration intents.
+      - sdk: AppIntents.framework
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+      - sdk: ActivityKit.framework
+    entitlements:
+      path: TagkollenWidgets/TagkollenWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.se.sebastiandanielsson.tagkollen]
+        keychain-access-groups: ["$(AppIdentifierPrefix)se.sebastiandanielsson.tagkollen"]
+    info:
+      path: TagkollenWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Tågkollen
+        CFBundleName: TagkollenWidgets
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, sv]
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        TRVAPIKey: "$(TRV_API_KEY)"
+        AppIdentifierPrefix: "$(AppIdentifierPrefix)"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.sebastiandanielsson.tagkollen.widgets
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: WidgetBackground
+        SKIP_INSTALL: YES
   TagkollenTests:
     type: bundle.unit-test
     platform: iOS
@@ -91,11 +151,13 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: se.sebastiandanielsson.tagkollen.tests
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   Tagkollen:
     build:
       targets:
         Tagkollen: all
+        TagkollenWidgets: all
         TagkollenTests: [test]
     run:
       config: Debug

@@ -16,9 +16,7 @@ final class DelayIndex {
         var updatedAt: Date
     }
 
-    enum Severity: Hashable, Sendable {
-        case unknown, onTime, minor, major, canceled
-    }
+    typealias Severity = DelaySeverity
 
     private(set) var entries: [String: Entry] = [:]
     private var tracked: Set<TrainKey> = []
@@ -43,18 +41,7 @@ final class DelayIndex {
     }
 
     nonisolated static func severity(delay: TimeInterval?, canceled: Bool) -> Severity {
-        if canceled {
-            return .canceled
-        }
-        guard let delay else { return .unknown }
-        let minutes = delay / 60
-        if minutes < 3 {
-            return .onTime
-        }
-        if minutes < 15 {
-            return .minor
-        }
-        return .major
+        DelaySeverity.of(delay: delay, canceled: canceled)
     }
 
     /// Replaces the set of trains to keep delay info for. Debounced; safe to call on every map move.

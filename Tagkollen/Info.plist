@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AppIdentifierPrefix</key>
+	<string>$(AppIdentifierPrefix)</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>se.sebastiandanielsson.tagkollen.refresh</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
@@ -46,6 +52,10 @@
 	<string>Mikrofonen används för att söka efter tåg och stationer med rösten.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Taligenkänning används för att söka efter tåg och stationer med rösten.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<false/>
 	<key>TRVAPIKey</key>
 	<string>$(TRV_API_KEY)</string>
 	<key>TRVAPIKeyRegistrationURL</key>
@@ -56,7 +66,9 @@
 		<true/>
 	</dict>
 	<key>UIBackgroundModes</key>
-	<array/>
+	<array>
+		<string>fetch</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

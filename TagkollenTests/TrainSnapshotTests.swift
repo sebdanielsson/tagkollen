@@ -1,0 +1,167 @@
+import Foundation
+@testable import Tagkollen
+import Testing
+import TrafikverketKit
+
+/// Builds a four-stop run Cst → U → Gä → Suc with controllable times.
+enum SampleRun {
+    static let key = TrainKey(ident: "837", departureDate: TRVDateParserBridge.date(fromDay: "2026-09-05")!)
+
+    static func row(
+        _ id: String, _ type: TrainAnnouncement.ActivityType, at station: String, planned: String,
+        estimated: String? = nil, actual: String? = nil, track: String = "1", canceled: Bool = false
+    ) throws -> TrainAnnouncement {
+        var json: [String: Any] = [
+            "ActivityId": id,
+            "ActivityType": type.rawValue,
+            "Advertised": true,
+            "LocationSignature": station,
+            "AdvertisedTimeAtLocation": "2026-09-05T\(planned):00.000+02:00",
+            "AdvertisedTrainIdent": "837",
+            "Canceled": canceled,
+            "TrackAtLocation": track,
+            "ScheduledDepartureDateTime": "2026-09-05T00:00:00.000+02:00",
+            "ProductInformation": [["Code": "PNA047", "Description": "SJ Snabbtåg"]],
+        ]
+        if let estimated {
+            json["EstimatedTimeAtLocation"] = "2026-09-05T\(estimated):00.000+02:00"
+        }
+        if let actual {
+            json["TimeAtLocation"] = "2026-09-05T\(actual):00.000+02:00"
+        }
+        let data = try JSONSerialization.data(withJSONObject: json)
+        return try JSONDecoder.trafikverket.decode(TrainAnnouncement.self, from: data)
+    }
+
+    /// Origin left 10 min late; the delay is expected to be recovered before Gävle.
+    static func lateFromOriginRecoveringLater() throws -> TrainJourney {
+        try TrainJourney(key: key, announcements: [
+            row("1", .departure, at: "Cst", planned: "10:00", actual: "10:10"),
+            row("2", .arrival, at: "U", planned: "10:40", estimated: "10:48"),
+            row("3", .departure, at: "U", planned: "10:42", estimated: "10:49"),
+            row("4", .arrival, at: "Gä", planned: "11:30", estimated: "11:30"),
+            row("5", .departure, at: "Gä", planned: "11:32", estimated: "11:32", track: "3"),
+            row("6", .arrival, at: "Suc", planned: "13:00", estimated: "13:00"),
+        ])
+    }
+}
+
+@Suite("Trip segment snapshots")
+struct TrainSnapshotTests {
+    @Test("Whole run reports the train's own delay and endpoints")
+    func wholeRun() throws {
+        let snapshot = try TrainSnapshot(journey: SampleRun.lateFromOriginRecoveringLater())
+        #expect(snapshot.originSignature == "Cst")
+        #expect(snapshot.destinationSignature == "Suc")
+        #expect(snapshot.status == .enRoute)
+        #expect(snapshot.nextStopSignature == "U")
+        #expect(snapshot.delay == 480.0)
+    }
+
+    @Test("Boarding at a later station uses that station's departure delay")
+    func boardingLater() throws {
+        let segment = TripSegment(boarding: "U", alighting: nil)
+        let snapshot = try TrainSnapshot(journey: SampleRun.lateFromOriginRecoveringLater(), segment: segment)
+        #expect(snapshot.originSignature == "U")
+        #expect(snapshot.destinationSignature == "Suc")
+        // The user has not boarded yet, so the run counts as scheduled for them.
+        #expect(snapshot.status == .scheduled)
+        #expect(snapshot.delay == 420.0)
+        #expect(snapshot.nextStopSignature == nil)
+    }
+
+    @Test("A delay that is recovered before the boarding station is not a delay for the user")
+    func recoveredBeforeBoarding() throws {
+        let segment = TripSegment(boarding: "Gä", alighting: "Suc")
+        let snapshot = try TrainSnapshot(journey: SampleRun.lateFromOriginRecoveringLater(), segment: segment)
+        #expect(snapshot.status == .scheduled)
+        #expect(snapshot.delay == 0.0)
+        #expect(snapshot.originTrack == "3")
+        #expect(Format.clock(snapshot.scheduledDeparture) == "11:32")
+        #expect(Format.clock(snapshot.scheduledArrival) == "13:00")
+    }
+
+    @Test("Reaching the alighting station counts as arrived even though the train continues")
+    func arrivedAtAlighting() throws {
+        let journey = try TrainJourney(key: SampleRun.key, announcements: [
+            SampleRun.row("1", .departure, at: "Cst", planned: "10:00", actual: "10:00"),
+            SampleRun.row("2", .arrival, at: "U", planned: "10:40", actual: "10:45"),
+            SampleRun.row("3", .departure, at: "U", planned: "10:42", actual: "10:47"),
+            SampleRun.row("4", .arrival, at: "Gä", planned: "11:30", estimated: "11:50"),
+            SampleRun.row("6", .arrival, at: "Suc", planned: "13:00", estimated: "13:20"),
+        ])
+        let snapshot = TrainSnapshot(journey: journey, segment: TripSegment(boarding: "Cst", alighting: "U"))
+        #expect(snapshot.status == .arrived)
+        #expect(snapshot.delay == 300.0)
+        #expect(snapshot.progress == 1)
+    }
+
+    @Test("Segment with unknown or reversed stations falls back to the whole run")
+    func invalidSegment() throws {
+        let stops = try SampleRun.lateFromOriginRecoveringLater().stops
+        #expect(TripSegment(boarding: "Suc", alighting: "Cst")?.range(in: stops) == 0 ... 3)
+        #expect(TripSegment(boarding: "Xyz", alighting: nil)?.range(in: stops) == 0 ... 3)
+        #expect(TripSegment(boarding: nil, alighting: nil) == nil)
+    }
+}
+
+@Suite("Alert rules")
+struct TrainAlertEngineTests {
+    private func snapshot(
+        delayMinutes: Int?,
+        status: TrainJourney.Status = .scheduled,
+        track: String? = "1",
+        canceled: Bool = false
+    ) -> TrainSnapshot {
+        var s = TrainSnapshot(favorite: FavoriteTrain(key: SampleRun.key, journey: nil))
+        s.delay = delayMinutes.map { TimeInterval($0 * 60) }
+        s.status = canceled ? .canceled : status
+        s.originTrack = track
+        return s
+    }
+
+    @Test("First sighting never notifies but records the state")
+    func firstSighting() {
+        let (alerts, state) = TrainAlertEngine.evaluate(previous: nil, current: snapshot(delayMinutes: 12))
+        #expect(alerts.isEmpty)
+        #expect(state.delayMinutes == 12)
+    }
+
+    @Test("Small changes are ignored, five minutes or more notify once")
+    func delayThreshold() {
+        var (alerts, state) = TrainAlertEngine.evaluate(previous: nil, current: snapshot(delayMinutes: 0))
+        (alerts, state) = TrainAlertEngine.evaluate(previous: state, current: snapshot(delayMinutes: 3))
+        #expect(alerts.isEmpty)
+        #expect(state.delayMinutes == 0, "reference stays at the last notified value")
+        (alerts, state) = TrainAlertEngine.evaluate(previous: state, current: snapshot(delayMinutes: 6))
+        #expect(alerts == [.delay(minutes: 6, previous: 0)])
+        (alerts, state) = TrainAlertEngine.evaluate(previous: state, current: snapshot(delayMinutes: 8))
+        #expect(alerts.isEmpty)
+        (alerts, _) = TrainAlertEngine.evaluate(previous: state, current: snapshot(delayMinutes: 1))
+        #expect(alerts == [.backOnTime])
+    }
+
+    @Test("Cancellation, track change and arrival")
+    func otherKinds() {
+        let (_, initial) = TrainAlertEngine.evaluate(previous: nil, current: snapshot(delayMinutes: 0, track: "1"))
+        #expect(TrainAlertEngine.evaluate(previous: initial, current: snapshot(delayMinutes: 0, canceled: true)).alerts == [.canceled])
+        #expect(TrainAlertEngine.evaluate(previous: initial, current: snapshot(delayMinutes: 0, track: "7a")).alerts == [.trackChanged(
+            from: "1",
+            to: "7a"
+        )])
+        let (arrivedAlerts, arrivedState) = TrainAlertEngine.evaluate(
+            previous: initial,
+            current: snapshot(delayMinutes: 2, status: .arrived)
+        )
+        #expect(arrivedAlerts == [.arrived(delayMinutes: 2)])
+        // Nothing more once the user's part of the trip is over.
+        #expect(TrainAlertEngine.evaluate(previous: arrivedState, current: snapshot(delayMinutes: 30, status: .enRoute)).alerts.isEmpty)
+    }
+
+    @Test("Track changes after boarding are not reported")
+    func trackAfterBoarding() {
+        let (_, initial) = TrainAlertEngine.evaluate(previous: nil, current: snapshot(delayMinutes: 0, status: .enRoute, track: "1"))
+        #expect(TrainAlertEngine.evaluate(previous: initial, current: snapshot(delayMinutes: 0, status: .enRoute, track: "2")).alerts
+            .isEmpty)
+    }
+}

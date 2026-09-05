@@ -32,6 +32,11 @@ final class AppSettings {
         didSet { defaults.set(pollingInterval, forKey: Keys.pollingInterval) }
     }
 
+    /// Local notifications about saved trains (delays, cancellations, track changes, reminders).
+    var alertsEnabled: Bool {
+        didSet { defaults.set(alertsEnabled, forKey: Keys.alertsEnabled) }
+    }
+
     /// Station signatures the user opened most recently, newest first.
     private(set) var recentStations: [String] {
         didSet { defaults.set(recentStations, forKey: Keys.recentStations) }
@@ -51,6 +56,7 @@ final class AppSettings {
         static let showTrainLabels = "settings.showTrainLabels"
         static let colorMarkersByDelay = "settings.colorMarkersByDelay"
         static let pollingInterval = "settings.pollingInterval"
+        static let alertsEnabled = "settings.alertsEnabled"
         static let recentStations = "settings.recentStations"
     }
 
@@ -63,5 +69,6 @@ final class AppSettings {
         let stored = defaults.double(forKey: Keys.pollingInterval)
         pollingInterval = stored > 0 ? stored : 15
         recentStations = defaults.stringArray(forKey: Keys.recentStations) ?? []
+        alertsEnabled = defaults.object(forKey: Keys.alertsEnabled) as? Bool ?? false
     }
 }

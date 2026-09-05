@@ -7,6 +7,7 @@ import TrafikverketKit
 /// persistent bottom card for search, saved trains and details. On iPad the detail opens in an inspector.
 struct MapScreen: View {
     @Environment(LiveTrainStore.self) private var live
+    @Environment(StationDirectory.self) private var stations
     @Environment(AppNavigation.self) private var navigation
     @Environment(\.horizontalSizeClass) private var sizeClass
 
@@ -55,6 +56,20 @@ struct MapScreen: View {
         .onChange(of: navigation.pendingMapFocus) { _, key in
             guard let key else { return }
             focus(on: key)
+        }
+        .onChange(of: navigation.pendingStationSignature, initial: true) { _, signature in
+            // iPad routes station links to the Search tab; on iPhone the card shows the board.
+            guard !isRegular, let signature, let station = stations.station(signature) else { return }
+            navigation.pendingStationSignature = nil
+            sheetPath = NavigationPath([MapSheetRoute.station(station)])
+            sheetDetent = .large
+        }
+        .onChange(of: stations.isLoaded) { _, loaded in
+            guard loaded, !isRegular, let signature = navigation.pendingStationSignature,
+                  let station = stations.station(signature) else { return }
+            navigation.pendingStationSignature = nil
+            sheetPath = NavigationPath([MapSheetRoute.station(station)])
+            sheetDetent = .large
         }
         .onChange(of: live.updateCount) { _, _ in
             if let key = navigation.pendingMapFocus {

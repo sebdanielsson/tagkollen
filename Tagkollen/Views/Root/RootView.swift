@@ -4,15 +4,23 @@ import SwiftUI
 /// full window with split navigation.
 struct RootView: View {
     @State private var navigation = AppNavigation()
+    @Environment(AppDependencies.self) private var deps
     @Environment(APIKeyStore.self) private var keyStore
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showOnboarding = false
 
     var body: some View {
-        if sizeClass == .regular {
-            tabs
-        } else {
-            phone
+        Group {
+            if sizeClass == .regular {
+                tabs
+            } else {
+                phone
+            }
+        }
+        .onChange(of: deps.pendingOpenURL) { _, url in
+            guard let url else { return }
+            navigation.handle(url)
+            deps.pendingOpenURL = nil
         }
     }
 

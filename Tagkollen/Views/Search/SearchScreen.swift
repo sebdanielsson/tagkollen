@@ -27,23 +27,35 @@ struct SearchScreen: View {
     @State private var path = NavigationPath()
     @State private var selectedStation: TrainStation?
     @State private var selectedKey: TrainKey?
+    @Environment(AppNavigation.self) private var navigation
 
     var body: some View {
-        if sizeClass == .regular {
-            NavigationSplitView {
-                searchList
-                    .navigationTitle("Search")
-            } detail: {
-                NavigationStack {
-                    detail
+        Group {
+            if sizeClass == .regular {
+                NavigationSplitView {
+                    searchList
+                        .navigationTitle("Search")
+                } detail: {
+                    NavigationStack {
+                        detail
+                    }
+                }
+            } else {
+                NavigationStack(path: $path) {
+                    searchList
+                        .navigationTitle("Search")
+                        .navigationDestination(for: TrainKey.self) { TrainDetailView(key: $0) }
+                        .navigationDestination(for: TrainStation.self) { StationBoardView(station: $0) }
                 }
             }
-        } else {
-            NavigationStack(path: $path) {
-                searchList
-                    .navigationTitle("Search")
-                    .navigationDestination(for: TrainKey.self) { TrainDetailView(key: $0) }
-                    .navigationDestination(for: TrainStation.self) { StationBoardView(station: $0) }
+        }
+        .onChange(of: navigation.pendingStationSignature, initial: true) { _, signature in
+            guard let signature, let station = stations.station(signature) else { return }
+            navigation.pendingStationSignature = nil
+            selectedKey = nil
+            selectedStation = station
+            if sizeClass != .regular {
+                path.append(station)
             }
         }
     }

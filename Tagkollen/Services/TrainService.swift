@@ -45,6 +45,15 @@ struct TrainService: Sendable {
         return result.objects.filter { !($0.deleted ?? false) }
     }
 
+    /// The newest active GPS report for an advertised train number, if it is currently reporting.
+    func livePosition(for ident: String) async throws -> TrainPosition? {
+        let query = Query<TrainPosition>()
+            .filter(.equal("Train.AdvertisedTrainNumber", ident), .equal("Status.Active", true))
+            .orderBy(Sort("TimeStamp", .descending))
+            .limit(1)
+        return try await client.fetch(query).objects.first
+    }
+
     /// Departures from a station in a time window.
     func departures(from signature: String, start: Date, hours: Int = 6, limit: Int = 200) async throws -> [TrainAnnouncement] {
         let end = start.addingTimeInterval(TimeInterval(hours) * 3600)

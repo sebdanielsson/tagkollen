@@ -9,9 +9,12 @@ Tågkollen is a native iOS and iPadOS app that shows every train in Sweden live 
 ## Features
 
 - **Live map** of all trains with a GPS position, updated in real time over Server-Sent Events (falls back to polling). Markers show heading and are coloured by delay.
-- **Train details**: every station on the run with planned, estimated and actual times, track, delay, deviations ("Spårändrat", "Buss ersätter", …), on-board services and the operator's link. A mini-map shows the live position, speed and heading.
+- **Train details**: every station on the run with planned, estimated and actual times, track, delay, deviations ("Spårändrat", "Buss ersätter", …), on-board services, the operator's link and the live speed, heading and position age.
 - **Search** by train number on any date, or browse a station's departure and arrival board.
-- **Saved trains**: pin an upcoming trip and see its status at a glance. Saved trains are stored on-device with SwiftData.
+- **Saved trains**: pin an upcoming trip and see its status at a glance. Optionally set where you board and get off, and everything below only looks at that part of the run. Saved trains are stored on-device with SwiftData.
+- **Notifications** for saved trains: delays of five minutes or more, cancellations, track changes, arrival and a reminder 30 minutes before departure, with a map of the train's position attached. Alerts are generated on the device; there is no server. While the app is open it checks every 30 seconds, in the background iOS decides how often the app may refresh (typically every 15 minutes or more), so alerts can arrive late.
+- **Live Activities**: follow a train and see its next stop, delay and progress on the Lock Screen and in the Dynamic Island.
+- **Widgets** for the Home Screen and Lock Screen: one saved train (or always the next one), and the departure board of a station of your choice.
 - **Traffic messages** from Trafikverket that affect the stations on your train's route.
 - **iPhone and iPad** layouts. On iPhone the map fills the screen and an Apple Maps-style bottom card holds search, saved trains, quick access to stations and the train and station details. On iPad the tab bar adapts to a sidebar, lists get a split view, and the train detail opens as an inspector next to the full-size map.
 - Built with SwiftUI, MapKit and the iOS 26 Liquid Glass design language. No third-party dependencies, no analytics, no tracking.
@@ -62,6 +65,7 @@ Tagkollen/                 SwiftUI app
   Models/                  TrainKey, TrainJourney, TrainStop, LiveTrain, FavoriteTrain (SwiftData)
   Services/                Live positions (SSE), station directory, delay index, timetable queries
   Views/                   Map, train detail, search, favorites, settings
+TagkollenWidgets/          WidgetKit extension: saved-train and departures widgets, Live Activity UI
 Packages/TrafikverketKit/  Typed client for the Trafikverket Open API (request builder, models, SSE)
 project.yml                XcodeGen spec
 ```

@@ -15,7 +15,7 @@ struct DelayBadge: View {
     }
 
     private var severityColor: Color {
-        DelayIndex.severity(delay: delay, canceled: canceled).color
+        DelaySeverity.of(delay: delay, canceled: canceled).color
     }
 
     private func label(_ text: String, color: Color, icon: String?) -> some View {
@@ -35,7 +35,7 @@ struct DelayBadge: View {
     }
 }
 
-extension DelayIndex.Severity {
+extension DelaySeverity {
     var color: Color {
         switch self {
         case .unknown: .secondary

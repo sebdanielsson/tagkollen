@@ -37,9 +37,11 @@ sys.exit(1)
 
 if [ -z "${SKIP_BUILD:-}" ]; then
 echo "▶ Building for $DEVICE ($UDID)"
+# Keep (ad hoc) code signing on: without it the widget extension loses its entitlements and App Intents
+# registration, so widgets stay on their placeholder and the App Group is unavailable.
 xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen -configuration Debug \
   -destination "id=$UDID" -derivedDataPath "$DERIVED" \
-  CODE_SIGNING_ALLOWED=NO build -quiet
+  build -quiet
 fi
 
 APP=$(find "$DERIVED/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name "Tagkollen.app" | head -1)

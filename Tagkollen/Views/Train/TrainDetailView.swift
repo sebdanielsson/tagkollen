@@ -14,6 +14,8 @@ struct TrainDetailView: View {
     @Environment(LiveTrainStore.self) private var live
     @Environment(StationDirectory.self) private var stations
     @Environment(AppNavigation.self) private var navigation
+    @Environment(LiveActivityController.self) private var activities
+    @Environment(TrainMonitor.self) private var monitor
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -25,6 +27,7 @@ struct TrainDetailView: View {
     @State private var isLoading = false
     @State private var error: String?
     @State private var refreshTask: Task<Void, Never>?
+    @State private var followError: String?
 
     private var liveTrain: LiveTrain? {
         if let liveID, let t = live.train(id: liveID) {
@@ -49,6 +52,9 @@ struct TrainDetailView: View {
         List {
             if let journey {
                 JourneyHeaderSection(journey: journey, liveTrain: liveTrain)
+                if let favorite {
+                    TripSegmentSection(favorite: favorite, journey: journey) { changed(favorite, journey: journey) }
+                }
                 if let liveTrain {
                     Section {
                         LivePositionCard(train: liveTrain)
@@ -145,6 +151,15 @@ struct TrainDetailView: View {
                 }
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
+                if let journey, canFollow(journey) {
+                    let following = activities.isFollowing(journey.key.id)
+                    Button(following ? "Following" : "Follow", systemImage: "dot.radiowaves.left.and.right") {
+                        toggleFollow(journey)
+                    }
+                    .tint(following ? .accentColor : nil)
+                    .symbolEffect(.variableColor.iterative, isActive: following)
+                    .sensoryFeedback(.selection, trigger: following)
+                }
                 if effectiveKey != nil {
                     Button(favorite == nil ? "Save" : "Saved", systemImage: favorite == nil ? "star" : "star.fill") {
                         toggleFavorite()
@@ -170,6 +185,15 @@ struct TrainDetailView: View {
         .task(id: effectiveKey?.id) {
             await load()
             await autoRefresh()
+        }
+        .alert("Could not start Live Activity", isPresented: Binding(get: { followError != nil }, set: {
+            if !$0 {
+                followError = nil
+            }
+        })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(followError ?? "")
         }
     }
 
@@ -221,11 +245,53 @@ struct TrainDetailView: View {
     private func toggleFavorite() {
         guard let key = effectiveKey else { return }
         if let favorite {
+            let id = favorite.id
             modelContext.delete(favorite)
+            try? modelContext.save()
+            monitor.trainRemoved(id)
         } else {
-            modelContext.insert(FavoriteTrain(key: key, journey: journey))
+            let fav = FavoriteTrain(key: key, journey: journey)
+            modelContext.insert(fav)
+            try? modelContext.save()
+            monitor.trainSaved(fav, journey: journey)
         }
+    }
+
+    /// The user changed their boarding or alighting stop: reschedule reminders and refresh the activity.
+    private func changed(_ favorite: FavoriteTrain, journey: TrainJourney) {
         try? modelContext.save()
+        monitor.trainSaved(favorite, journey: journey)
+        if activities.isFollowing(favorite.id) {
+            Task { await activities.update(snapshot(for: journey), names: names) }
+        }
+    }
+
+    // MARK: Live Activity
+
+    private var names: StationNames {
+        StationNames(stations: stations.stationsBySignature)
+    }
+
+    private func snapshot(for journey: TrainJourney) -> TrainSnapshot {
+        TrainSnapshot(journey: journey, segment: favorite?.segment)
+    }
+
+    private func canFollow(_ journey: TrainJourney) -> Bool {
+        guard activities.isAvailable else { return false }
+        let status = snapshot(for: journey).status
+        return status == .scheduled || status == .enRoute || activities.isFollowing(journey.key.id)
+    }
+
+    private func toggleFollow(_ journey: TrainJourney) {
+        if activities.isFollowing(journey.key.id) {
+            Task { await activities.unfollow(journey.key.id) }
+            return
+        }
+        do {
+            try activities.follow(snapshot(for: journey), names: names)
+        } catch {
+            followError = error.localizedDescription
+        }
     }
 
     private func shareText(for journey: TrainJourney) -> String {
