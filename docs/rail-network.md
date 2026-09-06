@@ -38,18 +38,26 @@ pip install -r Scripts/rail-network/requirements.txt   # shapely, pyproj, networ
    polyline with Douglas-Peucker (15m tolerance). Result: ~6.9k nodes / ~9.1k edges, ~40k total
    coordinate points for the whole country.
 4. **`export_network.py`** — converts back to WGS84, rounds to 5 decimals (~1m), and writes the
-   final `RailNetwork.json` (`{nodes, edges, stations}`, ~700KB).
+   final `RailNetwork.json` (~750KB): `nodes` (`[lat, lon]` per graph node), `edges` (one
+   `[a, b, interior, length]` per contracted chain — node indices, the simplified interior
+   points, and the exact pre-simplification track length in metres so the app never has to
+   measure polylines itself) and `stations` (signature → node index).
 
 Sanity check baked into the pipeline: Stockholm C → Mora C resolves to 329.6km, matching the
 real-world rail distance, computed in single-digit milliseconds even before contraction.
 
 ## On the app side
 
-`RailNetwork.swift` loads the bundled JSON once, builds an adjacency list, and runs Dijkstra
-between two station signatures on demand — there's no precomputed table of "every travelled
-station pair"; a journey's route is just the concatenation of the real path between each
-consecutive pair of its actual stops; `TrainMapView.routePolyline(for:)` falls back to a straight
-segment for any pair where either station isn't in the network.
+- `RailGraph` is the pure data structure (nodes, edges, adjacency, station lookup) plus Dijkstra
+  between two station signatures. Each edge's polyline is stored once; the adjacency entry says
+  which direction to walk it. It's tested against a small synthetic graph in `RailGraphTests`.
+- `RailNetwork` owns loading and caching: `AppDependencies.start()` calls `preload()` at launch,
+  which parses the JSON off the main actor. `route(from:to:)` returns `nil` until that finishes
+  and memoises every answer (including misses) per station pair.
+- `TrainMapView` computes the selected journey's polyline once per selection (not in `body`) by
+  concatenating the real path between each consecutive pair of its stops — there's no precomputed
+  table of "every travelled station pair" — and falls back to a straight segment for any pair
+  where either station isn't in the network or the network hasn't loaded yet.
 
 ## Regenerating
 

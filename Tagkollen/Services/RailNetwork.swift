@@ -25,6 +25,7 @@ final class RailNetwork {
     /// Consecutive stop pairs repeat heavily across different trains sharing the same line, so a
     /// warm cache makes re-selecting an already-seen pair instant.
     private var routeCache: [String: [CLLocationCoordinate2D]?] = [:]
+    private var loadTask: Task<Void, Never>?
     private let logger = Logger(subsystem: "se.tagkollen.app", category: "RailNetwork")
 
     static let shared = RailNetwork()
@@ -32,11 +33,11 @@ final class RailNetwork {
     private init() {}
 
     /// Kicks off parsing the bundled network on a background task. Call once, early (see
-    /// `AppDependencies`) — safe to call more than once, later calls are no-ops while loading or
-    /// once loaded.
+    /// `AppDependencies`) — safe to call more than once: only the first call starts a load, later
+    /// ones are no-ops whether it's still in flight, finished, or failed.
     func preload() {
-        guard !isLoaded else { return }
-        Task { [weak self] in
+        guard loadTask == nil else { return }
+        loadTask = Task { [weak self] in
             await self?.load()
         }
     }

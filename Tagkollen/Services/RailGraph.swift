@@ -30,26 +30,30 @@ struct RailGraph: Sendable {
         return shortestPath(from: start, to: goal)
     }
 
+    /// Plain Dijkstra with flat, node-indexed arrays for its working state — no hashing for a graph
+    /// this small — so the cold-cache worst case (a sparse-stop express flooding most of the
+    /// network) stays well under a frame on the main actor.
     private func shortestPath(from start: Int, to goal: Int) -> [CLLocationCoordinate2D]? {
-        var distance = [Int: CLLocationDistance]()
-        var previousNode = [Int: Int]()
-        var previousAdjacency = [Int: Adjacency]()
-        var visited = Set<Int>()
+        let count = nodeCoordinates.count
+        var distance = [CLLocationDistance](repeating: .infinity, count: count)
+        var previousNode = [Int](repeating: -1, count: count)
+        var previousAdjacency = [Adjacency?](repeating: nil, count: count)
+        var visited = [Bool](repeating: false, count: count)
         var heap = MinHeap<Int>()
 
         distance[start] = 0
         heap.insert(start, priority: 0)
 
         while let node = heap.popMin() {
-            guard !visited.contains(node) else { continue }
-            visited.insert(node)
+            guard !visited[node] else { continue }
+            visited[node] = true
             if node == goal {
                 break
             }
-            let base = distance[node] ?? .infinity
-            for step in adjacency[node] where !visited.contains(step.to) {
+            let base = distance[node]
+            for step in adjacency[node] where !visited[step.to] {
                 let candidate = base + edges[step.edgeIndex].length
-                if candidate < (distance[step.to] ?? .infinity) {
+                if candidate < distance[step.to] {
                     distance[step.to] = candidate
                     previousNode[step.to] = node
                     previousAdjacency[step.to] = step
@@ -57,15 +61,15 @@ struct RailGraph: Sendable {
                 }
             }
         }
-        guard distance[goal] != nil else { return nil }
+        guard distance[goal] < .infinity else { return nil }
 
         // Walk the predecessor chain back to `start`, then replay each step's edge in the
         // direction it was actually traversed to retrace the route forward.
         var steps: [Adjacency] = []
         var current = goal
-        while current != start, let step = previousAdjacency[current], let previous = previousNode[current] {
+        while current != start, let step = previousAdjacency[current] {
             steps.append(step)
-            current = previous
+            current = previousNode[current]
         }
         guard current == start else { return nil }
         steps.reverse()

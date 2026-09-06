@@ -66,17 +66,35 @@ struct TrainMapView: View {
         }
         .onChange(of: selectedKey) { _, _ in
             fitCameraToRouteIfNeeded()
-            refreshRoute()
         }
         .onChange(of: journeys.cached(selectedKey)) { _, _ in
             fitCameraToRouteIfNeeded()
+        }
+        .onChange(of: routeInputs, initial: true) { _, _ in
+            // `initial: true` matters: `selectedKey` lives in `MapScreen` and outlives this view,
+            // but `routeCoordinates` doesn't — a size-class change (rotating a Max, iPad Split
+            // View) rebuilds the layout and with it a fresh `TrainMapView`, which must redraw the
+            // already-selected route even though nothing changed from its own point of view.
             refreshRoute()
         }
-        .onChange(of: RailNetwork.shared.isLoaded) { _, _ in
-            // The network can still be loading when a route is first requested (straight-line
-            // fallback in the meantime); once it's ready, upgrade an already-shown route.
-            refreshRoute()
-        }
+    }
+
+    /// Everything `refreshRoute` depends on, so a change to any of it recomputes the route exactly
+    /// once: the journey itself, the station directory (stop coordinates come from it — a route
+    /// computed before it finished loading would be missing stops), and the rail network (straight
+    /// lines are drawn until it's parsed, then upgraded to real track).
+    private struct RouteInputs: Equatable {
+        let journey: TrainJourney?
+        let stationsLoaded: Bool
+        let networkLoaded: Bool
+    }
+
+    private var routeInputs: RouteInputs {
+        RouteInputs(
+            journey: journeys.cached(selectedKey),
+            stationsLoaded: stations.isLoaded,
+            networkLoaded: RailNetwork.shared.isLoaded
+        )
     }
 
     /// Zoomed out over most/all of the country, hundreds of trains can be on screen at once and most
@@ -121,11 +139,12 @@ struct TrainMapView: View {
         withAnimation(.smooth) { camera = .region(region) }
     }
 
-    /// Schematic route (straight segments between stations) and stop dots for the selected train.
+    /// The selected train's route (`routeCoordinates`, following real track where the network
+    /// covers it) and a dot per stop.
     @MapContentBuilder
     private func routeOverlay(for journey: TrainJourney) -> some MapContent {
         let points = stopPoints(for: journey)
-        if points.count > 1 {
+        if routeCoordinates.count > 1 {
             MapPolyline(coordinates: routeCoordinates)
                 .stroke(Color.accentColor.opacity(0.65), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round, dash: [8, 6]))
         }
@@ -151,11 +170,13 @@ struct TrainMapView: View {
     }
 
     /// Recomputes `routeCoordinates` for the currently selected journey. Cheap when nothing
-    /// changed (an unchanged pair hits `RailNetwork`'s cache), but still only called from
-    /// selection/journey/network-load changes — never from `body`.
+    /// changed (an unchanged pair hits `RailNetwork`'s cache), but still only called when
+    /// `routeInputs` changes — never from `body`.
     private func refreshRoute() {
         guard let journey = journeys.cached(selectedKey) else {
-            routeCoordinates = []
+            if !routeCoordinates.isEmpty {
+                routeCoordinates = []
+            }
             return
         }
         routeCoordinates = routePolyline(for: stopPoints(for: journey))
