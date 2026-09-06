@@ -5,7 +5,7 @@ https://lastkajen.trafikverket.se/assets/Lastkajen2_API_Information.pdf) lets an
 fetch published data packages with a bearer token. Register once at
 https://lastkajen.trafikverket.se, then run:
 
-    LASTKAJEN_USER=... LASTKAJEN_PASSWORD=... python3 download_njdb.py
+    LASTKAJEN_USER=... LASTKAJEN_PASSWORD=... uv run download_njdb.py
 
 The archive is unpacked into railnet/ next to this script, where build_graph.py expects it.
 """
@@ -25,18 +25,26 @@ PACKAGE_NAME = "Järnvägsnät med grundegenskaper"
 OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "railnet")
 
 
+def without_query(url):
+    """A URL without its query string, for error messages: the download carries its single-use
+    token there, and there is no reason to put that in a terminal or a CI log."""
+    parts = urllib.parse.urlsplit(url)
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+
+
 def send(request):
     """Performs a request, reporting a failure as a message rather than a traceback. Lastkajen
     answers 400 with a human-readable Swedish string for anything it doesn't like, credentials
     included; a connection that never got that far has only its own reason to report."""
+    url = without_query(request.get_full_url())
     try:
         with urllib.request.urlopen(request) as response:
             return response.read()
     except urllib.error.HTTPError as error:
         detail = error.read().decode("utf-8", "replace").strip()
-        sys.exit(f"{request.get_full_url()} failed: HTTP {error.code} {error.reason}\n{detail}")
+        sys.exit(f"{url} failed: HTTP {error.code} {error.reason}\n{detail}")
     except urllib.error.URLError as error:
-        sys.exit(f"{request.get_full_url()} failed: {error.reason}")
+        sys.exit(f"{url} failed: {error.reason}")
 
 
 def call(path, bearer=None, **params):

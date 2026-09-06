@@ -9,6 +9,8 @@ from shapely import wkb as shapely_wkb
 from shapely.geometry import LineString, MultiLineString
 
 RAILNET_DIR = "railnet"
+# The columns `load_lines` selects and filters on; a layer without them is not the one we want.
+COLUMNS = {"id", "geom", "Pl_Forb", "PlNamn", "Straknamn", "Bandel", "Status", "SpTyp"}
 
 
 def find_geopackage():
@@ -22,14 +24,18 @@ def find_geopackage():
 
 
 def find_table(con):
-    """The one table of line features. A GeoPackage lists its layers in `gpkg_contents`, so the
-    table name doesn't have to be hard-coded either."""
+    """The layer `load_lines` can actually read. A GeoPackage lists its layers in `gpkg_contents`,
+    and the one we want is picked by the columns the query needs rather than by its name, which
+    carries the release version. A file that has no such layer is an error worth stopping on, not
+    something to guess at."""
     rows = con.execute("SELECT table_name FROM gpkg_contents WHERE data_type = 'features'").fetchall()
     names = [name for (name,) in rows]
-    matching = [name for name in names if "rnv" in name.casefold().replace("ä", "a")]
-    if not matching and not names:
-        sys.exit("No feature tables in the GeoPackage")
-    return (matching or names)[0]
+    usable = [name for name in names if COLUMNS <= {row[1] for row in con.execute(f"PRAGMA table_info('{name}')")}]
+    if not usable:
+        sys.exit(f"No layer in the GeoPackage has the columns {sorted(COLUMNS)}. Layers: {names}")
+    if len(usable) > 1:
+        print(f"Several usable layers {usable}; taking {usable[0]}")
+    return usable[0]
 
 
 def gpkg_geom_to_wkb(blob):
