@@ -7,8 +7,10 @@ import TrafikverketKit
 struct StationBoardView: View {
     let station: TrainStation
     /// When set (the map card on iPhone), selecting a train goes through this instead of a plain
-    /// push, so the map behind can update too. `nil` falls back to a normal navigation push — used
-    /// where there's no map to update (the Search and Saved tabs on iPad).
+    /// push, so the map behind can update too — and so the push goes through `MapScreen`, which
+    /// mirrors the card's navigation path in a typed shadow. `nil` elsewhere: the board pushes
+    /// trains itself onto the enclosing stack, in the Search and Saved tabs and in the iPad map
+    /// inspector, where the map deliberately stays on the station being read.
     var onSelectTrain: ((TrainKey) -> Void)?
 
     enum Board: String, CaseIterable, Identifiable {
@@ -31,7 +33,6 @@ struct StationBoardView: View {
     @State private var rows: [TrainAnnouncement] = []
     @State private var isLoading = false
     @State private var error: String?
-    @State private var selected: TrainKey?
 
     var body: some View {
         // Only where this board pushes its own trains. Inside the map card `onSelectTrain` is set
