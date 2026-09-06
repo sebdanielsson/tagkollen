@@ -8,10 +8,12 @@
 # and the fallback covers an image that ships a runtime but no devices.
 set -euo pipefail
 
+# capture/1 emits nothing when the key does not match, so watchOS, tvOS and visionOS runtimes
+# drop out of the pipeline rather than erroring.
 newest_iphone() {
   xcrun simctl list devices available --json 2>/dev/null | jq -r '
     [ .devices | to_entries[]
-      | (.key | capture("iOS-(?<major>[0-9]+)-(?<minor>[0-9]+)")) as $os
+      | (.key | capture("SimRuntime\\.iOS-(?<major>[0-9]+)-(?<minor>[0-9]+)")) as $os
       | .value[]
       | select(.name | startswith("iPhone"))
       | { udid, name, os: [($os.major | tonumber), ($os.minor | tonumber)] } ]
@@ -30,7 +32,7 @@ done
 if [ -z "${udid:-}" ]; then
   echo "Creating a simulator: this image has no iPhone device." >&2
   runtime=$(xcrun simctl list runtimes --json | jq -r '
-    [ .runtimes[] | select(.isAvailable and (.identifier | test("SimRuntime.iOS"))) ] | last.identifier // empty')
+    [ .runtimes[] | select(.isAvailable and (.identifier | test("SimRuntime\\.iOS-"))) ] | last.identifier // empty')
   devicetype=$(xcrun simctl list devicetypes --json | jq -r '
     [ .devicetypes[] | select(.identifier | test("SimDeviceType.iPhone")) ]
     | (map(select(.identifier | test("iPhone-17-Pro$"))) + .) | first.identifier // empty')
