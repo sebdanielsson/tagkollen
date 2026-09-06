@@ -20,8 +20,11 @@ on:
     - cron: "17 4 * * 1"
   workflow_dispatch:
 
+# A new push to a pull request cancels the run still going for the previous one. Pushes to main are
+# keyed by commit instead, so every commit on main is analysed — a shared group would drop the middle
+# commit of a quick series, because only one run per group can sit pending.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
