@@ -63,6 +63,7 @@ jobs:
         run: |
           set -o pipefail
           destination=$(Scripts/ci/simulator-destination.sh)
+          : "${destination:?simulator-destination.sh printed no destination}"
           echo "Destination: $destination"
           xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen \
             -destination "$destination" \
