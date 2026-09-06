@@ -123,7 +123,18 @@ struct StationPinsTests {
         MKCoordinateRegion(center: Self.centre, span: MKCoordinateSpan(latitudeDelta: 0.3, longitudeDelta: 0.6))
     }
 
-    private func pins(_ stations: [LocatedStation], marked: [String: CLLocationCoordinate2D] = [:]) -> [StationPin] {
+    /// A marker taking up as much room as an ambient dot, unless a test needs a bigger one.
+    private func marker(latitudeOffset: CLLocationDegrees = 0, radius: CGFloat = StationPins.dotRadius) -> MapMarker {
+        MapMarker(
+            coordinate: CLLocationCoordinate2D(
+                latitude: Self.centre.latitude + latitudeOffset,
+                longitude: Self.centre.longitude
+            ),
+            radius: radius
+        )
+    }
+
+    private func pins(_ stations: [LocatedStation], marked: [String: MapMarker] = [:]) -> [StationPin] {
         StationPins.layout(from: stations, in: sizingRegion, markedElsewhere: marked, mapHeight: 900).pins
     }
 
@@ -196,10 +207,7 @@ struct StationPinsTests {
     @Test("A station with a marker of its own gets no dot, but still bounds its neighbours")
     func markedStationsBoundTheirNeighbours() throws {
         let stations = try [station("Ambient"), station("Selected", latitudeOffset: 0.01)]
-        let marked = ["Selected": CLLocationCoordinate2D(
-            latitude: Self.centre.latitude + 0.01,
-            longitude: Self.centre.longitude
-        )]
+        let marked = ["Selected": marker(latitudeOffset: 0.01)]
         let layout = StationPins.layout(from: stations, in: sizingRegion, markedElsewhere: marked, mapHeight: 900)
         // Without the marker in the spacing the dot would claim the maximum and cover it,
         // swallowing the taps meant for it — and the marker is bounded by the dot in turn.
@@ -213,10 +221,7 @@ struct StationPinsTests {
         let stations = try [station("Ambient"), station("Stop", latitudeOffset: 0.1)]
         // A route stop is drawn on the rail network's node for it, which here is right next to the
         // ambient dot even though the station's own coordinate is far away.
-        let marked = ["Stop": CLLocationCoordinate2D(
-            latitude: Self.centre.latitude + 0.001,
-            longitude: Self.centre.longitude
-        )]
+        let marked = ["Stop": marker(latitudeOffset: 0.001)]
         #expect(pins(stations, marked: marked).isEmpty)
     }
 
@@ -231,10 +236,7 @@ struct StationPinsTests {
             station("E", longitudeOffset: 0.02),
             station("F", latitudeOffset: 0.1, longitudeOffset: 0.1),
         ]
-        let marked = ["G": CLLocationCoordinate2D(
-            latitude: Self.centre.latitude + 0.03,
-            longitude: Self.centre.longitude
-        )]
+        let marked = ["G": marker(latitudeOffset: 0.03)]
         let layout = StationPins.layout(from: stations, in: sizingRegion, markedElsewhere: marked, mapHeight: 900)
         let result = layout.pins
         let pointsPerDegree = 900.0 / 0.3
@@ -247,7 +249,7 @@ struct StationPinsTests {
         }
         var drawn = result.map { Drawn(point: $0.station.clCoordinate, hitSize: $0.hitSize, isMarker: false) }
         drawn += marked.compactMap { signature, point in
-            layout.markerHitSizes[signature].map { Drawn(point: point, hitSize: $0, isMarker: true) }
+            layout.markerHitSizes[signature].map { Drawn(point: point.coordinate, hitSize: $0, isMarker: true) }
         }
         for (index, thing) in drawn.enumerated() {
             for (otherIndex, other) in drawn.enumerated() where otherIndex != index {
@@ -284,10 +286,7 @@ struct StationPinsTests {
     func sizesMarkersAgainstEachOther() {
         // Two consecutive route stops 18pt apart: each keeps its own 18pt target rather than the
         // full width, which would put each one's centre inside the other's.
-        let marked = [
-            "First": CLLocationCoordinate2D(latitude: Self.centre.latitude, longitude: Self.centre.longitude),
-            "Second": CLLocationCoordinate2D(latitude: Self.centre.latitude + 0.006, longitude: Self.centre.longitude),
-        ]
+        let marked = ["First": marker(), "Second": marker(latitudeOffset: 0.006)]
         let layout = StationPins.layout(from: [], in: sizingRegion, markedElsewhere: marked, mapHeight: 900)
         #expect(layout.markerHitSizes == ["First": 18, "Second": 18])
     }
@@ -295,10 +294,7 @@ struct StationPinsTests {
     @Test("A marker's target is bounded by the nearest ambient dot, not only by other markers")
     func sizesMarkersAgainstDots() throws {
         let stations = try [station("Ambient", latitudeOffset: 0.01)]
-        let marked = ["Stop": CLLocationCoordinate2D(
-            latitude: Self.centre.latitude,
-            longitude: Self.centre.longitude
-        )]
+        let marked = ["Stop": marker()]
         let layout = StationPins.layout(from: stations, in: sizingRegion, markedElsewhere: marked, mapHeight: 900)
         // The only other thing on the map is a dot 30pt away, so the marker gets 30, not the cap.
         #expect(layout.markerHitSizes == ["Stop": 30])
@@ -309,20 +305,24 @@ struct StationPinsTests {
     func markersKeepAUsableTarget() {
         // Consecutive stops a few points apart: markers are never dropped, so both keep the dot's
         // own width rather than shrinking to something nobody can tap.
-        let marked = [
-            "First": CLLocationCoordinate2D(latitude: Self.centre.latitude, longitude: Self.centre.longitude),
-            "Second": CLLocationCoordinate2D(
-                latitude: Self.centre.latitude + 0.001,
-                longitude: Self.centre.longitude
-            ),
-        ]
+        let marked = ["First": marker(), "Second": marker(latitudeOffset: 0.001)]
         let layout = StationPins.layout(from: [], in: sizingRegion, markedElsewhere: marked, mapHeight: 900)
         #expect(layout.markerHitSizes == ["First": StationPins.minSeparation, "Second": StationPins.minSeparation])
     }
 
+    @Test("A wider marker clears more room than a dot does")
+    func widerMarkersClearMoreRoom() throws {
+        let stations = try [station("Ambient", latitudeOffset: 0.006)]
+        // 18pt away: clear of another dot (8 + 8), but not of the selected station's marker,
+        // which is 28pt across and would be drawn over it.
+        #expect(pins(stations, marked: ["Small": marker()]).map(\.id) == ["Ambient"])
+        let big = ["Selected": marker(radius: StationMarker.selectedSize / 2)]
+        #expect(pins(stations, marked: big).isEmpty)
+    }
+
     @Test("A lone marker gets the maximum target")
     func sizesALoneMarker() {
-        let marked = ["Only": CLLocationCoordinate2D(latitude: Self.centre.latitude, longitude: Self.centre.longitude)]
+        let marked = ["Only": marker()]
         let layout = StationPins.layout(from: [], in: sizingRegion, markedElsewhere: marked, mapHeight: 900)
         #expect(layout.markerHitSizes == ["Only": StationPins.maxHitSize])
     }

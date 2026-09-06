@@ -2,6 +2,13 @@ import CoreLocation
 import Foundation
 import MapKit
 
+/// A marker the map draws itself, and how much room it takes up.
+struct MapMarker {
+    let coordinate: CLLocationCoordinate2D
+    /// Half the marker's drawn width, in points.
+    let radius: CGFloat
+}
+
 /// Everything the map needs to draw and hit-test stations at the current camera.
 struct StationLayout: Equatable {
     /// The ambient dots, in directory order.
@@ -33,8 +40,10 @@ enum StationPins {
     /// off. Worth about 1.5° of latitude, or 165km, at Swedish latitudes.
     static let zoomThreshold: Double = 2_193_121
     /// The dot's own diameter. Two dots closer than this on screen are one blob, and only one of
-    /// them is drawn; it is also the smallest tap target any dot ends up with.
-    static let minSeparation: CGFloat = 16
+    /// them is drawn; it is also the smallest tap target anything ends up with.
+    static let minSeparation: CGFloat = StationMarker.size
+    /// Half of it, which is how much room one dot needs to itself.
+    static let dotRadius: CGFloat = minSeparation / 2
     /// As large as a tap target is ever worth making.
     static let maxHitSize: CGFloat = 44
 
@@ -79,9 +88,9 @@ enum StationPins {
     /// the station's directory coordinate: a route stop is drawn on the rail network's node for
     /// it, which can be a hundred metres away.
     ///
-    /// Two rules keep every drawn dot tappable. A dot closer than `minSeparation` to something
-    /// already on the map isn't drawn at all — at that distance it is the same blob, and drawing
-    /// both means two dots that each swallow the other's taps. What remains is then given a target
+    /// Two rules keep every drawn dot tappable. A dot that would overlap something already on the
+    /// map — closer than the two radii together — isn't drawn at all; at that distance it is the
+    /// same blob, and drawing both means two dots that each swallow the other's taps. What remains is then given a target
     /// no wider than the gap to its nearest neighbour, so targets meet without covering each
     /// other's centres, and never narrower than the dot itself.
     ///
@@ -96,7 +105,7 @@ enum StationPins {
     static func layout(
         from located: [LocatedStation],
         in region: MKCoordinateRegion,
-        markedElsewhere: [String: CLLocationCoordinate2D] = [:],
+        markedElsewhere: [String: MapMarker] = [:],
         mapHeight: CGFloat
     ) -> StationLayout {
         let drawn = visible(from: located, in: region).filter { markedElsewhere[$0.id] == nil }
@@ -112,25 +121,33 @@ enum StationPins {
         }
 
         // The markers the map draws itself come first: they are on the map whatever happens, so
-        // the ambient dots work around them rather than the other way round.
-        let marked = markedElsewhere.map { (signature: $0.key, point: MKMapPoint($0.value)) }
-        var occupied = marked.map(\.point)
+        // the ambient dots work around them rather than the other way round. Each carries the
+        // room it takes up, because the selected station's marker is nearly twice a dot's width
+        // and a dot cleared only by a dot's width would sit half underneath it.
+        let marked = markedElsewhere.map { (
+            signature: $0.key,
+            placed: Placed(point: MKMapPoint($0.value.coordinate), radius: $0.value.radius)
+        ) }
+        var occupied = marked.map(\.placed)
         var chosen: [Chosen] = []
         for entry in collapseOrder(drawn) {
-            let point = MKMapPoint(entry.station.clCoordinate)
-            guard !occupied.contains(where: { distance($0, point) < Double(minSeparation) }) else { continue }
+            let placed = Placed(point: MKMapPoint(entry.station.clCoordinate), radius: dotRadius)
+            let crowded = occupied.contains { other in
+                distance(other.point, placed.point) < Double(placed.radius + other.radius)
+            }
+            guard !crowded else { continue }
             chosen.append(Chosen(station: entry.station, order: entry.order, index: occupied.count))
-            occupied.append(point)
+            occupied.append(placed)
         }
 
         /// A target no wider than the gap to the nearest other marker or dot, and never narrower
         /// than the dot it wraps — a target too small to hit is worse than one that reaches a
         /// neighbour, and only the ambient dots can be dropped to make room.
         func hitSize(at index: Int) -> CGFloat {
-            let point = occupied[index]
+            let point = occupied[index].point
             var nearest = Double.infinity
-            for (other, otherPoint) in occupied.enumerated() where other != index {
-                nearest = min(nearest, distance(otherPoint, point))
+            for (other, otherPlaced) in occupied.enumerated() where other != index {
+                nearest = min(nearest, distance(otherPlaced.point, point))
             }
             return CGFloat(max(Double(minSeparation), min(Double(maxHitSize), nearest)).rounded())
         }
@@ -150,6 +167,12 @@ enum StationPins {
     /// Dorotea, which also reports none, loses to a campsite halt that reports one.
     private static func platformCount(_ station: LocatedStation) -> Int {
         station.station.platformLine?.count ?? 0
+    }
+
+    /// Something on the map, and the room it takes up.
+    private struct Placed {
+        let point: MKMapPoint
+        let radius: CGFloat
     }
 
     /// A station that survived the collapse: `order` is its place in the directory, so the drawn

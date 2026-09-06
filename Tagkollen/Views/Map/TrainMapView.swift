@@ -193,19 +193,24 @@ struct TrainMapView: View {
     /// the selected train's route — mapped to the point that marker is drawn at. They get no
     /// ambient dot: one drawn over a stop dot would hide whether that stop is cancelled or already
     /// passed, and one drawn beside it would swallow the taps meant for it.
-    private var markedStations: [String: CLLocationCoordinate2D] {
-        var marked: [String: CLLocationCoordinate2D] = [:]
+    private var markedStations: [String: MapMarker] {
+        var marked: [String: MapMarker] = [:]
         for signature in stopSignatures {
-            marked[signature] = stopAnchor(for: signature)
+            marked[signature] = stopAnchor(for: signature).map {
+                MapMarker(coordinate: $0, radius: Self.stopDotSize / 2)
+            }
         }
         if let station = selectedStation, let coordinate = station.coordinate {
-            marked[station.locationSignature] = CLLocationCoordinate2D(
-                latitude: coordinate.latitude,
-                longitude: coordinate.longitude
+            marked[station.locationSignature] = MapMarker(
+                coordinate: CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude),
+                radius: StationMarker.selectedSize / 2
             )
         }
         return marked
     }
+
+    /// The dot drawn for one of the selected train's stops.
+    private static let stopDotSize: CGFloat = 10
 
     private var stopSignatures: [String] {
         journeys.cached(selectedKey)?.stops.map(\.signature) ?? []
@@ -271,7 +276,7 @@ struct TrainMapView: View {
                 Button { openStation(stop.signature) } label: {
                     Circle()
                         .fill(stop.isCanceled ? Color.red : (stop.hasPassed ? Color.secondary : Color.accentColor))
-                        .frame(width: 10, height: 10)
+                        .frame(width: Self.stopDotSize, height: Self.stopDotSize)
                         .overlay(Circle().stroke(.white, lineWidth: 2))
                         .shadow(radius: 1)
                         .frame(width: hitSize(for: stop.signature), height: hitSize(for: stop.signature))
