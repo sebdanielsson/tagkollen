@@ -101,33 +101,58 @@ struct StationPinsTests {
         #expect(StationPins.visible(from: stations, in: region(), excluding: []).map(\.id) == ["B", "A"])
     }
 
-    @Test("A crowded dot's tap target shrinks to its neighbour, an isolated one keeps the maximum")
+    /// Deliberately not square, so a sizing bug that scaled by the longitude span instead of the
+    /// latitude one would show up: 0.3° tall over 900pt is 3000pt per degree of latitude.
+    private var sizingRegion: MKCoordinateRegion {
+        MKCoordinateRegion(center: Self.centre, span: MKCoordinateSpan(latitudeDelta: 0.3, longitudeDelta: 0.6))
+    }
+
+    @Test("A crowded dot's target shrinks to the gap, an isolated one keeps the maximum")
     func sizesTapTargetsToTheNeighbourhood() throws {
         let stations = try [
             station("Crowded"),
             station("Neighbour", latitudeOffset: 0.001),
             station("Lonely", latitudeOffset: 0.1),
         ]
-        // 0.3° tall over 900pt: the two crowded stations are 3pt apart, the lonely one is not.
-        let pins = StationPins.pins(from: stations, in: region(spanDegrees: 0.3), excluding: [], mapHeight: 900)
+        // The crowded pair is 3pt apart — no floor, or their targets would cover each other again.
+        let pins = StationPins.pins(from: stations, in: sizingRegion, excluding: [], mapHeight: 900)
         let sizes = Dictionary(uniqueKeysWithValues: pins.map { ($0.id, $0.hitSize) })
-        #expect(sizes["Crowded"] == StationPins.minHitSize)
-        #expect(sizes["Neighbour"] == StationPins.minHitSize)
+        #expect(sizes["Crowded"] == 3)
+        #expect(sizes["Neighbour"] == 3)
         #expect(sizes["Lonely"] == StationPins.maxHitSize)
     }
 
     @Test("Two dots close together take a target no wider than the gap between them")
     func sizesTapTargetsToTheGap() throws {
         let stations = try [station("A"), station("B", latitudeOffset: 0.01)]
-        // 0.3° over 900pt is 3000pt per degree, so 0.01° apart is 30pt.
-        let pins = StationPins.pins(from: stations, in: region(spanDegrees: 0.3), excluding: [], mapHeight: 900)
-        #expect(pins.allSatisfy { abs($0.hitSize - 30) < 0.001 })
+        // 0.01° of latitude at 3000pt per degree is 30pt — the whole gap, not half of it, so the
+        // two targets meet without overlapping.
+        let pins = StationPins.pins(from: stations, in: sizingRegion, excluding: [], mapHeight: 900)
+        #expect(pins.map(\.hitSize) == [30, 30])
+    }
+
+    @Test("East-west spacing is scaled by latitude, so it isn't overstated this far north")
+    func sizesTapTargetsAcrossLongitude() throws {
+        let stations = try [station("A"), station("B", longitudeOffset: 0.01)]
+        // 0.01° of longitude at 59.33°N is about half as wide as 0.01° of latitude: 15pt, not 30.
+        let pins = StationPins.pins(from: stations, in: sizingRegion, excluding: [], mapHeight: 900)
+        #expect(pins.map(\.hitSize) == [15, 15])
+    }
+
+    @Test("An excluded station still counts as a neighbour — it has a marker of its own")
+    func excludedStationsStillLimitTheirNeighbours() throws {
+        let stations = try [station("Ambient"), station("Selected", latitudeOffset: 0.01)]
+        let pins = StationPins.pins(from: stations, in: sizingRegion, excluding: ["Selected"], mapHeight: 900)
+        // Without the selected station's marker in the neighbour set this would claim the maximum
+        // and cover it, swallowing the taps meant for it.
+        #expect(pins.map(\.id) == ["Ambient"])
+        #expect(pins.map(\.hitSize) == [30])
     }
 
     @Test("Without a measured map height every target falls back to the dot's own size")
     func fallsBackWithoutAMapHeight() throws {
         let stations = try [station("Cst")]
         let pins = StationPins.pins(from: stations, in: region(), excluding: [], mapHeight: 0)
-        #expect(pins.map(\.hitSize) == [StationPins.minHitSize])
+        #expect(pins.map(\.hitSize) == [StationPins.fallbackHitSize])
     }
 }
