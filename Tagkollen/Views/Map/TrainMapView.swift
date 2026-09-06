@@ -1,4 +1,5 @@
 import MapKit
+import os
 import SwiftUI
 import TrafikverketKit
 
@@ -34,9 +35,11 @@ struct TrainMapView: View {
     /// reason as `displayedTrains`: `body` re-runs several times a second while positions stream,
     /// and a nationwide `ForEach` over the whole directory would rebuild ~700 annotations — and
     /// re-parse ~700 WKT coordinate strings — every time, almost all of them off-screen.
-    @State private var displayedStations: [StationPin] = []
+    @State private var stationLayout = StationLayout()
     /// The map's height in points, needed to judge how far apart the station dots actually look.
     @State private var mapHeight: CGFloat = 0
+
+    private static let logger = Logger(subsystem: "se.tagkollen.app", category: "TrainMapView")
 
     var body: some View {
         Map(position: $camera, interactionModes: .all, selection: $selectedTrainID, scope: scope) {
@@ -44,7 +47,7 @@ struct TrainMapView: View {
             if let journey = journeys.cached(selectedKey) {
                 routeOverlay(for: journey)
             }
-            ForEach(displayedStations) { pin in
+            ForEach(stationLayout.pins) { pin in
                 Annotation(coordinate: pin.station.clCoordinate, anchor: .center) {
                     Button { onSelectStation(pin.station.station) } label: {
                         // The dot stays small; the frame around it is an invisible tap target,
@@ -213,16 +216,19 @@ struct TrainMapView: View {
     /// re-render the map. The directory holds every advertised station in the country, of which a
     /// city-level camera shows a few dozen.
     private func refreshDisplayedStations() {
+        let marked = markedStations
         let next = settings.showStations
-            ? StationPins.pins(
+            ? StationPins.layout(
                 from: stations.located,
                 in: visibleRegion,
-                markedElsewhere: markedStations,
+                markedElsewhere: marked,
                 mapHeight: mapHeight
             )
-            : []
-        guard next != displayedStations else { return }
-        displayedStations = next
+            // The dots are off, but the route's own stop dots still need targets that don't cover
+            // each other.
+            : StationPins.layout(from: [], in: visibleRegion, markedElsewhere: marked, mapHeight: mapHeight)
+        guard next != stationLayout else { return }
+        stationLayout = next
     }
 
     /// Recomputes the on-screen train set and only touches `displayedTrains` (and re-tracks delays)
@@ -260,18 +266,19 @@ struct TrainMapView: View {
             Annotation(coordinate: coordinate, anchor: .center) {
                 // Tappable like any other station: a stop dot suppresses the ambient dot that
                 // would otherwise sit under it, so it has to be the thing that opens the board.
-                // Its target is the separation the ambient dots are kept at, so the two never
-                // cover each other.
+                // Its target is sized alongside the dots' (see `StationPins`), so no two targets
+                // on the map cover each other — consecutive stops included.
                 Button { openStation(stop.signature) } label: {
                     Circle()
                         .fill(stop.isCanceled ? Color.red : (stop.hasPassed ? Color.secondary : Color.accentColor))
                         .frame(width: 10, height: 10)
                         .overlay(Circle().stroke(.white, lineWidth: 2))
                         .shadow(radius: 1)
-                        .frame(width: StationPins.minSeparation, height: StationPins.minSeparation)
+                        .frame(width: hitSize(for: stop.signature), height: hitSize(for: stop.signature))
                         .contentShape(.circle)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(Text("Station \(stations.name(stop.signature))"))
             } label: {
                 Text(stations.shortName(stop.signature))
             }
@@ -279,8 +286,17 @@ struct TrainMapView: View {
         }
     }
 
+    /// The tap target for a stop dot, from the same pass that sizes the ambient dots. Falls back
+    /// to the dot's own width before that pass has run.
+    private func hitSize(for signature: String) -> CGFloat {
+        stationLayout.markerHitSizes[signature] ?? StationPins.minSeparation
+    }
+
     private func openStation(_ signature: String) {
-        guard let station = stations.station(signature) else { return }
+        guard let station = stations.station(signature) else {
+            Self.logger.error("No station for signature \(signature, privacy: .public)")
+            return
+        }
         onSelectStation(station)
     }
 

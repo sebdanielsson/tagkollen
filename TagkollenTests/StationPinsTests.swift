@@ -23,10 +23,13 @@ struct StationPinsTests {
         _ signature: String,
         latitudeOffset: CLLocationDegrees = 0,
         longitudeOffset: CLLocationDegrees = 0,
-        platforms: Int = 0
+        platforms: Int? = nil
     ) throws -> LocatedStation {
-        let lines = (0 ..< platforms).map { "\"\($0 + 1)\"" }.joined(separator: ",")
-        let json = Data(#"{"LocationSignature":"\#(signature)","PlatformLine":[\#(lines)]}"#.utf8)
+        let field = platforms.map { count in
+            let lines = (0 ..< count).map { "\"\($0 + 1)\"" }.joined(separator: ",")
+            return #","PlatformLine":[\#(lines)]"#
+        } ?? ""
+        let json = Data(#"{"LocationSignature":"\#(signature)"\#(field)}"#.utf8)
         let decoded = try JSONDecoder.trafikverket.decode(TrainStation.self, from: json)
         return LocatedStation(
             station: decoded,
@@ -40,18 +43,28 @@ struct StationPinsTests {
     @Test("No dots at all when zoomed out past the threshold")
     func nothingWhenZoomedOut() throws {
         let stations = try [station("Cst")]
-        let wide = region(spanDegrees: StationPins.zoomThreshold)
-        #expect(StationPins.visible(from: stations, in: wide).isEmpty)
-        // Just inside the threshold the same station is drawn, so the gate is what excluded it.
-        let narrow = region(spanDegrees: StationPins.zoomThreshold - 0.01)
-        #expect(StationPins.visible(from: stations, in: narrow).map(\.id) == ["Cst"])
+        // 1.6° of latitude at 59.33°N is past the threshold; 1.4° is inside it.
+        #expect(StationPins.visible(from: stations, in: region(spanDegrees: 1.6)).isEmpty)
+        #expect(StationPins.visible(from: stations, in: region(spanDegrees: 1.4)).map(\.id) == ["Cst"])
+    }
+
+    @Test("The gate follows the zoom, not the camera's latitude")
+    func gateFollowsTheZoomNotTheLatitude() throws {
+        // The same zoom covers fewer degrees of latitude the further north the camera is. A gate
+        // measured in degrees would let 1.4° through at both latitudes; measured in map points,
+        // 1.4° up at 68°N is a much wider view and is correctly shut out.
+        let arctic = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 68, longitude: 18.06),
+            span: MKCoordinateSpan(latitudeDelta: 1.4, longitudeDelta: 1.4)
+        )
+        #expect(try StationPins.visible(from: [station("Abk")], in: arctic).isEmpty)
     }
 
     @Test("A region far wider than it is tall is gated on its wider axis")
     func gatesOnTheWiderAxis() throws {
         let stations = try [station("Cst")]
-        // Landscape-shaped: the latitude span alone would pass the gate, but at 59°N the longitude
-        // span still covers more ground than the threshold allows.
+        // Landscape-shaped: the latitude span alone would pass the gate, but the longitude span
+        // covers far more ground than the threshold allows.
         let landscape = MKCoordinateRegion(
             center: Self.centre,
             span: MKCoordinateSpan(latitudeDelta: 1.0, longitudeDelta: 4.0)
@@ -89,8 +102,8 @@ struct StationPinsTests {
     @Test("A degree of longitude counts for less than a degree of latitude this far north")
     func gateScalesLongitudeByLatitude() throws {
         let stations = try [station("Cst")]
-        // 2° of longitude at 59.33°N covers about 1.02° worth of ground, inside the 1.5° gate — so
-        // this is drawn only if the gate scales longitude instead of comparing it raw.
+        // 2° of longitude is narrower on the ground than 2° of latitude at 59°N, and lands inside
+        // the gate — so this is drawn only if longitude is projected rather than compared raw.
         let wide = MKCoordinateRegion(
             center: Self.centre,
             span: MKCoordinateSpan(latitudeDelta: 0.5, longitudeDelta: 2.0)
@@ -111,7 +124,7 @@ struct StationPinsTests {
     }
 
     private func pins(_ stations: [LocatedStation], marked: [String: CLLocationCoordinate2D] = [:]) -> [StationPin] {
-        StationPins.pins(from: stations, in: sizingRegion, markedElsewhere: marked, mapHeight: 900)
+        StationPins.layout(from: stations, in: sizingRegion, markedElsewhere: marked, mapHeight: 900).pins
     }
 
     @Test("Two dots too close to tell apart are drawn as one")
@@ -129,6 +142,27 @@ struct StationPinsTests {
             station("Stockholm C", latitudeOffset: 0.001, platforms: 34),
         ]
         #expect(pins(stations).map(\.id) == ["Stockholm C"])
+    }
+
+    @Test("A station that reports no platforms isn't treated as the smallest one there is")
+    func unknownPlatformCountRanksMidTable() throws {
+        // Dorotea reports no platforms at all; the campsite halt beside it reports one. Ranking
+        // the unknown at zero kept the halt and dropped the town.
+        let stations = try [
+            station("Dorotea camping", platforms: 1),
+            station("Dorotea", latitudeOffset: 0.001, platforms: nil),
+        ]
+        #expect(pins(stations).map(\.id) == ["Dorotea"])
+    }
+
+    @Test("Dots come back in directory order, whatever order the collapse considered them in")
+    func keepsDirectoryOrder() throws {
+        let stations = try [
+            station("A", platforms: 1),
+            station("B", latitudeOffset: 0.02, platforms: 9),
+            station("C", latitudeOffset: 0.04, platforms: 5),
+        ]
+        #expect(pins(stations).map(\.id) == ["A", "B", "C"])
     }
 
     @Test("A dot exactly a dot's width away is still its own dot")
@@ -228,13 +262,32 @@ struct StationPinsTests {
             center: Self.centre,
             span: MKCoordinateSpan(latitudeDelta: StationPins.zoomThreshold, longitudeDelta: 0.1)
         )
-        #expect(StationPins.pins(from: stations, in: wide, mapHeight: 900).isEmpty)
+        #expect(StationPins.layout(from: stations, in: wide, mapHeight: 900).pins.isEmpty)
+    }
+
+    @Test("Two markers close together get targets that don't cover each other either")
+    func sizesMarkersAgainstEachOther() {
+        // Two consecutive route stops 18pt apart: each keeps its own 18pt target rather than the
+        // full width, which would put each one's centre inside the other's.
+        let marked = [
+            "First": CLLocationCoordinate2D(latitude: Self.centre.latitude, longitude: Self.centre.longitude),
+            "Second": CLLocationCoordinate2D(latitude: Self.centre.latitude + 0.006, longitude: Self.centre.longitude),
+        ]
+        let layout = StationPins.layout(from: [], in: sizingRegion, markedElsewhere: marked, mapHeight: 900)
+        #expect(layout.markerHitSizes == ["First": 18, "Second": 18])
+    }
+
+    @Test("A lone marker gets the maximum target")
+    func sizesALoneMarker() {
+        let marked = ["Only": CLLocationCoordinate2D(latitude: Self.centre.latitude, longitude: Self.centre.longitude)]
+        let layout = StationPins.layout(from: [], in: sizingRegion, markedElsewhere: marked, mapHeight: 900)
+        #expect(layout.markerHitSizes == ["Only": StationPins.maxHitSize])
     }
 
     @Test("Without a measured map height every target falls back to the dot's own size")
     func fallsBackWithoutAMapHeight() throws {
         let stations = try [station("Cst")]
-        let pins = StationPins.pins(from: stations, in: region(), mapHeight: 0)
+        let pins = StationPins.layout(from: stations, in: region(), mapHeight: 0).pins
         #expect(pins.map(\.hitSize) == [StationPins.minSeparation])
     }
 }
