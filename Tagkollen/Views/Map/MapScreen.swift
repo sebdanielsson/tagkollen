@@ -59,6 +59,7 @@ struct MapScreen: View {
             Self.logger.debug("selectedTrainID → \(id ?? "nil", privacy: .public)")
             guard let id, let train = live.train(id: id) else { return }
             selectedStation = nil
+            deferredFocus = nil
             selectedKey = train.key
             push(.train(TrainSelection(key: train.key, liveID: id)), if: true)
             withAnimation(.smooth) { camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.45) }
@@ -196,6 +197,8 @@ struct MapScreen: View {
     @ViewBuilder
     private var inspectorDetail: some View {
         if let selectedStation {
+            // Keyed on the station: without this a different station would reuse this stack, so
+            // the panel would keep showing a train pushed from the previous station's board.
             NavigationStack {
                 // No `onSelectTrain` on purpose: unlike the iPhone card, the inspector is its own
                 // navigation stack, so a train pushes on top of the board with a back button and
@@ -210,6 +213,7 @@ struct MapScreen: View {
                         }
                     }
             }
+            .id(selectedStation.locationSignature)
         } else if let selection = currentSelection {
             NavigationStack {
                 TrainDetailView(key: selection.key, liveID: selection.liveID, onClose: clearSelection)
@@ -256,6 +260,7 @@ struct MapScreen: View {
         selectedTrainID = nil
         selectedKey = nil
         selectedStation = nil
+        deferredFocus = nil
         startFreshTrail()
     }
 
@@ -291,6 +296,7 @@ struct MapScreen: View {
             selectedTrainID = nil
             selectedKey = nil
             selectedStation = nil
+            deferredFocus = nil
         }
     }
 
@@ -322,6 +328,7 @@ struct MapScreen: View {
     private func focus(on station: TrainStation, pushingPath: Bool = true) {
         selectedTrainID = nil
         selectedKey = nil
+        deferredFocus = nil
         selectedStation = station
         push(.station(station), if: pushingPath)
         if let coordinate = station.coordinate {
@@ -337,8 +344,8 @@ struct MapScreen: View {
     private func focus(on key: TrainKey, pushingPath: Bool = true) {
         navigation.pendingMapFocus = nil
         deferredFocus = nil
-        selectedStation = nil
         if let train = live.train(for: key) {
+            selectedStation = nil
             selectedKey = key
             selectedTrainID = train.id
             // Pushed here rather than left to `selectedTrainID`'s observer, which can't fire when
@@ -350,6 +357,7 @@ struct MapScreen: View {
             }
         } else if live.state.isLive || !live.trains.isEmpty {
             // No live position (yet); still open the timetable.
+            selectedStation = nil
             selectedKey = key
             selectedTrainID = nil
             push(.train(TrainSelection(key: key, liveID: nil)), if: pushingPath)

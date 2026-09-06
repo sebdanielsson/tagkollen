@@ -8,8 +8,8 @@ struct MapNavigationStackTests {
     private let cst = TrainKey(ident: "Cst-train", departureDate: TRVDateParserBridge.date(fromDay: "2026-09-06")!)
     private let mora = TrainKey(ident: "Mora-train", departureDate: TRVDateParserBridge.date(fromDay: "2026-09-06")!)
 
-    private func station(_ signature: String) throws -> TrainStation {
-        let json = Data(#"{"LocationSignature":"\#(signature)"}"#.utf8)
+    private func station(_ signature: String, name: String = "Station") throws -> TrainStation {
+        let json = Data(#"{"LocationSignature":"\#(signature)","AdvertisedLocationName":"\#(name)"}"#.utf8)
         return try JSONDecoder.trafikverket.decode(TrainStation.self, from: json)
     }
 
@@ -86,6 +86,28 @@ struct MapNavigationStackTests {
         let pushedAgain = stack.push(.train(TrainSelection(key: cst, liveID: "123")))
         #expect(!pushedAgain)
         #expect(stack.routes.count == 1)
+    }
+
+    @Test("A station is the same screen even if the directory refreshed its details")
+    func pushSkipsSameStationWithDifferentDetails() throws {
+        var stack = MapNavigationStack()
+        try stack.push(.station(station("Cst", name: "Stockholm C")))
+        // Same station, re-fetched with a different advertised name: still one screen.
+        let pushedAgain = try stack.push(.station(station("Cst", name: "Stockholm Central")))
+        #expect(!pushedAgain)
+        #expect(stack.routes.count == 1)
+    }
+
+    @Test("A train with no number is identified by its live id, so a different one still pushes")
+    func keylessTrainsCompareByLiveID() {
+        var stack = MapNavigationStack()
+        // Freight and service trains have no advertised number, so no key to compare.
+        stack.push(.train(TrainSelection(key: nil, liveID: "freight-1")))
+        let pushedSame = stack.push(.train(TrainSelection(key: nil, liveID: "freight-1")))
+        let pushedOther = stack.push(.train(TrainSelection(key: nil, liveID: "freight-2")))
+        #expect(!pushedSame)
+        #expect(pushedOther)
+        #expect(stack.routes.count == 2)
     }
 
     @Test("A route already in the stack, but not on top, still pushes")
