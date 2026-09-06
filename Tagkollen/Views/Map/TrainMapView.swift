@@ -23,6 +23,10 @@ struct TrainMapView: View {
     /// of on every position update anywhere in Sweden.
     @State private var displayedTrains: [LiveTrain] = []
     @State private var refreshTask: Task<Void, Never>?
+    /// The selected journey's route, following real track geometry where possible. Computed once
+    /// per selection (see `refreshRoute`) rather than on every `body` evaluation — Dijkstra over
+    /// the rail network isn't free, and the route never changes while a train just keeps moving.
+    @State private var routeCoordinates: [CLLocationCoordinate2D] = []
 
     var body: some View {
         Map(position: $camera, interactionModes: .all, selection: $selectedTrainID, scope: scope) {
@@ -66,6 +70,33 @@ struct TrainMapView: View {
         .onChange(of: journeys.cached(selectedKey)) { _, _ in
             fitCameraToRouteIfNeeded()
         }
+        .onChange(of: routeInputs, initial: true) { _, _ in
+            // `initial: true` matters: `selectedKey` lives in `MapScreen` and outlives this view,
+            // but `routeCoordinates` doesn't — a size-class change (rotating a Max, iPad Split
+            // View) rebuilds the layout and with it a fresh `TrainMapView`, which must redraw the
+            // already-selected route even though nothing changed from its own point of view.
+            refreshRoute()
+        }
+    }
+
+    /// Everything `refreshRoute` depends on, so a change to any of it recomputes the route exactly
+    /// once: the journey's ordered stops (only their signatures — the journey itself is refreshed
+    /// every 30 s with new times, which must not re-stitch an identical line), the station
+    /// directory (stop coordinates come from it — a route computed before it finished loading
+    /// would be missing stops), and the rail network (straight lines are drawn until it's parsed,
+    /// then upgraded to real track).
+    private struct RouteInputs: Equatable {
+        let stopSignatures: [String]
+        let stationsLoaded: Bool
+        let networkLoaded: Bool
+    }
+
+    private var routeInputs: RouteInputs {
+        RouteInputs(
+            stopSignatures: journeys.cached(selectedKey)?.stops.map(\.signature) ?? [],
+            stationsLoaded: stations.isLoaded,
+            networkLoaded: RailNetwork.shared.isLoaded
+        )
     }
 
     /// Zoomed out over most/all of the country, hundreds of trains can be on screen at once and most
@@ -110,15 +141,13 @@ struct TrainMapView: View {
         withAnimation(.smooth) { camera = .region(region) }
     }
 
-    /// Schematic route (straight segments between stations) and stop dots for the selected train.
+    /// The selected train's route (`routeCoordinates`, following real track where the network
+    /// covers it) and a dot per stop.
     @MapContentBuilder
     private func routeOverlay(for journey: TrainJourney) -> some MapContent {
-        let points = journey.stops.compactMap { stop -> (TrainStop, CLLocationCoordinate2D)? in
-            guard let c = stations.station(stop.signature)?.coordinate else { return nil }
-            return (stop, CLLocationCoordinate2D(latitude: c.latitude, longitude: c.longitude))
-        }
-        if points.count > 1 {
-            MapPolyline(coordinates: points.map(\.1))
+        let points = stopPoints(for: journey)
+        if routeCoordinates.count > 1 {
+            MapPolyline(coordinates: routeCoordinates)
                 .stroke(Color.accentColor.opacity(0.65), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round, dash: [8, 6]))
         }
         ForEach(points, id: \.0.id) { stop, coordinate in
@@ -133,6 +162,42 @@ struct TrainMapView: View {
             }
             .annotationTitles(visibleRegion.span.latitudeDelta < 1.5 ? .visible : .hidden)
         }
+    }
+
+    private func stopPoints(for journey: TrainJourney) -> [(TrainStop, CLLocationCoordinate2D)] {
+        journey.stops.compactMap { stop in
+            stopAnchor(for: stop.signature).map { (stop, $0) }
+        }
+    }
+
+    /// Where a stop is drawn — its dot and the ends of its route segments: on the track node the
+    /// rail network snapped the station to, so the dot sits exactly on the line, and only for a
+    /// station the network doesn't cover (or before it has loaded) the directory coordinate.
+    private func stopAnchor(for signature: String) -> CLLocationCoordinate2D? {
+        if let onTrack = RailNetwork.shared.stationCoordinate(signature) {
+            return onTrack
+        }
+        return stations.station(signature)?.coordinate.map {
+            CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+        }
+    }
+
+    /// Recomputes `routeCoordinates` for the currently selected journey: each consecutive stop
+    /// pair's real track shape where the bundled network has it, a straight segment otherwise
+    /// (see `RailGraph.polyline(through:route:)`). Cheap when nothing changed (an unchanged pair
+    /// hits `RailNetwork`'s cache), but still only called when `routeInputs` changes — never
+    /// from `body`.
+    private func refreshRoute() {
+        let stops = routeInputs.stopSignatures.compactMap { signature in
+            stopAnchor(for: signature).map { (signature: signature, coordinate: $0) }
+        }
+        guard !stops.isEmpty else {
+            if !routeCoordinates.isEmpty {
+                routeCoordinates = []
+            }
+            return
+        }
+        routeCoordinates = RailGraph.polyline(through: stops) { RailNetwork.shared.route(from: $0, to: $1) }
     }
 
     private var mapStyle: MapStyle {
