@@ -90,6 +90,7 @@ def bearer_token
   "#{signing_input}.#{Base64.urlsafe_encode64([raw].pack('H*'), padding: false)}"
 end
 
+# nil when the call never got an answer, which the callers treat like any other failed cleanup.
 def request(verb, url, token)
   uri = URI(url)
   http = Net::HTTP.new(uri.host, uri.port)
@@ -97,6 +98,9 @@ def request(verb, url, token)
   http.open_timeout = 15
   http.read_timeout = 30
   http.request(verb.new(uri).tap { |req| req['Authorization'] = "Bearer #{token}" })
+rescue StandardError => e
+  warn_off("App Store Connect request to #{url} failed: #{e.class}: #{e.message}")
+  nil
 end
 
 def certificates(token)
@@ -104,51 +108,64 @@ def certificates(token)
   all = []
   while url
     response = request(Net::HTTP::Get, url, token)
+    return nil if response.nil?
+
     unless response.is_a?(Net::HTTPSuccess)
       warn_off("Could not list certificates (HTTP #{response.code}): #{response.body.to_s[0, 300]}")
       return nil
     end
-    body = JSON.parse(response.body)
+
+    begin
+      body = JSON.parse(response.body)
+    rescue JSON::ParserError => e
+      warn_off("App Store Connect did not answer with JSON: #{e.message}")
+      return nil
+    end
     all.concat(body['data'] || [])
     url = body.fetch('links', {})['next']
   end
   all
 end
 
-mine = local_development_certificates
-if mine.empty?
-  puts 'No Apple Development certificate in the runner keychain, nothing to revoke.'
-  exit 0
+def main
+  mine = local_development_certificates
+  if mine.empty?
+    puts 'No Apple Development certificate in the runner keychain, nothing to revoke.'
+    return
+  end
+
+  token = bearer_token
+  listed = certificates(token)
+  return if listed.nil?
+
+  revoked = 0
+  mine.each do |certificate|
+    serial = stripped(certificate.serial.to_s(16))
+    match = account_copy(listed, certificate)
+    unless match
+      puts "Certificate #{serial} is not in the account any more, skipping."
+      next
+    end
+
+    response = request(Net::HTTP::Delete, "#{API}/v1/certificates/#{match['id']}", token)
+    next if response.nil?
+
+    if response.is_a?(Net::HTTPSuccess)
+      revoked += 1
+      puts "Revoked development certificate #{serial}."
+    else
+      warn_off("Could not revoke certificate #{serial} (HTTP #{response.code}): #{response.body.to_s[0, 300]}")
+    end
+  end
+
+  development = listed.count { |c| (c['attributes'] || {})['certificateType'].to_s.include?('DEVELOPMENT') }
+  puts "Revoked #{revoked} certificate(s); #{development - revoked} development certificate(s) left in the account."
 end
 
-token = begin
-  bearer_token
+# Cleanup never fails the job. The build is archived and uploaded by the time this runs, and a
+# certificate left behind costs the next run at worst — nothing worth a red build for.
+begin
+  main
 rescue StandardError => e
-  warn_off("Could not build an App Store Connect token: #{e.class}: #{e.message}")
-  exit 0
+  warn_off("Certificate cleanup failed: #{e.class}: #{e.message}")
 end
-
-listed = certificates(token)
-exit 0 if listed.nil?
-
-revoked = 0
-mine.each do |certificate|
-  serial = stripped(certificate.serial.to_s(16))
-  match = account_copy(listed, certificate)
-  unless match
-    puts "Certificate #{serial} is not in the account any more, skipping."
-    next
-  end
-
-  response = request(Net::HTTP::Delete, "#{API}/v1/certificates/#{match['id']}", token)
-  if response.is_a?(Net::HTTPSuccess)
-    revoked += 1
-    puts "Revoked development certificate #{serial}."
-  else
-    warn_off("Could not revoke certificate #{serial} (HTTP #{response.code}): #{response.body.to_s[0, 300]}")
-  end
-end
-
-development = listed.count { |c| (c['attributes'] || {})['certificateType'].to_s.include?('DEVELOPMENT') }
-remaining = development - revoked
-puts "Revoked #{revoked} certificate(s); #{remaining} development certificate(s) left in the account."
