@@ -1340,6 +1340,16 @@
         }
       }
     },
+    "Station %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Station %@"
+          }
+        }
+      }
+    },
     "Station messages": {
       "localizations": {
         "sv": {

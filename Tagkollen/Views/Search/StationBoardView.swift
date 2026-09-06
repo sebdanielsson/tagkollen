@@ -116,13 +116,15 @@ struct StationBoardView: View {
         favoriteStations.contains { $0.signature == station.locationSignature }
     }
 
-    /// Opens Apple Maps with driving directions to the station from the user's current location.
+    /// Opens Apple Maps with directions to the station from the user's current location, in
+    /// whichever mode the user prefers — walking and transit are at least as likely as driving
+    /// when the destination is a railway station.
     private func openDirections() {
         guard let coordinate = station.coordinate else { return }
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         let mapItem = MKMapItem(location: location, address: nil)
         mapItem.name = station.name
-        mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+        mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDefault])
     }
 
     private func toggleFavorite() {

@@ -168,13 +168,28 @@ struct MapScreen: View {
                     NavigationStack { SettingsView() }
                 }
                 .inspector(isPresented: inspectorBinding) {
-                    if let selection = currentSelection {
-                        NavigationStack {
-                            TrainDetailView(key: selection.key, liveID: selection.liveID, onClose: clearSelection)
-                        }
+                    inspectorDetail
                         .inspectorColumnWidth(min: 340, ideal: 400, max: 520)
-                    }
                 }
+        }
+    }
+
+    /// What the iPad inspector shows for the current selection. Stations get their board here for
+    /// the same reason trains get their detail: on iPad there is no bottom card to push onto, so
+    /// without this a tapped station dot would only move the camera.
+    @ViewBuilder
+    private var inspectorDetail: some View {
+        if let selectedStation {
+            NavigationStack {
+                StationBoardView(station: selectedStation)
+                    .navigationDestination(for: TrainKey.self) { key in
+                        TrainDetailView(key: key)
+                    }
+            }
+        } else if let selection = currentSelection {
+            NavigationStack {
+                TrainDetailView(key: selection.key, liveID: selection.liveID, onClose: clearSelection)
+            }
         }
     }
 
@@ -206,7 +221,7 @@ struct MapScreen: View {
     }
 
     private var inspectorBinding: Binding<Bool> {
-        Binding(get: { currentSelection != nil }, set: {
+        Binding(get: { currentSelection != nil || selectedStation != nil }, set: {
             if !$0 {
                 clearSelection()
             }

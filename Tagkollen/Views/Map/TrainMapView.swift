@@ -29,6 +29,24 @@ struct TrainMapView: View {
     /// per selection (see `refreshRoute`) rather than on every `body` evaluation — Dijkstra over
     /// the rail network isn't free, and the route never changes while a train just keeps moving.
     @State private var routeCoordinates: [CLLocationCoordinate2D] = []
+    /// The ambient station pins actually handed to the map, resolved outside `body` for the same
+    /// reason as `displayedTrains`: `body` re-runs several times a second while positions stream,
+    /// and a nationwide `ForEach` over the whole directory would rebuild ~700 annotations — and
+    /// re-parse ~700 WKT coordinate strings — every time, almost all of them off-screen.
+    @State private var displayedStations: [StationPin] = []
+
+    private struct StationPin: Identifiable, Equatable {
+        let station: TrainStation
+        let coordinate: Coordinate
+
+        var id: String {
+            station.locationSignature
+        }
+
+        var clCoordinate: CLLocationCoordinate2D {
+            CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        }
+    }
 
     var body: some View {
         Map(position: $camera, interactionModes: .all, selection: $selectedTrainID, scope: scope) {
@@ -41,29 +59,27 @@ struct TrainMapView: View {
                     coordinate: CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude),
                     anchor: .center
                 ) {
-                    StationMarker(isSelected: true)
+                    StationMarker(name: selectedStation.name, isSelected: true)
                 } label: {
                     Text(selectedStation.name)
                 }
                 .annotationTitles(.visible)
             }
-            if settings.showStations, visibleRegion.span.latitudeDelta < 1.5 {
-                ForEach(stations.all) { station in
-                    if station.locationSignature != selectedStation?.locationSignature, let coordinate = station.coordinate {
-                        Annotation(
-                            coordinate: CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude),
-                            anchor: .center
-                        ) {
-                            Button { onSelectStation(station) } label: {
-                                StationMarker()
-                            }
-                            .buttonStyle(.plain)
-                        } label: {
-                            Text(station.name)
-                        }
-                        .annotationTitles(.hidden)
+            ForEach(displayedStations) { pin in
+                Annotation(coordinate: pin.clCoordinate, anchor: .center) {
+                    Button { onSelectStation(pin.station) } label: {
+                        // The dot itself is deliberately small, but a 16pt tap target isn't
+                        // reachable; the padded frame is invisible and sits below the train
+                        // annotations, so a train on top of a station still wins the tap.
+                        StationMarker(name: pin.station.name)
+                            .frame(width: 44, height: 44)
+                            .contentShape(.circle)
                     }
+                    .buttonStyle(.plain)
+                } label: {
+                    Text(pin.station.name)
                 }
+                .annotationTitles(.hidden)
             }
             ForEach(displayedTrains) { train in
                 Annotation(coordinate: train.clCoordinate, anchor: .center) {
@@ -88,6 +104,7 @@ struct TrainMapView: View {
         .onMapCameraChange(frequency: .onEnd) { context in
             visibleRegion = context.region
             refreshDisplayedTrains()
+            refreshDisplayedStations()
         }
         .onChange(of: live.updateCount, initial: true) { _, _ in
             scheduleRefresh()
@@ -100,6 +117,9 @@ struct TrainMapView: View {
         }
         .onChange(of: journeys.cached(selectedKey)) { _, _ in
             fitCameraToRouteIfNeeded()
+        }
+        .onChange(of: stationInputs, initial: true) { _, _ in
+            refreshDisplayedStations()
         }
         .onChange(of: routeInputs, initial: true) { _, _ in
             // `initial: true` matters: `selectedKey` lives in `MapScreen` and outlives this view,
@@ -149,6 +169,49 @@ struct TrainMapView: View {
             refreshDisplayedTrains()
         }
     }
+
+    /// Everything `refreshDisplayedStations` depends on apart from the camera (which is handled in
+    /// `onMapCameraChange`). Read from `body`, so `@Observable` tracks the toggle and the directory
+    /// finishing its load.
+    private struct StationInputs: Equatable {
+        let show: Bool
+        let stationCount: Int
+        let selected: String?
+    }
+
+    private var stationInputs: StationInputs {
+        StationInputs(
+            show: settings.showStations,
+            stationCount: stations.all.count,
+            selected: selectedStation?.locationSignature
+        )
+    }
+
+    /// Stations only appear once zoomed past a regional level, and then only the ones actually in
+    /// view — the directory holds every advertised station in the country, of which a city-level
+    /// camera shows a few dozen. The selected station is drawn separately and skipped here.
+    private func refreshDisplayedStations() {
+        guard settings.showStations, visibleRegion.span.latitudeDelta < Self.stationZoomThreshold else {
+            if !displayedStations.isEmpty {
+                displayedStations = []
+            }
+            return
+        }
+        let region = visibleRegion.padded(by: 0.25)
+        let selected = selectedStation?.locationSignature
+        var next: [StationPin] = []
+        for station in stations.all where station.locationSignature != selected {
+            guard let coordinate = station.coordinate else { continue }
+            let pin = StationPin(station: station, coordinate: coordinate)
+            guard region.contains(pin.clCoordinate) else { continue }
+            next.append(pin)
+        }
+        guard next != displayedStations else { return }
+        displayedStations = next
+    }
+
+    /// Zoomed out further than this, station dots are unreadable clutter.
+    private static let stationZoomThreshold: CLLocationDegrees = 1.5
 
     /// Recomputes the on-screen train set and only touches `displayedTrains` (and re-tracks delays)
     /// when it actually changed, so an update elsewhere in the country doesn't re-render this map.
