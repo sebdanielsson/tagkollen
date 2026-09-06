@@ -31,7 +31,10 @@ unless ENV['CI'] == 'true' || ENV['ALLOW_LOCAL_REVOKE'] == '1'
 end
 
 def warn_off(message)
-  puts "::warning::#{message}"
+  # GitHub parses ::warning:: lines as workflow commands, so escape the payload: an API response
+  # body carries newlines and could otherwise start a command line of its own.
+  escaped = message.to_s.gsub('%', '%25').gsub("\r", '%0D').gsub("\n", '%0A')
+  puts "::warning::#{escaped}"
 end
 
 def stripped(serial)
@@ -83,7 +86,8 @@ def bearer_token
   ].map { |segment| Base64.urlsafe_encode64(JSON.generate(segment), padding: false) }
   signing_input = segments.join('.')
 
-  key = OpenSSL::PKey::EC.new(File.read(key_path))
+  # The .p8 Apple issues is a PKCS#8 PEM; the generic reader takes that on every Ruby version.
+  key = OpenSSL::PKey.read(File.read(key_path))
   der = key.sign(OpenSSL::Digest.new('SHA256'), signing_input)
   # ES256 wants the raw r||s pair, OpenSSL signs to a DER sequence of two integers.
   raw = OpenSSL::ASN1.decode(der).value.map { |value| value.value.to_s(16).rjust(64, '0') }.join
