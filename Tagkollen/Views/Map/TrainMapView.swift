@@ -266,8 +266,8 @@ struct TrainMapView: View {
             Annotation(coordinate: coordinate, anchor: .center) {
                 // Tappable like any other station: a stop dot suppresses the ambient dot that
                 // would otherwise sit under it, so it has to be the thing that opens the board.
-                // Its target is sized alongside the dots' (see `StationPins`), so no two targets
-                // on the map cover each other — consecutive stops included.
+                // Its target is sized alongside the dots' (see `StationPins`), so a stop and a
+                // dot never cover each other.
                 Button { openStation(stop.signature) } label: {
                     Circle()
                         .fill(stop.isCanceled ? Color.red : (stop.hasPassed ? Color.secondary : Color.accentColor))
