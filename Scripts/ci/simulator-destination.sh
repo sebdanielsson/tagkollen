@@ -36,7 +36,11 @@ done
 if [ -z "${udid:-}" ]; then
   echo "Creating a simulator: this image has no iPhone device." >&2
   runtime=$(xcrun simctl list runtimes --json | jq -r '
-    [ .runtimes[] | select(.isAvailable and (.identifier | test("SimRuntime\\.iOS-"))) ] | last.identifier // empty') || runtime=""
+    [ .runtimes[]
+      | select(.isAvailable)
+      | (.identifier | capture("SimRuntime\\.iOS-(?<major>[0-9]+)-(?<minor>[0-9]+)")) as $os
+      | { identifier, os: [($os.major | tonumber), ($os.minor | tonumber)] } ]
+    | sort_by(.os) | (last // empty).identifier') || runtime=""
   devicetype=$(xcrun simctl list devicetypes --json | jq -r '
     [ .devicetypes[] | select(.identifier | test("SimDeviceType\\.iPhone-")) ]
     | (map(select(.identifier | test("iPhone-17-Pro$"))) + .) | first.identifier // empty') || devicetype=""
