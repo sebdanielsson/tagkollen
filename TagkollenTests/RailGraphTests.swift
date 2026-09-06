@@ -112,6 +112,12 @@ struct RailGraphTests {
         #expect(route?.map(\.longitude) == expected.map(\.longitude))
     }
 
+    @Test("A station's coordinate is its track node; unknown signatures have none")
+    func stationCoordinate() {
+        #expect(coordinates(RailGraphFixture.graph.stationCoordinate("B").map { [$0] }) == coordinates([RailGraphFixture.b]))
+        #expect(RailGraphFixture.graph.stationCoordinate("Z") == nil)
+    }
+
     @Test("An unknown station signature has no route")
     func unknownStationReturnsNil() {
         #expect(RailGraphFixture.graph.route(from: "A", to: "Z") == nil)
@@ -162,6 +168,13 @@ struct RailGraphPolylineTests {
         #expect(stitch(stops) == coordinates(expected))
     }
 
+    @Test("A stop already anchored on its track node isn't duplicated when its real segment starts")
+    func anchoredStopIsNotDuplicated() {
+        let stops: [Stop] = [("Z", Self.z), ("A", RailGraphFixture.a), ("B", RailGraphFixture.b)]
+        let expected = [Self.z, RailGraphFixture.a, RailGraphFixture.m, RailGraphFixture.b]
+        #expect(stitch(stops) == coordinates(expected))
+    }
+
     @Test("A fallback after a real segment continues from the track node")
     func fallbackAfterRealSegment() {
         let stops: [Stop] = [("A", Self.aDirectory), ("B", RailGraphFixture.b), ("Z", Self.z)]
@@ -169,8 +182,33 @@ struct RailGraphPolylineTests {
         #expect(stitch(stops) == coordinates(expected))
     }
 
+    @Test("Consecutive fallbacks share their joining stop exactly once")
+    func consecutiveFallbacks() {
+        let y = CLLocationCoordinate2D(latitude: 61.0, longitude: 19.0)
+        let stops: [Stop] = [("Z", Self.z), ("Y", y), ("X", Self.aDirectory)]
+        #expect(stitch(stops) == coordinates([Self.z, y, Self.aDirectory]))
+    }
+
     @Test("A single stop has no line")
     func singleStopIsEmpty() {
         #expect(stitch([("A", Self.aDirectory)]) == [])
+    }
+}
+
+@Suite("MinHeap")
+struct MinHeapTests {
+    @Test("Pops in priority order with duplicates and enough entries to exercise both children")
+    func popsSorted() {
+        let priorities: [Double] = [7, 3, 9, 1, 3, 8, 2, 6, 5, 1, 4, 0]
+        var heap = MinHeap<Int>()
+        for (index, priority) in priorities.enumerated() {
+            heap.insert(index, priority: priority)
+        }
+        var popped: [Double] = []
+        while let index = heap.popMin() {
+            popped.append(priorities[index])
+        }
+        #expect(popped == priorities.sorted())
+        #expect(heap.isEmpty)
     }
 }

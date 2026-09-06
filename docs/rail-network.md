@@ -36,7 +36,7 @@ Two inputs have to be in place first:
 
   ```bash
   curl -s -X POST https://api.trafikinfo.trafikverket.se/v2/data.json -H 'Content-Type: text/xml' \
-    -d "<REQUEST><LOGIN authenticationkey='$TRV_API_KEY'/><QUERY objecttype='TrainStation' schemaversion='1.5'><FILTER><EQ name='Advertised' value='true'/></FILTER><INCLUDE>LocationSignature</INCLUDE><INCLUDE>AdvertisedLocationName</INCLUDE><INCLUDE>Geometry.WGS84</INCLUDE></QUERY></REQUEST>" \
+    -d "<REQUEST><LOGIN authenticationkey='$TRV_API_KEY'/><QUERY objecttype='TrainStation' namespace='rail.infrastructure' schemaversion='1.5'><FILTER><EQ name='Advertised' value='true'/></FILTER><INCLUDE>LocationSignature</INCLUDE><INCLUDE>AdvertisedLocationName</INCLUDE><INCLUDE>Geometry.WGS84</INCLUDE></QUERY></REQUEST>" \
     -o stations.json
   ```
 
@@ -45,16 +45,20 @@ Two inputs have to be in place first:
    track (`Status = 'Öppen'`, `SpTyp` in `nhsp`/`ahsp`/`tågspår` — excludes sidings and yard
    tracks). Builds an undirected graph: segment endpoints become nodes (snapped to 10cm to merge
    coincident points), segments become weighted edges.
-2. **`snap_stations.py`** — snaps every station in `stations.json` to its nearest graph node
-   (grid-indexed for speed). ~600/718 stations match within a few metres; the rest are foreign
-   border stations (`At.`/`De.`/`Dk.` prefixes) not covered by the Swedish network at all —
-   expected, they just fall back to a straight line in the app.
+2. **`snap_stations.py`** — snaps every station in `stations.json` to the nearest graph node
+   within 200 m (grid-indexed for speed). ~600/718 stations match — half of them within 15 m,
+   nine in ten within 80 m, the worst a few hundred metres where the directory coordinate is the
+   station building rather than the platforms. The rest are foreign stations (`At.`/`De.`/`Dk.`…
+   prefixes) not covered by the Swedish network at all, plus a couple of dozen Swedish ones that
+   sit on museum lines, harbour tracks or closed lines outside the open main-running track kept in
+   step 1. All of them just fall back to a straight line in the app.
 3. **`contract_graph.py`** — the raw graph has ~400k nodes, almost all of them degree-2 points
    that just sit along a straight-ish run between real junctions. It collapses every such chain
    into a single edge carrying the full sub-polyline, *pinning* every snapped station as a kept
    node first so no station disappears into a collapsed chain. Then simplifies each chain's
-   polyline with Douglas-Peucker (15m tolerance). Result: ~6.9k nodes / ~9.1k edges, ~40k total
-   coordinate points for the whole country.
+   polyline with Douglas-Peucker (15m tolerance). Result: ~6.9k nodes / ~9.1k edges, ~29k
+   distinct coordinates (~40k polyline vertices counting each edge's shared endpoints) for the
+   whole country.
 4. **`export_network.py`** — converts back to WGS84, rounds to 5 decimals (~1m), and writes the
    final `RailNetwork.json` (~750KB): `nodes` (`[lat, lon]` per graph node), `edges` (one
    `[a, b, interior, length]` per contracted chain — node indices, the simplified interior

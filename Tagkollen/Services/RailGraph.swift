@@ -23,6 +23,12 @@ struct RailGraph: Sendable {
     let adjacency: [[Adjacency]]
     let stationNode: [String: Int]
 
+    /// Where a station sits on the track: the graph node it was snapped to, which is where every
+    /// route through it starts and ends. `nil` for a signature the network doesn't know.
+    func stationCoordinate(_ signature: String) -> CLLocationCoordinate2D? {
+        stationNode[signature].map { nodeCoordinates[$0] }
+    }
+
     /// The real-track path between two stations, or `nil` if either signature isn't in the
     /// network, they're the same station, or no path connects them.
     func route(from: String, to: String) -> [CLLocationCoordinate2D]? {
@@ -89,27 +95,25 @@ struct RailGraph: Sendable {
 
 extension RailGraph {
     /// Stitches a journey's consecutive stop pairs into one polyline: the real track shape where
-    /// `route` knows it, a straight segment between the stations' own coordinates where it
-    /// doesn't (foreign station, network not loaded yet, no path). A real segment starts and ends
-    /// on the stations' track nodes, which can sit a few hundred metres from the directory
-    /// coordinate, so it's appended whole unless the previous segment already ended on its first
-    /// node — dropping that point unconditionally would cut the corner off the track.
+    /// `route` knows it, a straight segment between the stops' given coordinates where it doesn't
+    /// (foreign station, network not loaded yet, no path). A real segment starts and ends on the
+    /// stations' track nodes, so it's appended whole unless the line already ends exactly on its
+    /// first point (the previous real segment ended there, or the caller anchored the stop on the
+    /// same node) — dropping that point unconditionally would cut the corner off the track.
     static func polyline(
         through stops: [(signature: String, coordinate: CLLocationCoordinate2D)],
         route: (_ from: String, _ to: String) -> [CLLocationCoordinate2D]?
     ) -> [CLLocationCoordinate2D] {
         var result: [CLLocationCoordinate2D] = []
-        var endedOnTrack = false
         for (from, to) in zip(stops, stops.dropFirst()) {
-            if let real = route(from.signature, to.signature) {
-                result.append(contentsOf: endedOnTrack ? real.dropFirst() : real[...])
-                endedOnTrack = true
+            if let real = route(from.signature, to.signature), !real.isEmpty {
+                let continues = result.last.map { $0.latitude == real[0].latitude && $0.longitude == real[0].longitude } ?? false
+                result.append(contentsOf: continues ? real.dropFirst() : real[...])
             } else {
                 if result.isEmpty {
                     result.append(from.coordinate)
                 }
                 result.append(to.coordinate)
-                endedOnTrack = false
             }
         }
         return result

@@ -165,9 +165,20 @@ struct TrainMapView: View {
     }
 
     private func stopPoints(for journey: TrainJourney) -> [(TrainStop, CLLocationCoordinate2D)] {
-        journey.stops.compactMap { stop -> (TrainStop, CLLocationCoordinate2D)? in
-            guard let c = stations.station(stop.signature)?.coordinate else { return nil }
-            return (stop, CLLocationCoordinate2D(latitude: c.latitude, longitude: c.longitude))
+        journey.stops.compactMap { stop in
+            stopAnchor(for: stop.signature).map { (stop, $0) }
+        }
+    }
+
+    /// Where a stop is drawn — its dot and the ends of its route segments: on the track node the
+    /// rail network snapped the station to, so the dot sits exactly on the line, and only for a
+    /// station the network doesn't cover (or before it has loaded) the directory coordinate.
+    private func stopAnchor(for signature: String) -> CLLocationCoordinate2D? {
+        if let onTrack = RailNetwork.shared.stationCoordinate(signature) {
+            return onTrack
+        }
+        return stations.station(signature)?.coordinate.map {
+            CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
         }
     }
 
@@ -178,9 +189,7 @@ struct TrainMapView: View {
     /// from `body`.
     private func refreshRoute() {
         let stops = routeInputs.stopSignatures.compactMap { signature in
-            stations.station(signature)?.coordinate.map { c in
-                (signature: signature, coordinate: CLLocationCoordinate2D(latitude: c.latitude, longitude: c.longitude))
-            }
+            stopAnchor(for: signature).map { (signature: signature, coordinate: $0) }
         }
         guard !stops.isEmpty else {
             if !routeCoordinates.isEmpty {

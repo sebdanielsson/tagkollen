@@ -42,6 +42,12 @@ final class RailNetwork {
         }
     }
 
+    /// Where the network puts a station on the track (see `RailGraph.stationCoordinate`); `nil`
+    /// until loaded or for a station it doesn't cover.
+    func stationCoordinate(_ signature: String) -> CLLocationCoordinate2D? {
+        graph?.stationCoordinate(signature)
+    }
+
     /// The real-track path between two adjacent stops, or `nil` if either station isn't in the
     /// network (e.g. a foreign border station), the network hasn't finished loading yet, or no
     /// path exists — callers fall back to a straight line in that case.
@@ -81,7 +87,9 @@ final class RailNetwork {
             let stationCount = parsed.stationNode.count
             logger.debug("Loaded rail network: \(nodeCount) nodes, \(edgeCount) edges, \(stationCount) stations")
         } catch {
-            logger.error("Failed to load RailNetwork.json: \(error.localizedDescription, privacy: .public)")
+            // `String(describing:)`, not `localizedDescription`: the latter hides which index or
+            // station a `RailNetworkError`/`DecodingError` is actually complaining about.
+            logger.error("Failed to load RailNetwork.json: \(String(describing: error), privacy: .public)")
         }
     }
 
