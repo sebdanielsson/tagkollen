@@ -28,7 +28,7 @@ final class AppSettings {
         didSet { defaults.set(colorMarkersByDelay, forKey: Keys.colorMarkersByDelay) }
     }
 
-    /// Ambient, tappable station markers once zoomed in enough (see `TrainMapView`).
+    /// Ambient, tappable station markers once zoomed in enough (see `StationPins`).
     var showStations: Bool {
         didSet { defaults.set(showStations, forKey: Keys.showStations) }
     }

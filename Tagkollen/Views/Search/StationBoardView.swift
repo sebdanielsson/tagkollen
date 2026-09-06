@@ -34,6 +34,17 @@ struct StationBoardView: View {
     @State private var selected: TrainKey?
 
     var body: some View {
+        // Only where this board pushes its own trains. Inside the map card `onSelectTrain` is set
+        // and pushes go through `MapScreen`, which mirrors the path in a typed shadow — a
+        // destination declared here would land on that same stack and let a push slip past it.
+        if onSelectTrain == nil {
+            content.navigationDestination(for: TrainKey.self) { TrainDetailView(key: $0) }
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
         List {
             Section {
                 Picker("Board", selection: $board) {
@@ -98,7 +109,6 @@ struct StationBoardView: View {
                 .sensoryFeedback(.success, trigger: isFavorite)
             }
         }
-        .navigationDestination(for: TrainKey.self) { TrainDetailView(key: $0) }
         .refreshable { await load() }
         .task(id: board) { await load() }
         .onAppear { settings.addRecentStation(station.locationSignature) }

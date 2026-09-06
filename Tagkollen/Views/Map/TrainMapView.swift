@@ -2,7 +2,8 @@ import MapKit
 import SwiftUI
 import TrafikverketKit
 
-/// The MapKit view itself: annotations for every live train inside the visible region.
+/// The MapKit view itself: an annotation for every live train inside the visible region, the
+/// selected train's route, and a dot for each station on screen.
 struct TrainMapView: View {
     @Binding var camera: MapCameraPosition
     @Binding var visibleRegion: MKCoordinateRegion
@@ -172,22 +173,35 @@ struct TrainMapView: View {
     private struct StationInputs: Equatable {
         let show: Bool
         let directoryRevision: Int
-        let excluded: Set<String>
+        let marked: Set<String>
+        let networkLoaded: Bool
     }
 
     private var stationInputs: StationInputs {
-        StationInputs(show: settings.showStations, directoryRevision: stations.revision, excluded: excludedStations)
+        StationInputs(
+            show: settings.showStations,
+            directoryRevision: stations.revision,
+            marked: Set(markedStations.keys),
+            networkLoaded: RailNetwork.shared.isLoaded
+        )
     }
 
-    /// Stations that already have a marker of their own: the selected station, and every stop of
-    /// the selected train's route. Drawing an ambient dot on top of a stop dot would hide whether
-    /// that stop is cancelled or already passed.
-    private var excludedStations: Set<String> {
-        var excluded = Set(stopSignatures)
-        if let signature = selectedStation?.locationSignature {
-            excluded.insert(signature)
+    /// Stations that already have a marker of their own — the selected station and every stop of
+    /// the selected train's route — mapped to the point that marker is drawn at. They get no
+    /// ambient dot: one drawn over a stop dot would hide whether that stop is cancelled or already
+    /// passed, and one drawn beside it would swallow the taps meant for it.
+    private var markedStations: [String: CLLocationCoordinate2D] {
+        var marked: [String: CLLocationCoordinate2D] = [:]
+        for signature in stopSignatures {
+            marked[signature] = stopAnchor(for: signature)
         }
-        return excluded
+        if let station = selectedStation, let coordinate = station.coordinate {
+            marked[station.locationSignature] = CLLocationCoordinate2D(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude
+            )
+        }
+        return marked
     }
 
     private var stopSignatures: [String] {
@@ -200,7 +214,12 @@ struct TrainMapView: View {
     /// city-level camera shows a few dozen.
     private func refreshDisplayedStations() {
         let next = settings.showStations
-            ? StationPins.pins(from: stations.located, in: visibleRegion, excluding: excludedStations, mapHeight: mapHeight)
+            ? StationPins.pins(
+                from: stations.located,
+                in: visibleRegion,
+                markedElsewhere: markedStations,
+                mapHeight: mapHeight
+            )
             : []
         guard next != displayedStations else { return }
         displayedStations = next
