@@ -22,9 +22,11 @@ struct StationPinsTests {
     private func station(
         _ signature: String,
         latitudeOffset: CLLocationDegrees = 0,
-        longitudeOffset: CLLocationDegrees = 0
+        longitudeOffset: CLLocationDegrees = 0,
+        platforms: Int = 0
     ) throws -> LocatedStation {
-        let json = Data(#"{"LocationSignature":"\#(signature)"}"#.utf8)
+        let lines = (0 ..< platforms).map { "\"\($0 + 1)\"" }.joined(separator: ",")
+        let json = Data(#"{"LocationSignature":"\#(signature)","PlatformLine":[\#(lines)]}"#.utf8)
         let decoded = try JSONDecoder.trafikverket.decode(TrainStation.self, from: json)
         return LocatedStation(
             station: decoded,
@@ -119,6 +121,16 @@ struct StationPinsTests {
         #expect(pins(stations).map(\.id) == ["Kept"])
     }
 
+    @Test("The bigger station survives a collapse, whatever its place in the directory")
+    func collapseKeepsTheBiggerStation() throws {
+        // Alphabetically "Karlberg" precedes "Stockholm C", and a plain first-come pass kept it.
+        let stations = try [
+            station("Karlberg", platforms: 4),
+            station("Stockholm C", latitudeOffset: 0.001, platforms: 34),
+        ]
+        #expect(pins(stations).map(\.id) == ["Stockholm C"])
+    }
+
     @Test("A dot exactly a dot's width away is still its own dot")
     func keepsDotsAtTheSeparationLimit() throws {
         let stations = try [station("A"), station("B", latitudeOffset: 0.006)]
@@ -202,6 +214,11 @@ struct StationPinsTests {
             }
         }
         #expect(result.count > 1)
+        // Every drawn dot is worth drawing: a target no smaller than the dot itself. Without this
+        // the test would pass with every target shrunk to a point nobody can hit.
+        #expect(result.allSatisfy { $0.hitSize >= StationPins.minSeparation })
+        #expect(result.allSatisfy { $0.hitSize <= StationPins.maxHitSize })
+        #expect(result.contains { $0.hitSize == StationPins.maxHitSize })
     }
 
     @Test("The zoom gate applies to the drawn dots, not just the visible set")

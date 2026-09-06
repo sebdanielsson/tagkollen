@@ -258,16 +258,30 @@ struct TrainMapView: View {
         }
         ForEach(points, id: \.0.id) { stop, coordinate in
             Annotation(coordinate: coordinate, anchor: .center) {
-                Circle()
-                    .fill(stop.isCanceled ? Color.red : (stop.hasPassed ? Color.secondary : Color.accentColor))
-                    .frame(width: 10, height: 10)
-                    .overlay(Circle().stroke(.white, lineWidth: 2))
-                    .shadow(radius: 1)
+                // Tappable like any other station: a stop dot suppresses the ambient dot that
+                // would otherwise sit under it, so it has to be the thing that opens the board.
+                // Its target is the separation the ambient dots are kept at, so the two never
+                // cover each other.
+                Button { openStation(stop.signature) } label: {
+                    Circle()
+                        .fill(stop.isCanceled ? Color.red : (stop.hasPassed ? Color.secondary : Color.accentColor))
+                        .frame(width: 10, height: 10)
+                        .overlay(Circle().stroke(.white, lineWidth: 2))
+                        .shadow(radius: 1)
+                        .frame(width: StationPins.minSeparation, height: StationPins.minSeparation)
+                        .contentShape(.circle)
+                }
+                .buttonStyle(.plain)
             } label: {
                 Text(stations.shortName(stop.signature))
             }
             .annotationTitles(visibleRegion.span.latitudeDelta < 1.5 ? .visible : .hidden)
         }
+    }
+
+    private func openStation(_ signature: String) {
+        guard let station = stations.station(signature) else { return }
+        onSelectStation(station)
     }
 
     private func stopPoints(for journey: TrainJourney) -> [(TrainStop, CLLocationCoordinate2D)] {

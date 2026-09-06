@@ -52,6 +52,9 @@ enum StationPins {
     /// both means two dots that each swallow the other's taps. What remains is then given a target
     /// no wider than the gap to its nearest neighbour, so targets meet without covering each
     /// other's centres, and never smaller than the dot itself.
+    ///
+    /// A station that loses its dot this way keeps a tappable marker whenever it is the one that
+    /// was marked, and is drawn again as soon as the camera separates the two.
     static func pins(
         from located: [LocatedStation],
         in region: MKCoordinateRegion,
@@ -59,36 +62,71 @@ enum StationPins {
         mapHeight: CGFloat
     ) -> [StationPin] {
         let drawn = visible(from: located, in: region).filter { markedElsewhere[$0.id] == nil }
-        guard mapHeight > 0, region.span.latitudeDelta > 0 else {
+        let scale = pointsPerMapPoint(in: region, mapHeight: mapHeight)
+        guard scale > 0 else {
             return drawn.map { StationPin(station: $0, hitSize: minSeparation) }
         }
-        let pointsPerDegree = Double(mapHeight) / region.span.latitudeDelta
-        let longitudeScale = cos(region.center.latitude * .pi / 180)
-        func distance(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
-            let dy = (a.latitude - b.latitude) * pointsPerDegree
-            let dx = (a.longitude - b.longitude) * longitudeScale * pointsPerDegree
-            return (dx * dx + dy * dy).squareRoot()
+        func distance(_ a: MKMapPoint, _ b: MKMapPoint) -> Double {
+            ((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)).squareRoot() * scale
         }
 
-        var occupied = Array(markedElsewhere.values)
-        var chosen: [(station: LocatedStation, index: Int)] = []
-        for station in drawn {
-            let point = station.clCoordinate
+        var occupied = markedElsewhere.values.map(MKMapPoint.init)
+        var chosen: [Chosen] = []
+        for entry in collapseOrder(drawn) {
+            let point = MKMapPoint(entry.station.clCoordinate)
             guard !occupied.contains(where: { distance($0, point) < Double(minSeparation) }) else { continue }
-            chosen.append((station, occupied.count))
+            chosen.append(Chosen(station: entry.station, order: entry.order, index: occupied.count))
             occupied.append(point)
         }
-        return chosen.map { entry in
-            let point = entry.station.clCoordinate
+        return chosen.sorted { $0.order < $1.order }.map { entry in
+            let point = MKMapPoint(entry.station.clCoordinate)
             var nearest = Double.infinity
             for (index, other) in occupied.enumerated() where index != entry.index {
                 nearest = min(nearest, distance(other, point))
             }
-            // Rounded to whole points so a metre of panning doesn't count as a changed set. That
-            // can overlap two targets by up to half a point, which is far too little to put either
-            // dot's centre inside the other's target.
+            // Rounded to whole points, which can overlap two targets by up to half a point — far
+            // too little to put either dot's centre inside the other's target.
             return StationPin(station: entry.station, hitSize: CGFloat(min(Double(maxHitSize), nearest).rounded()))
         }
+    }
+
+    /// A station that survived the collapse: `order` is its place in the directory, so the drawn
+    /// set can be handed back in that order, and `index` is where its point sits in `occupied`, so
+    /// the sizing pass can skip measuring it against itself.
+    private struct Chosen {
+        let station: LocatedStation
+        let order: Int
+        let index: Int
+    }
+
+    /// Screen points per Mercator map point for a camera. Distances are measured in map points
+    /// rather than in degrees so that two stations' spacing doesn't depend on where the camera
+    /// happens to be centred, which would make a pan alone re-decide which dots are drawn.
+    private static func pointsPerMapPoint(in region: MKCoordinateRegion, mapHeight: CGFloat) -> Double {
+        guard mapHeight > 0, region.span.latitudeDelta > 0 else { return 0 }
+        let half = region.span.latitudeDelta / 2
+        let north = MKMapPoint(CLLocationCoordinate2D(latitude: min(85, region.center.latitude + half), longitude: region.center.longitude))
+        let south = MKMapPoint(CLLocationCoordinate2D(
+            latitude: max(-85, region.center.latitude - half),
+            longitude: region.center.longitude
+        ))
+        let height = abs(south.y - north.y)
+        return height > 0 ? Double(mapHeight) / height : 0
+    }
+
+    /// The order the collapse considers stations in, so that when two dots are too close to draw
+    /// both, the one that survives is the one a user is likelier to be looking for: the bigger
+    /// station, measured by how many platforms it advertises. Ties keep the directory's own order,
+    /// so the result is deterministic. Without this the survivor came down to alphabetical order,
+    /// which kept Karlberg over Stockholm C and Gamlestaden over Göteborg C.
+    private static func collapseOrder(_ stations: [LocatedStation]) -> [(station: LocatedStation, order: Int)] {
+        stations.enumerated()
+            .map { (station: $0.element, order: $0.offset) }
+            .sorted { lhs, rhs in
+                let left = lhs.station.station.platformLine?.count ?? 0
+                let right = rhs.station.station.platformLine?.count ?? 0
+                return left == right ? lhs.order < rhs.order : left > right
+            }
     }
 }
 
