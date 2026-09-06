@@ -94,7 +94,7 @@ def main():
     print(f"Downloading {file_name} ({newest.get('size')})")
 
     # The download token is single-use and valid for 60 s; the file itself needs no auth.
-    download_token = json.loads(call("file/GetDataPackageDownloadToken", token, id=package["id"], fileName=file_name))
+    download_token = json.loads(call("File/GetDataPackageDownloadToken", token, id=package["id"], fileName=file_name))
     data = call("File/GetDataPackageFile", token=download_token)
 
     os.makedirs(OUT_DIR, exist_ok=True)

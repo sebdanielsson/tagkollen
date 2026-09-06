@@ -11,9 +11,8 @@ The Trafikverket Open API used everywhere else in the app (`TrainPosition`, `Tra
 `TrainStation`, …) has no track geometry — only points. The actual rail network shape is a
 separate product, **"Järnvägsnät med grundegenskaper"**, distributed as a GeoPackage through
 [Lastkajen](https://www.trafikverket.se/e-tjanster/lastkajen--sveriges-vag--och-jarnvagsdata/)
-(free, CC0, just needs an email registration; the pipeline doesn't script the download, so
-fetch the `.zip` from the portal by hand — Lastkajen does have a token-based API if that ever
-needs automating). It ships ~195k short track segments (tens of metres
+(free, CC0, just needs an email registration; `download_njdb.py` fetches it through Lastkajen's
+token-based API, or you can pull the `.zip` from the portal by hand). It ships ~195k short track segments (tens of metres
 each) in SWEREF99TM, tagged with attributes like track type and status but no direct link to
 Trafikverket's station signatures.
 
@@ -22,9 +21,13 @@ Trafikverket's station signatures.
 Everything runs from inside `Scripts/rail-network/` and reads/writes files next to the scripts
 (all of them git-ignored except the final copy under `Tagkollen/Resources/`):
 
+The scripts are run with [uv](https://docs.astral.sh/uv/), which reads `pyproject.toml` and
+`uv.lock` and sets up the interpreter and dependencies itself — no GDAL needed, a GeoPackage is
+just SQLite:
+
 ```bash
 cd Scripts/rail-network
-pip install -r requirements.txt   # shapely, pyproj, networkx — no GDAL needed
+uv run build_graph.py     # uv installs Python and the dependencies on first run
 ```
 
 Two inputs have to be in place first:
@@ -33,7 +36,7 @@ Two inputs have to be in place first:
   you given a free Lastkajen account:
 
   ```bash
-  LASTKAJEN_USER='you@example.com' LASTKAJEN_PASSWORD='…' python3 download_njdb.py
+  LASTKAJEN_USER='you@example.com' LASTKAJEN_PASSWORD='…' uv run download_njdb.py
   ```
 
   The file name carries the data's version and changes between releases, so `build_graph.py`
@@ -102,7 +105,7 @@ existing file doesn't need routine updates. Re-download the GeoPackage from Last
 
 ```bash
 cd Scripts/rail-network
-python3 download_njdb.py   # or unzip the Lastkajen download into railnet/ yourself
-python3 build_graph.py && python3 snap_stations.py && python3 contract_graph.py && python3 export_network.py
+uv run download_njdb.py   # or unzip the Lastkajen download into railnet/ yourself
+uv run build_graph.py && uv run snap_stations.py && uv run contract_graph.py && uv run export_network.py
 cp RailNetwork.json ../../Tagkollen/Resources/RailNetwork.json
 ```
