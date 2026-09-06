@@ -57,11 +57,15 @@ jobs:
           printf 'TRV_API_KEY =\nDEVELOPMENT_TEAM =\n' > Config/Secrets.xcconfig
           xcodegen generate --quiet
 
+      # The destination is resolved at run time: naming the simulator fails at random on runners
+      # whose CoreSimulator has not registered its device set yet (Scripts/ci/simulator-destination.sh).
       - name: Build and test app
         run: |
           set -o pipefail
+          destination=$(Scripts/ci/simulator-destination.sh)
+          echo "Destination: $destination"
           xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -destination "$destination" \
             -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO build test | xcbeautify --renderer github-actions
 
