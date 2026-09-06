@@ -43,4 +43,5 @@ Scripts/rail-network/stations.json
 Scripts/rail-network/snapped_stations.json
 Scripts/rail-network/contracted_graph.pkl
 Scripts/rail-network/RailNetwork.json
+Scripts/rail-network/.venv/
 __pycache__/

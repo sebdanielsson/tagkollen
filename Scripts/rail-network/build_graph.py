@@ -1,10 +1,50 @@
+import glob
+import os
+import re
 import sqlite3
+import sys
+
 import networkx as nx
 from shapely import wkb as shapely_wkb
 from shapely.geometry import LineString, MultiLineString
 
-GPKG = "railnet/Järnvägsnät_grundegenskaper3_0_GeoPackage.gpkg"
-TABLE = "Järnvägsnät_med_grundegenskaper3_0"
+RAILNET_DIR = "railnet"
+# The columns `load_lines` selects and filters on; a layer without them is not the one we want.
+COLUMNS = {"id", "geom", "Pl_Forb", "PlNamn", "Straknamn", "Bandel", "Status", "SpTyp"}
+
+
+def version_key(name):
+    """Orders NJDB names by the version they carry, newest last: as numbers rather than as text,
+    where a hypothetical `3_10` would sort before `3_9`. The name itself breaks ties, so the order
+    is total and doesn't depend on the order names arrive in."""
+    return ([int(n) for n in re.findall(r"\d+", name)], name)
+
+
+def find_geopackage():
+    """The NJDB download's file name carries its version, so it changes between releases — take
+    whatever GeoPackage is in `railnet/`, newest version first."""
+    found = glob.glob(os.path.join(RAILNET_DIR, "**", "*.gpkg"), recursive=True)
+    if not found:
+        sys.exit(f"No .gpkg under {RAILNET_DIR}/ — run download_njdb.py first (see docs/rail-network.md)")
+    return max(found, key=lambda path: version_key(os.path.basename(path)))
+
+
+def find_table(con):
+    """The layer `load_lines` can actually read. A GeoPackage lists its layers in `gpkg_contents`,
+    and the one we want is picked by the columns the query needs rather than by its name, which
+    carries the release version. A file that has no such layer is an error worth stopping on, not
+    something to guess at."""
+    rows = con.execute("SELECT table_name FROM gpkg_contents WHERE data_type = 'features'").fetchall()
+    names = [name for (name,) in rows]
+    usable = [name for name in names if COLUMNS <= {row[1] for row in con.execute(f"PRAGMA table_info('{name}')")}]
+    if not usable:
+        sys.exit(f"No layer in the GeoPackage has the columns {sorted(COLUMNS)}. Layers: {names}")
+    # `gpkg_contents` has no guaranteed row order, so a file carrying two releases of the layer
+    # would otherwise export whichever one SQLite happened to return first.
+    newest = max(usable, key=version_key)
+    if len(usable) > 1:
+        print(f"Several usable layers {sorted(usable)}; taking the newest, {newest}")
+    return newest
 
 
 def gpkg_geom_to_wkb(blob):
@@ -21,10 +61,13 @@ def snap(x, y):
 
 
 def load_lines():
-    con = sqlite3.connect(GPKG)
+    path = find_geopackage()
+    con = sqlite3.connect(path)
+    table = find_table(con)
+    print(f"Reading {table} from {path}")
     cur = con.cursor()
     cur.execute(
-        f"""SELECT id, geom, Pl_Forb, PlNamn, Straknamn, Bandel FROM '{TABLE}'
+        f"""SELECT id, geom, Pl_Forb, PlNamn, Straknamn, Bandel FROM '{table}'
             WHERE Status = 'Öppen' AND SpTyp IN ('nhsp', 'ahsp', 'tågspår')"""
     )
     lines = []
