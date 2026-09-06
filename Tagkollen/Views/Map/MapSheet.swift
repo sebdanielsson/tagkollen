@@ -20,6 +20,7 @@ struct MapSheet: View {
     @Binding var path: NavigationPath
     @Binding var detent: PresentationDetent
     var onSelectTrain: (TrainKey) -> Void
+    var onSelectStation: (TrainStation) -> Void
 
     @Environment(AppDependencies.self) private var deps
     @Environment(StationDirectory.self) private var stations
@@ -404,8 +405,7 @@ struct MapSheet: View {
 
     private func open(_ station: TrainStation) {
         searchFocused = false
-        path = NavigationPath([MapSheetRoute.station(station)])
-        detent = .large
+        onSelectStation(station)
     }
 
     private func searchTrains() async {

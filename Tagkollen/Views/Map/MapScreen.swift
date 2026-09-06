@@ -15,8 +15,13 @@ struct MapScreen: View {
     @State private var visibleRegion: MKCoordinateRegion = MapScreen.swedenRegion
     @State private var selectedTrainID: String?
     @State private var selectedKey: TrainKey?
+    @State private var selectedStation: TrainStation?
     @State private var showSettings = false
     @State private var sheetPath = NavigationPath()
+    /// Typed shadow of `sheetPath`'s contents — `NavigationPath` is intentionally opaque (can't be
+    /// read back), but restoring the map's selection/camera correctly when the user taps "back"
+    /// needs to know what's now on top of the stack, so this is kept in lockstep with every push.
+    @State private var routeStack: [MapSheetRoute] = []
     @State private var sheetDetent: PresentationDetent = .medium
     @State private var sheetPresented = true
     @Namespace private var mapScope
@@ -46,9 +51,16 @@ struct MapScreen: View {
         .onChange(of: selectedTrainID) { _, id in
             Self.logger.debug("selectedTrainID → \(id ?? "nil", privacy: .public)")
             guard let id, let train = live.train(id: id) else { return }
+            selectedStation = nil
             selectedKey = train.key
-            if !isRegular {
-                sheetPath = NavigationPath([MapSheetRoute.train(TrainSelection(key: train.key, liveID: id))])
+            let route = MapSheetRoute.train(TrainSelection(key: train.key, liveID: id))
+            if !isRegular, routeStack.last != route {
+                // Append rather than replace: selecting a train from within an already-open
+                // station board should push on top of it, so "back" returns to the board instead
+                // of all the way to search. Skipped when this is already the top of the stack —
+                // either a repeat tap, or this exact change is what a "back" restore just applied.
+                sheetPath.append(route)
+                routeStack.append(route)
                 sheetDetent = .medium
             }
             withAnimation(.smooth) { camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.45) }
@@ -61,15 +73,13 @@ struct MapScreen: View {
             // iPad routes station links to the Search tab; on iPhone the card shows the board.
             guard !isRegular, let signature, let station = stations.station(signature) else { return }
             navigation.pendingStationSignature = nil
-            sheetPath = NavigationPath([MapSheetRoute.station(station)])
-            sheetDetent = .large
+            focus(on: station)
         }
         .onChange(of: stations.isLoaded) { _, loaded in
             guard loaded, !isRegular, let signature = navigation.pendingStationSignature,
                   let station = stations.station(signature) else { return }
             navigation.pendingStationSignature = nil
-            sheetPath = NavigationPath([MapSheetRoute.station(station)])
-            sheetDetent = .large
+            focus(on: station)
         }
         .onChange(of: live.updateCount) { _, _ in
             if let key = navigation.pendingMapFocus {
@@ -81,11 +91,12 @@ struct MapScreen: View {
         }
         .onChange(of: sheetPath) { _, path in
             Self.logger.debug("sheetPath → \(path.count) items")
-            // Popping the card back to search clears the map selection.
-            if path.isEmpty, selectedTrainID != nil || selectedKey != nil {
-                selectedTrainID = nil
-                selectedKey = nil
-            }
+            // A shorter path than our shadow copy means the user tapped "back" (pushes always grow
+            // both together). Trim the shadow to match, then restore the map to whatever's now on
+            // top — the previous station's board, an earlier train, or nothing at the root.
+            guard path.count < routeStack.count else { return }
+            routeStack.removeLast(routeStack.count - path.count)
+            restoreSelection()
         }
     }
 
@@ -95,6 +106,8 @@ struct MapScreen: View {
             visibleRegion: $visibleRegion,
             selectedTrainID: $selectedTrainID,
             selectedKey: selectedKey,
+            selectedStation: selectedStation,
+            onSelectStation: { focus(on: $0) },
             scope: mapScope
         )
     }
@@ -136,7 +149,7 @@ struct MapScreen: View {
             }
             .mapScope(mapScope)
             .sheet(isPresented: $sheetPresented) {
-                MapSheet(path: $sheetPath, detent: $sheetDetent, onSelectTrain: select)
+                MapSheet(path: $sheetPath, detent: $sheetDetent, onSelectTrain: select, onSelectStation: { focus(on: $0) })
                     .presentationDetents([.height(Self.collapsedSheetHeight), .medium, .large], selection: $sheetDetent)
                     .presentationBackgroundInteraction(.enabled(upThrough: .medium))
                     .presentationDragIndicator(.visible)
@@ -205,8 +218,30 @@ struct MapScreen: View {
     private func clearSelection() {
         selectedTrainID = nil
         selectedKey = nil
+        selectedStation = nil
         if !isRegular {
             sheetPath = NavigationPath()
+            routeStack = []
+        }
+    }
+
+    /// Re-applies whatever is now on top of `routeStack` after a "back" tap trimmed it — restoring
+    /// the map's selection and camera without pushing anything new onto the (already-correct) path.
+    private func restoreSelection() {
+        switch routeStack.last {
+        case let .station(station):
+            focus(on: station, pushingPath: false)
+        case let .train(selection):
+            if let key = selection.key {
+                focus(on: key, pushingPath: false)
+            } else {
+                selectedTrainID = nil
+                selectedKey = nil
+            }
+        case nil:
+            selectedTrainID = nil
+            selectedKey = nil
+            selectedStation = nil
         }
     }
 
@@ -222,8 +257,36 @@ struct MapScreen: View {
         return .region(MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: spanDegrees, longitudeDelta: spanDegrees)))
     }
 
-    private func focus(on key: TrainKey) {
+    /// Selects a station: zooms the camera there, marks it on the map, and opens its board — used
+    /// by search, quick stations and station deep links alike.
+    private func focus(on station: TrainStation, pushingPath: Bool = true) {
+        let alreadyShowing = !isRegular && selectedStation?.locationSignature == station.locationSignature
+        selectedTrainID = nil
+        selectedKey = nil
+        selectedStation = station
+        if pushingPath, !isRegular, !alreadyShowing {
+            // Append rather than replace, so navigating here from within an already-open sheet
+            // (e.g. a train's detail) leaves a "back" trail instead of discarding it. Skipped
+            // entirely when this exact station is already on top, so re-tapping it (e.g. the
+            // same quick-station icon) doesn't push a duplicate onto the path. Also skipped when
+            // restoring a selection after "back" — the path is already correct in that case.
+            sheetPath.append(MapSheetRoute.station(station))
+            routeStack.append(.station(station))
+            sheetDetent = .medium
+        }
+        if let coordinate = station.coordinate {
+            withAnimation(.smooth) {
+                camera = cameraFocusing(
+                    CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude),
+                    spanDegrees: 0.3
+                )
+            }
+        }
+    }
+
+    private func focus(on key: TrainKey, pushingPath: Bool = true) {
         navigation.pendingMapFocus = nil
+        selectedStation = nil
         if let train = live.train(for: key) {
             selectedKey = key
             selectedTrainID = train.id
@@ -232,10 +295,16 @@ struct MapScreen: View {
             }
         } else if live.state.isLive || !live.trains.isEmpty {
             // No live position (yet); still open the timetable.
+            let alreadyShowing = !isRegular && selectedKey == key && selectedTrainID == nil
             selectedKey = key
             selectedTrainID = nil
-            if !isRegular {
-                sheetPath = NavigationPath([MapSheetRoute.train(TrainSelection(key: key, liveID: nil))])
+            if pushingPath, !isRegular, !alreadyShowing {
+                // Append rather than replace: selecting a train from within an already-open
+                // station board should push on top of it, so "back" returns to the board. Skipped
+                // when this exact train is already showing, to avoid a duplicate path entry, and
+                // when restoring a selection after "back" — the path is already correct then.
+                sheetPath.append(MapSheetRoute.train(TrainSelection(key: key, liveID: nil)))
+                routeStack.append(.train(TrainSelection(key: key, liveID: nil)))
                 sheetDetent = .medium
             }
         } else {

@@ -28,6 +28,11 @@ final class AppSettings {
         didSet { defaults.set(colorMarkersByDelay, forKey: Keys.colorMarkersByDelay) }
     }
 
+    /// Ambient, tappable station markers once zoomed in enough (see `TrainMapView`).
+    var showStations: Bool {
+        didSet { defaults.set(showStations, forKey: Keys.showStations) }
+    }
+
     var pollingInterval: TimeInterval {
         didSet { defaults.set(pollingInterval, forKey: Keys.pollingInterval) }
     }
@@ -55,6 +60,7 @@ final class AppSettings {
         static let showInactiveTrains = "settings.showInactiveTrains"
         static let showTrainLabels = "settings.showTrainLabels"
         static let colorMarkersByDelay = "settings.colorMarkersByDelay"
+        static let showStations = "settings.showStations"
         static let pollingInterval = "settings.pollingInterval"
         static let alertsEnabled = "settings.alertsEnabled"
         static let recentStations = "settings.recentStations"
@@ -66,6 +72,7 @@ final class AppSettings {
         showInactiveTrains = defaults.object(forKey: Keys.showInactiveTrains) as? Bool ?? false
         showTrainLabels = defaults.object(forKey: Keys.showTrainLabels) as? Bool ?? true
         colorMarkersByDelay = defaults.object(forKey: Keys.colorMarkersByDelay) as? Bool ?? true
+        showStations = defaults.object(forKey: Keys.showStations) as? Bool ?? true
         let stored = defaults.double(forKey: Keys.pollingInterval)
         pollingInterval = stored > 0 ? stored : 15
         recentStations = defaults.stringArray(forKey: Keys.recentStations) ?? []

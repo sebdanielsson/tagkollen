@@ -1,3 +1,4 @@
+import MapKit
 import SwiftData
 import SwiftUI
 import TrafikverketKit
@@ -84,7 +85,12 @@ struct StationBoardView: View {
         .navigationTitle(station.name)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if station.coordinate != nil {
+                    Button("Directions", systemImage: "arrow.triangle.turn.up.right.diamond.fill") {
+                        openDirections()
+                    }
+                }
                 Button(isFavorite ? "Saved" : "Save", systemImage: isFavorite ? "star.fill" : "star") {
                     toggleFavorite()
                 }
@@ -108,6 +114,15 @@ struct StationBoardView: View {
 
     private var isFavorite: Bool {
         favoriteStations.contains { $0.signature == station.locationSignature }
+    }
+
+    /// Opens Apple Maps with driving directions to the station from the user's current location.
+    private func openDirections() {
+        guard let coordinate = station.coordinate else { return }
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let mapItem = MKMapItem(location: location, address: nil)
+        mapItem.name = station.name
+        mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
     }
 
     private func toggleFavorite() {

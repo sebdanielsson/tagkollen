@@ -24,6 +24,7 @@ struct MapControlsCluster: View {
                     Divider()
                     Toggle("Show train numbers", isOn: $settings.showTrainLabels)
                     Toggle("Colour trains by delay", isOn: $settings.colorMarkersByDelay)
+                    Toggle("Show stations", isOn: $settings.showStations)
                 } label: {
                     Image(systemName: "map")
                         .font(.body.weight(.medium))

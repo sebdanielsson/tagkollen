@@ -8,6 +8,8 @@ struct TrainMapView: View {
     @Binding var visibleRegion: MKCoordinateRegion
     @Binding var selectedTrainID: String?
     var selectedKey: TrainKey?
+    var selectedStation: TrainStation?
+    var onSelectStation: (TrainStation) -> Void
     var scope: Namespace.ID
 
     @Environment(LiveTrainStore.self) private var live
@@ -33,6 +35,35 @@ struct TrainMapView: View {
             UserAnnotation()
             if let journey = journeys.cached(selectedKey) {
                 routeOverlay(for: journey)
+            }
+            if let selectedStation, let coordinate = selectedStation.coordinate {
+                Annotation(
+                    coordinate: CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude),
+                    anchor: .center
+                ) {
+                    StationMarker(isSelected: true)
+                } label: {
+                    Text(selectedStation.name)
+                }
+                .annotationTitles(.visible)
+            }
+            if settings.showStations, visibleRegion.span.latitudeDelta < 1.5 {
+                ForEach(stations.all) { station in
+                    if station.locationSignature != selectedStation?.locationSignature, let coordinate = station.coordinate {
+                        Annotation(
+                            coordinate: CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude),
+                            anchor: .center
+                        ) {
+                            Button { onSelectStation(station) } label: {
+                                StationMarker()
+                            }
+                            .buttonStyle(.plain)
+                        } label: {
+                            Text(station.name)
+                        }
+                        .annotationTitles(.hidden)
+                    }
+                }
             }
             ForEach(displayedTrains) { train in
                 Annotation(coordinate: train.clCoordinate, anchor: .center) {
