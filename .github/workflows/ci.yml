@@ -146,6 +146,19 @@ jobs:
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
           echo "Uploaded Tågkollen $(cat version.txt) (build ${{ github.run_number }}) to TestFlight." >> "$GITHUB_STEP_SUMMARY"
 
+      # Automatic signing has to mint a new Apple Development certificate on every runner, because
+      # the archive is signed for development and a fresh keychain holds nothing. Apple caps how
+      # many certificates an account may hold, so hand this one back before the runner is thrown
+      # away — otherwise the archive step starts failing with "Your account has reached the maximum
+      # number of certificates" after a handful of uploads. Only the certificate in this runner's
+      # own keychain is revoked, never one from someone's Mac (Scripts/ci/revoke-build-certificate.rb).
+      - name: Revoke the certificate this run created
+        if: always()
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: Scripts/ci/revoke-build-certificate.rb
+
   release-please:
     name: Release PR
     needs: verify
@@ -232,6 +245,19 @@ jobs:
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
           ls "$RUNNER_TEMP/export"
+
+      # Automatic signing has to mint a new Apple Development certificate on every runner, because
+      # the archive is signed for development and a fresh keychain holds nothing. Apple caps how
+      # many certificates an account may hold, so hand this one back before the runner is thrown
+      # away — otherwise the archive step starts failing with "Your account has reached the maximum
+      # number of certificates" after a handful of uploads. Only the certificate in this runner's
+      # own keychain is revoked, never one from someone's Mac (Scripts/ci/revoke-build-certificate.rb).
+      - name: Revoke the certificate this run created
+        if: always()
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: Scripts/ci/revoke-build-certificate.rb
 
       - name: Release notes from the GitHub release
         env:

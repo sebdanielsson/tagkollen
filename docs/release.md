@@ -68,6 +68,21 @@ Repository → Settings → Secrets and variables → Actions → *Repository se
 - Store text lives in `fastlane/metadata/<locale>/*.txt` (English `en-US`, Swedish `sv`); screenshots in `fastlane/screenshots/<locale>/` (`Scripts/screenshots.sh` regenerates them at the sizes App Store Connect requires; `LOCALE=sv` for Swedish). Both are uploaded with every release and overwrite what is in App Store Connect.
 - App Privacy details cannot be updated through the API key; change them in App Store Connect if the app ever starts collecting data.
 
+## Signing certificates
+
+The archive is signed for development and every runner starts with an empty keychain, so `-allowProvisioningUpdates` mints a fresh **Apple Development** certificate on every TestFlight and App Store run. Apple caps how many certificates an account may hold; once the cap is reached the archive step fails with:
+
+```text
+Choose a certificate to revoke. Your account has reached the maximum number of certificates.
+No profiles for 'se.tagkollen.app' were found: Xcode couldn't find any iOS App Development provisioning profiles…
+```
+
+The second line is a consequence of the first — no certificate, no profile. Removing builds in App Store Connect changes nothing; certificates live in [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/certificates/list).
+
+`Scripts/ci/revoke-build-certificate.rb` runs at the end of both signing jobs and hands that certificate back through the App Store Connect API, so CI leaves nothing behind. It only revokes certificates that are in that runner's own keychain, matched on the certificate itself rather than on a name, so a certificate someone develops with is never touched. It never fails the job: if the API call breaks it prints a `::warning::` and the list has to be cleared by hand. Revoking an Apple Development certificate is safe — builds already on TestFlight or the App Store are distribution signed, and Xcode recreates a local one on demand.
+
+The distribution certificate is cloud managed, meaning Apple keeps the private key and hands it back on every run, so it is created once and never counts against this.
+
 ## Building to your own device from another team
 
 Bundle IDs and App Groups are unique across Apple teams, so a developer who is not on the release team cannot sign `se.tagkollen.app`. Put your own prefix in `.env.local` and run `Scripts/bootstrap.sh`:
