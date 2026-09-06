@@ -13,14 +13,20 @@ RAILNET_DIR = "railnet"
 COLUMNS = {"id", "geom", "Pl_Forb", "PlNamn", "Straknamn", "Bandel", "Status", "SpTyp"}
 
 
+def version_key(name):
+    """Orders NJDB names by the version they carry, newest last: as numbers rather than as text,
+    where a hypothetical `3_10` would sort before `3_9`. The name itself breaks ties, so the order
+    is total and doesn't depend on the order names arrive in."""
+    return ([int(n) for n in re.findall(r"\d+", name)], name)
+
+
 def find_geopackage():
     """The NJDB download's file name carries its version, so it changes between releases — take
-    whatever GeoPackage is in `railnet/`, newest version first. Compared as numbers rather than as
-    text, where a hypothetical `3_10` would sort before `3_9`."""
+    whatever GeoPackage is in `railnet/`, newest version first."""
     found = glob.glob(os.path.join(RAILNET_DIR, "**", "*.gpkg"), recursive=True)
     if not found:
         sys.exit(f"No .gpkg under {RAILNET_DIR}/ — run download_njdb.py first (see docs/rail-network.md)")
-    return max(found, key=lambda path: [int(n) for n in re.findall(r"\d+", os.path.basename(path))] or [0])
+    return max(found, key=lambda path: version_key(os.path.basename(path)))
 
 
 def find_table(con):
@@ -33,9 +39,12 @@ def find_table(con):
     usable = [name for name in names if COLUMNS <= {row[1] for row in con.execute(f"PRAGMA table_info('{name}')")}]
     if not usable:
         sys.exit(f"No layer in the GeoPackage has the columns {sorted(COLUMNS)}. Layers: {names}")
+    # `gpkg_contents` has no guaranteed row order, so a file carrying two releases of the layer
+    # would otherwise export whichever one SQLite happened to return first.
+    newest = max(usable, key=version_key)
     if len(usable) > 1:
-        print(f"Several usable layers {usable}; taking {usable[0]}")
-    return usable[0]
+        print(f"Several usable layers {sorted(usable)}; taking the newest, {newest}")
+    return newest
 
 
 def gpkg_geom_to_wkb(blob):
