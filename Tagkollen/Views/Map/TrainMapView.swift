@@ -33,20 +33,7 @@ struct TrainMapView: View {
     /// reason as `displayedTrains`: `body` re-runs several times a second while positions stream,
     /// and a nationwide `ForEach` over the whole directory would rebuild ~700 annotations — and
     /// re-parse ~700 WKT coordinate strings — every time, almost all of them off-screen.
-    @State private var displayedStations: [StationPin] = []
-
-    private struct StationPin: Identifiable, Equatable {
-        let station: TrainStation
-        let coordinate: Coordinate
-
-        var id: String {
-            station.locationSignature
-        }
-
-        var clCoordinate: CLLocationCoordinate2D {
-            CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        }
-    }
+    @State private var displayedStations: [LocatedStation] = []
 
     var body: some View {
         Map(position: $camera, interactionModes: .all, selection: $selectedTrainID, scope: scope) {
@@ -54,6 +41,24 @@ struct TrainMapView: View {
             if let journey = journeys.cached(selectedKey) {
                 routeOverlay(for: journey)
             }
+            ForEach(displayedStations) { pin in
+                Annotation(coordinate: pin.clCoordinate, anchor: .center) {
+                    Button { onSelectStation(pin.station) } label: {
+                        // The dot stays small; the frame around it is an invisible tap target.
+                        // Station annotations are declared before the trains, so a train drawn on
+                        // top of one still wins the tap.
+                        StationMarker(name: pin.station.name)
+                            .frame(width: stationHitSize, height: stationHitSize)
+                            .contentShape(.circle)
+                    }
+                    .buttonStyle(.plain)
+                } label: {
+                    Text(pin.station.name)
+                }
+                .annotationTitles(.hidden)
+            }
+            // After the ambient dots, so the larger marker covers this station's own dot in the
+            // frame between selecting it and the next refresh dropping that dot.
             if let selectedStation, let coordinate = selectedStation.coordinate {
                 Annotation(
                     coordinate: CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude),
@@ -64,22 +69,6 @@ struct TrainMapView: View {
                     Text(selectedStation.name)
                 }
                 .annotationTitles(.visible)
-            }
-            ForEach(displayedStations) { pin in
-                Annotation(coordinate: pin.clCoordinate, anchor: .center) {
-                    Button { onSelectStation(pin.station) } label: {
-                        // The dot itself is deliberately small, but a 16pt tap target isn't
-                        // reachable; the padded frame is invisible and sits below the train
-                        // annotations, so a train on top of a station still wins the tap.
-                        StationMarker(name: pin.station.name)
-                            .frame(width: 44, height: 44)
-                            .contentShape(.circle)
-                    }
-                    .buttonStyle(.plain)
-                } label: {
-                    Text(pin.station.name)
-                }
-                .annotationTitles(.hidden)
             }
             ForEach(displayedTrains) { train in
                 Annotation(coordinate: train.clCoordinate, anchor: .center) {
@@ -175,43 +164,37 @@ struct TrainMapView: View {
     /// finishing its load.
     private struct StationInputs: Equatable {
         let show: Bool
-        let stationCount: Int
+        let directoryRevision: Int
         let selected: String?
     }
 
     private var stationInputs: StationInputs {
         StationInputs(
             show: settings.showStations,
-            stationCount: stations.all.count,
+            directoryRevision: stations.revision,
             selected: selectedStation?.locationSignature
         )
     }
 
-    /// Stations only appear once zoomed past a regional level, and then only the ones actually in
-    /// view — the directory holds every advertised station in the country, of which a city-level
-    /// camera shows a few dozen. The selected station is drawn separately and skipped here.
+    /// Tap target for an ambient dot. 44pt is the recommended minimum, but on a wide camera it
+    /// covers several kilometres of map and swallows neighbouring stations — and overlapping
+    /// targets resolve by draw order, not by which dot is nearer — so it shrinks as the view
+    /// widens, back towards the size of the dot itself.
+    private var stationHitSize: CGFloat {
+        visibleRegion.span.latitudeDelta < 0.35 ? 44 : 24
+    }
+
+    /// Recomputes the ambient station dots for the current camera (see `StationPins`), and only
+    /// touches `displayedStations` when the set actually changed, so a camera nudge doesn't
+    /// re-render the map. The directory holds every advertised station in the country, of which a
+    /// city-level camera shows a few dozen.
     private func refreshDisplayedStations() {
-        guard settings.showStations, visibleRegion.span.latitudeDelta < Self.stationZoomThreshold else {
-            if !displayedStations.isEmpty {
-                displayedStations = []
-            }
-            return
-        }
-        let region = visibleRegion.padded(by: 0.25)
-        let selected = selectedStation?.locationSignature
-        var next: [StationPin] = []
-        for station in stations.all where station.locationSignature != selected {
-            guard let coordinate = station.coordinate else { continue }
-            let pin = StationPin(station: station, coordinate: coordinate)
-            guard region.contains(pin.clCoordinate) else { continue }
-            next.append(pin)
-        }
+        let next = settings.showStations
+            ? StationPins.visible(from: stations.located, in: visibleRegion, excluding: selectedStation?.locationSignature)
+            : []
         guard next != displayedStations else { return }
         displayedStations = next
     }
-
-    /// Zoomed out further than this, station dots are unreadable clutter.
-    private static let stationZoomThreshold: CLLocationDegrees = 1.5
 
     /// Recomputes the on-screen train set and only touches `displayedTrains` (and re-tracks delays)
     /// when it actually changed, so an update elsewhere in the country doesn't re-render this map.

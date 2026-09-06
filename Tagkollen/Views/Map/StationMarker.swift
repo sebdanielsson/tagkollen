@@ -5,7 +5,7 @@ import SwiftUI
 /// (not selected) are shown small; the selected station grows, like a selected train does.
 struct StationMarker: View {
     /// The station's name, so VoiceOver can tell one dot from another.
-    var name: String?
+    var name: String
     var isSelected = false
 
     var body: some View {
@@ -22,6 +22,6 @@ struct StationMarker: View {
                 .foregroundStyle(.white)
         }
         .animation(.snappy, value: isSelected)
-        .accessibilityLabel(name.map { Text("Station \($0)") } ?? Text("Station"))
+        .accessibilityLabel(Text("Station \(name)"))
     }
 }

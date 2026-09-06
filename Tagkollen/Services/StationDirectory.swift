@@ -9,6 +9,13 @@ import TrafikverketKit
 final class StationDirectory {
     private(set) var stationsBySignature: [String: TrainStation] = [:]
     private(set) var all: [TrainStation] = []
+    /// Every station that has a coordinate, with the coordinate already parsed —
+    /// `TrainStation.coordinate` re-parses its WKT string on every access, and the map filters the
+    /// whole directory each time the camera settles.
+    private(set) var located: [LocatedStation] = []
+    /// Bumped whenever the directory is replaced. Views observe this rather than `all.count` to
+    /// notice a refresh that changed station details without changing how many there are.
+    private(set) var revision = 0
     private(set) var isLoading = false
     private(set) var lastRefresh: Date?
     private(set) var error: String?
@@ -103,6 +110,10 @@ final class StationDirectory {
     private func apply(_ stations: [TrainStation]) {
         stationsBySignature = Dictionary(stations.map { ($0.locationSignature, $0) }, uniquingKeysWith: { a, _ in a })
         all = stations.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        located = all.compactMap { station in
+            station.coordinate.map { LocatedStation(station: station, coordinate: $0) }
+        }
+        revision += 1
     }
 
     // MARK: Disk cache
@@ -125,5 +136,16 @@ final class StationDirectory {
         if let data = try? encoder.encode(CachedStations(savedAt: .now, stations: stations)) {
             try? data.write(to: cacheURL, options: .atomic)
         }
+    }
+}
+
+/// A station paired with its parsed coordinate, so callers that plot many stations at once don't
+/// re-parse the same well-known-text strings over and over.
+struct LocatedStation: Identifiable, Equatable, Sendable {
+    let station: TrainStation
+    let coordinate: Coordinate
+
+    var id: String {
+        station.locationSignature
     }
 }

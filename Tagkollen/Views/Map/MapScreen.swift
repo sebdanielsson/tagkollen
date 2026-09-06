@@ -51,35 +51,41 @@ struct MapScreen: View {
             guard let id, let train = live.train(id: id) else { return }
             selectedStation = nil
             selectedKey = train.key
-            let route = MapSheetRoute.train(TrainSelection(key: train.key, liveID: id))
-            if !isRegular, navigationStack.push(route) {
-                // Append rather than replace: selecting a train from within an already-open
-                // station board should push on top of it, so "back" returns to the board instead
-                // of all the way to search. `push` returns false (skipping this) when this is
-                // already the top — either a repeat tap, or this is a "back" restore re-applying.
-                sheetPath.append(route)
-                sheetDetent = .medium
-            }
+            push(.train(TrainSelection(key: train.key, liveID: id)), if: true)
             withAnimation(.smooth) { camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.45) }
         }
         .onChange(of: navigation.pendingMapFocus) { _, key in
             guard let key else { return }
+            startFreshTrail()
             focus(on: key)
         }
         .onChange(of: navigation.pendingStationSignature, initial: true) { _, signature in
             // iPad routes station links to the Search tab; on iPhone the card shows the board.
             guard !isRegular, let signature, let station = stations.station(signature) else { return }
             navigation.pendingStationSignature = nil
+            startFreshTrail()
             focus(on: station)
         }
         .onChange(of: stations.isLoaded) { _, loaded in
             guard loaded, !isRegular, let signature = navigation.pendingStationSignature,
                   let station = stations.station(signature) else { return }
             navigation.pendingStationSignature = nil
+            startFreshTrail()
             focus(on: station)
+        }
+        .onChange(of: isRegular) { _, regular in
+            // Back from the inspector layout to the card, which always starts at its root: re-push
+            // whatever is still selected, otherwise the map shows a selection the card doesn't.
+            guard !regular else { return }
+            if let selectedStation {
+                focus(on: selectedStation)
+            } else if let selectedKey {
+                focus(on: selectedKey)
+            }
         }
         .onChange(of: live.updateCount) { _, _ in
             if let key = navigation.pendingMapFocus {
+                startFreshTrail()
                 focus(on: key)
             } else if let selectedKey, selectedTrainID == nil, live.train(for: selectedKey) != nil {
                 // The selected train had no live position when chosen; it just started reporting one.
@@ -181,10 +187,10 @@ struct MapScreen: View {
     private var inspectorDetail: some View {
         if let selectedStation {
             NavigationStack {
+                // No `onSelectTrain` on purpose: unlike the iPhone card, the inspector is its own
+                // navigation stack, so a train pushes on top of the board with a back button and
+                // the map keeps showing the station the user is reading about.
                 StationBoardView(station: selectedStation)
-                    .navigationDestination(for: TrainKey.self) { key in
-                        TrainDetailView(key: key)
-                    }
             }
         } else if let selection = currentSelection {
             NavigationStack {
@@ -232,10 +238,18 @@ struct MapScreen: View {
         selectedTrainID = nil
         selectedKey = nil
         selectedStation = nil
-        if !isRegular {
-            sheetPath = NavigationPath()
-            navigationStack.reset()
-        }
+        startFreshTrail()
+    }
+
+    /// Empties the card's navigation trail and its shadow together. Also used when focus arrives
+    /// from outside the map (a deep link, or a link from another tab): whatever the card was
+    /// showing belongs to an older, unrelated bit of browsing, so "back" shouldn't walk into it.
+    /// Runs in the regular size class too — the card isn't on screen there, but it comes back on
+    /// rotation, and a trail left behind would be stale by then.
+    private func startFreshTrail() {
+        guard !sheetPath.isEmpty || !navigationStack.isEmpty else { return }
+        sheetPath = NavigationPath()
+        navigationStack.reset()
     }
 
     /// Re-applies whatever is now on top of the navigation stack after a "back" tap trimmed it —
@@ -249,14 +263,28 @@ struct MapScreen: View {
             if let key = selection.key {
                 focus(on: key, pushingPath: false)
             } else {
-                selectedTrainID = nil
+                // A train with no advertised number (freight or service) has no key to re-focus
+                // by, but its live id still selects the marker and re-centres the camera.
+                selectedStation = nil
                 selectedKey = nil
+                selectedTrainID = selection.liveID
             }
         case nil:
             selectedTrainID = nil
             selectedKey = nil
             selectedStation = nil
         }
+    }
+
+    /// Appends to the card's navigation trail, keeping `sheetPath` and its typed shadow in
+    /// lockstep. Append rather than replace: selecting a train from within an already-open station
+    /// board pushes on top of it, so "back" returns to the board instead of all the way to search.
+    /// Does nothing in the regular size class (no card), when the caller is restoring a selection
+    /// after "back" (`shouldPush` false), or when that screen is already on top.
+    private func push(_ route: MapSheetRoute, if shouldPush: Bool) {
+        guard shouldPush, !isRegular, navigationStack.push(route) else { return }
+        sheetPath.append(route)
+        sheetDetent = .medium
     }
 
     /// Selects a train from a list or search result: zooms to it when it has a live position.
@@ -277,14 +305,7 @@ struct MapScreen: View {
         selectedTrainID = nil
         selectedKey = nil
         selectedStation = station
-        if pushingPath, !isRegular, navigationStack.push(.station(station)) {
-            // Append rather than replace, so navigating here from within an already-open sheet
-            // (e.g. a train's detail) leaves a "back" trail instead of discarding it. `push`
-            // returns false (skipping this) when this exact station is already on top, so
-            // re-tapping it (e.g. the same quick-station icon) doesn't push a duplicate.
-            sheetPath.append(MapSheetRoute.station(station))
-            sheetDetent = .medium
-        }
+        push(.station(station), if: pushingPath)
         if let coordinate = station.coordinate {
             withAnimation(.smooth) {
                 camera = cameraFocusing(
@@ -301,6 +322,10 @@ struct MapScreen: View {
         if let train = live.train(for: key) {
             selectedKey = key
             selectedTrainID = train.id
+            // Pushed here rather than left to `selectedTrainID`'s observer, which can't fire when
+            // the id is unchanged (re-selecting the same train) and doesn't know about
+            // `pushingPath` (a "back" restore must not push anything).
+            push(.train(TrainSelection(key: key, liveID: train.id)), if: pushingPath)
             withAnimation(.smooth) {
                 camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.3)
             }
@@ -308,15 +333,7 @@ struct MapScreen: View {
             // No live position (yet); still open the timetable.
             selectedKey = key
             selectedTrainID = nil
-            let route = MapSheetRoute.train(TrainSelection(key: key, liveID: nil))
-            if pushingPath, !isRegular, navigationStack.push(route) {
-                // Append rather than replace: selecting a train from within an already-open
-                // station board should push on top of it, so "back" returns to the board. `push`
-                // returns false (skipping this) when this exact train is already showing, avoiding
-                // a duplicate path entry — including when restoring a selection after "back".
-                sheetPath.append(route)
-                sheetDetent = .medium
-            }
+            push(.train(TrainSelection(key: key, liveID: nil)), if: pushingPath)
         } else {
             // Live data not loaded yet; try again once positions arrive.
             navigation.pendingMapFocus = key
