@@ -29,9 +29,16 @@ pip install -r requirements.txt   # shapely, pyproj, networkx — no GDAL needed
 
 Two inputs have to be in place first:
 
-- `railnet/Järnvägsnät_grundegenskaper3_0_GeoPackage.gpkg` — the NJDB download from Lastkajen,
-  unzipped. `build_graph.py` names the file and its table (`Järnvägsnät_med_grundegenskaper3_0`)
-  explicitly; adjust `GPKG`/`TABLE` there if a newer release changes them.
+- `railnet/` — the NJDB GeoPackage from Lastkajen, unzipped. `download_njdb.py` fetches it for
+  you given a free Lastkajen account:
+
+  ```bash
+  LASTKAJEN_USER='you@example.com' LASTKAJEN_PASSWORD='…' python3 download_njdb.py
+  ```
+
+  The file name carries the data's version and changes between releases, so `build_graph.py`
+  takes whatever GeoPackage it finds under `railnet/` and reads the layer name out of the file
+  rather than hard-coding either.
 - `stations.json` — the raw Open API response for every advertised station, saved as-is
   (`snap_stations.py` reads `RESPONSE.RESULT[0].TrainStation`). Any API key works:
 
@@ -41,30 +48,31 @@ Two inputs have to be in place first:
     -o stations.json
   ```
 
+0. **`download_njdb.py`** — fetches the GeoPackage from Lastkajen's REST API (bearer token from
+   your account) and unpacks it into `railnet/`. Skip it if you downloaded the zip by hand.
 1. **`build_graph.py`** — reads the GeoPackage straight out of SQLite (a GeoPackage is just
    SQLite; geometries are WKB with a small header we strip), keeping only open main-running
    track (`Status = 'Öppen'`, `SpTyp` in `nhsp`/`ahsp`/`tågspår` — excludes sidings and yard
    tracks). Builds an undirected graph: every vertex of every segment becomes a node (snapped to
    10cm to merge coincident points), consecutive vertices become weighted edges.
 2. **`snap_stations.py`** — snaps every station in `stations.json` to the nearest graph node
-   within 500 m (grid-indexed for speed). ~600/718 stations match — half of them within 15 m,
-   nine in ten within 80 m, the worst just under 400 m where the directory coordinate is the
-   station building rather than the platforms (Stockholm City, whose platforms are deep under
-   the entrance, is ~320 m). The rest are foreign stations (`At.`/`De.`/`Dk.`…
+   within 500 m (grid-indexed for speed). 606 of 718 stations match — half of them within 13 m,
+   nine in ten within 77 m, the worst 438 m where the directory coordinate is the station
+   building rather than the platforms (Stockholm City, whose platforms are deep under the
+   entrance, is ~320 m). The rest are foreign stations (`At.`/`De.`/`Dk.`…
    prefixes) not covered by the Swedish network at all, plus a couple of dozen Swedish ones:
    museum lines, harbour tracks and closed lines outside the open main-running track kept in
-   step 1, and a couple of stops on long straight runs (Blattnicksele, Vattnäs) where the kept
-   track passes right by but its nearest survey vertex is further away than the snap limit. All of
-   them just fall back to a straight line in the app.
+   step 1, and Blattnicksele, where the kept track passes right by but its nearest survey vertex
+   is 700 m away, past the snap limit. All of them just fall back to a straight line in the app.
 3. **`contract_graph.py`** — the raw graph has ~400k nodes, almost all of them degree-2 points
    that just sit along a straight-ish run between real junctions. It collapses every such chain
    into a single edge carrying the full sub-polyline, *pinning* every snapped station as a kept
    node first so no station disappears into a collapsed chain. Then simplifies each chain's
-   polyline with Douglas-Peucker (15m tolerance). Result: ~6.9k nodes / ~9.1k edges, ~29k
-   distinct coordinates (~40k polyline vertices counting each edge's shared endpoints) for the
-   whole country.
+   polyline with Douglas-Peucker (15m tolerance). Result: 6,863 nodes / 9,100 edges, 29k distinct
+   coordinates (38k polyline vertices counting each edge's shared endpoints) for the whole
+   country.
 4. **`export_network.py`** — converts back to WGS84, rounds to 5 decimals (~1m), and writes the
-   final `RailNetwork.json` (~750KB): `nodes` (`[lat, lon]` per graph node), `edges` (one
+   final `RailNetwork.json` (748KB): `nodes` (`[lat, lon]` per graph node), `edges` (one
    `[a, b, interior, length]` per contracted chain — node indices, the simplified interior
    points, and the exact pre-simplification track length in metres so the app never has to
    measure polylines itself) and `stations` (signature → node index).
@@ -89,14 +97,12 @@ from the real-world 329.6 km, so a dropped line or a broken contraction can't sh
 ## Regenerating
 
 Needed only if NJDB publishes a materially different network (new lines, major reroutes) — the
-existing file doesn't need routine updates. Expect the station count to move a little when you
-do: the shipped file was produced before `snap_stations.py`'s grid scan was widened to cover the
-full 500 m limit, so a regeneration may pick up a handful of stations the old scan missed
-(Hackås, whose nearest track vertex is ~340 m away, is one). Re-download the GeoPackage from Lastkajen and refresh
+existing file doesn't need routine updates. Re-download the GeoPackage from Lastkajen and refresh
 `stations.json` as described above, then:
 
 ```bash
 cd Scripts/rail-network
+python3 download_njdb.py   # or unzip the Lastkajen download into railnet/ yourself
 python3 build_graph.py && python3 snap_stations.py && python3 contract_graph.py && python3 export_network.py
 cp RailNetwork.json ../../Tagkollen/Resources/RailNetwork.json
 ```

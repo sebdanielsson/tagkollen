@@ -1,10 +1,33 @@
+import glob
+import os
 import sqlite3
+import sys
+
 import networkx as nx
 from shapely import wkb as shapely_wkb
 from shapely.geometry import LineString, MultiLineString
 
-GPKG = "railnet/Järnvägsnät_grundegenskaper3_0_GeoPackage.gpkg"
-TABLE = "Järnvägsnät_med_grundegenskaper3_0"
+RAILNET_DIR = "railnet"
+
+
+def find_geopackage():
+    """The NJDB download's file name carries its version, so it changes between releases — take
+    whatever GeoPackage is in `railnet/`, newest version first."""
+    found = sorted(glob.glob(os.path.join(RAILNET_DIR, "**", "*.gpkg"), recursive=True), reverse=True)
+    if not found:
+        sys.exit(f"No .gpkg under {RAILNET_DIR}/ — run download_njdb.py first (see docs/rail-network.md)")
+    return found[0]
+
+
+def find_table(con):
+    """The one table of line features. A GeoPackage lists its layers in `gpkg_contents`, so the
+    table name doesn't have to be hard-coded either."""
+    rows = con.execute("SELECT table_name FROM gpkg_contents WHERE data_type = 'features'").fetchall()
+    names = [name for (name,) in rows]
+    matching = [name for name in names if "rnv" in name.casefold().replace("ä", "a")]
+    if not matching and not names:
+        sys.exit("No feature tables in the GeoPackage")
+    return (matching or names)[0]
 
 
 def gpkg_geom_to_wkb(blob):
@@ -21,10 +44,13 @@ def snap(x, y):
 
 
 def load_lines():
-    con = sqlite3.connect(GPKG)
+    path = find_geopackage()
+    con = sqlite3.connect(path)
+    table = find_table(con)
+    print(f"Reading {table} from {path}")
     cur = con.cursor()
     cur.execute(
-        f"""SELECT id, geom, Pl_Forb, PlNamn, Straknamn, Bandel FROM '{TABLE}'
+        f"""SELECT id, geom, Pl_Forb, PlNamn, Straknamn, Bandel FROM '{table}'
             WHERE Status = 'Öppen' AND SpTyp IN ('nhsp', 'ahsp', 'tågspår')"""
     )
     lines = []
