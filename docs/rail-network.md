@@ -12,8 +12,8 @@ The Trafikverket Open API used everywhere else in the app (`TrainPosition`, `Tra
 separate product, **"Järnvägsnät med grundegenskaper"**, distributed as a GeoPackage through
 [Lastkajen](https://www.trafikverket.se/e-tjanster/lastkajen--sveriges-vag--och-jarnvagsdata/)
 (free, CC0, just needs an email registration — there's no API key or scripted download, a human
-has to fetch the `.zip` from the portal). It ships ~195k tiny track segments (a few meters each)
-in SWEREF99TM, tagged with attributes like track type and status but no direct link to
+has to fetch the `.zip` from the portal). It ships ~195k short track segments (tens of metres
+each) in SWEREF99TM, tagged with attributes like track type and status but no direct link to
 Trafikverket's station signatures.
 
 ## Pipeline (`Scripts/rail-network/`)
@@ -43,15 +43,18 @@ Two inputs have to be in place first:
 1. **`build_graph.py`** — reads the GeoPackage straight out of SQLite (a GeoPackage is just
    SQLite; geometries are WKB with a small header we strip), keeping only open main-running
    track (`Status = 'Öppen'`, `SpTyp` in `nhsp`/`ahsp`/`tågspår` — excludes sidings and yard
-   tracks). Builds an undirected graph: segment endpoints become nodes (snapped to 10cm to merge
-   coincident points), segments become weighted edges.
+   tracks). Builds an undirected graph: every vertex of every segment becomes a node (snapped to
+   10cm to merge coincident points), consecutive vertices become weighted edges.
 2. **`snap_stations.py`** — snaps every station in `stations.json` to the nearest graph node
-   within 200 m (grid-indexed for speed). ~600/718 stations match — half of them within 15 m,
-   nine in ten within 80 m, the worst a few hundred metres where the directory coordinate is the
-   station building rather than the platforms. The rest are foreign stations (`At.`/`De.`/`Dk.`…
-   prefixes) not covered by the Swedish network at all, plus a couple of dozen Swedish ones that
-   sit on museum lines, harbour tracks or closed lines outside the open main-running track kept in
-   step 1. All of them just fall back to a straight line in the app.
+   within 500 m (grid-indexed for speed). ~600/718 stations match — half of them within 15 m,
+   nine in ten within 80 m, the worst just under 400 m where the directory coordinate is the
+   station building rather than the platforms (Stockholm City, whose platforms are deep under
+   the entrance, is ~320 m). The rest are foreign stations (`At.`/`De.`/`Dk.`…
+   prefixes) not covered by the Swedish network at all, plus a couple of dozen Swedish ones:
+   museum lines, harbour tracks and closed lines outside the open main-running track kept in
+   step 1, and a few stops on long straight runs (Hackås, Blattnicksele, Vattnäs) where the kept
+   track passes right by but its nearest survey vertex is further away than the snap limit. All of
+   them just fall back to a straight line in the app.
 3. **`contract_graph.py`** — the raw graph has ~400k nodes, almost all of them degree-2 points
    that just sit along a straight-ish run between real junctions. It collapses every such chain
    into a single edge carrying the full sub-polyline, *pinning* every snapped station as a kept
@@ -85,7 +88,9 @@ from the real-world 329.6 km, so a dropped line or a broken contraction can't sh
 ## Regenerating
 
 Needed only if NJDB publishes a materially different network (new lines, major reroutes) — the
-existing file doesn't need routine updates. Re-download the GeoPackage from Lastkajen and refresh
+existing file doesn't need routine updates. Expect the station count to move a little when you
+do: the shipped file was produced before `snap_stations.py`'s grid scan was widened to cover the
+full 500 m limit, so a regeneration may pick up a handful of stations the old scan missed. Re-download the GeoPackage from Lastkajen and refresh
 `stations.json` as described above, then:
 
 ```bash

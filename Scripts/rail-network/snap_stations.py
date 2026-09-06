@@ -1,4 +1,6 @@
 import json
+import math
+
 import pyproj
 from build_graph import load_lines, build_graph
 
@@ -24,21 +26,25 @@ if __name__ == "__main__":
     # Spatial grid index for nearest-node lookup (avoid O(n*m) brute force over 400k nodes x 718 stations)
     from collections import defaultdict
 
-    # Scanning the 3x3 neighbourhood of `cell_size` cells guarantees every node within `cell_size`
-    # of the query is seen, so that is also the snap limit. Stations further from any open
-    # main-running track than that (harbours, museum lines, closed stations) are deliberately left
-    # out rather than glued onto an unrelated line; the app draws straight lines for them.
+    # Stations further than `max_snap` from any open main-running track (harbours, museum lines,
+    # closed stations) are deliberately left out rather than glued onto an unrelated line; the app
+    # draws straight lines for them. Within the limit the offset is real: a directory coordinate is
+    # often the station building, while the node is on the platform track (Stockholm City ~320 m).
+    max_snap = 500.0  # meters
     cell_size = 200.0  # meters
+    # Enough neighbouring cells that every node within `max_snap` of a query is seen, whatever the
+    # query's position inside its own cell.
+    cell_reach = math.ceil(max_snap / cell_size)
     grid = defaultdict(list)
     for node in graph.nodes:
         cx, cy = int(node[0] // cell_size), int(node[1] // cell_size)
         grid[(cx, cy)].append(node)
 
-    def nearest_node(x, y, max_dist=cell_size):
+    def nearest_node(x, y, max_dist=max_snap):
         cx, cy = int(x // cell_size), int(y // cell_size)
         best, best_d = None, max_dist
-        for dcx in (-1, 0, 1):
-            for dcy in (-1, 0, 1):
+        for dcx in range(-cell_reach, cell_reach + 1):
+            for dcy in range(-cell_reach, cell_reach + 1):
                 for node in grid.get((cx + dcx, cy + dcy), []):
                     d = ((node[0] - x) ** 2 + (node[1] - y) ** 2) ** 0.5
                     if d < best_d:
@@ -56,7 +62,7 @@ if __name__ == "__main__":
         x, y = transformer.transform(lon, lat)
         node, dist = nearest_node(x, y)
         if node is None:
-            unmatched.append((st["LocationSignature"], f"no node within {cell_size:.0f}m"))
+            unmatched.append((st["LocationSignature"], f"no node within {max_snap:.0f}m"))
             continue
         snapped[st["LocationSignature"]] = {"node": node, "dist": round(dist, 1), "name": st["AdvertisedLocationName"]}
 
