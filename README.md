@@ -75,7 +75,7 @@ project.yml                XcodeGen spec
 
 ## Data sources
 
-Everything comes from the [Trafikverket Open API](https://data.trafikverket.se):
+Everything live comes from the [Trafikverket Open API](https://data.trafikverket.se):
 
 | Object | Used for |
 | --- | --- |
@@ -83,6 +83,8 @@ Everything comes from the [Trafikverket Open API](https://data.trafikverket.se):
 | `TrainAnnouncement` | Timetable, estimated and actual times, deviations |
 | `TrainStation` | Station names and coordinates |
 | `TrainStationMessage` | Disruption notices shown on station monitors and signs |
+
+The shape of the tracks drawn on the map is not in that API. It comes from Trafikverket's National Railway Database (NJDB, *Järnvägsnät med grundegenskaper*, also [CC0](https://creativecommons.org/publicdomain/zero/1.0/)), downloaded from [Lastkajen](https://www.trafikverket.se/e-tjanster/lastkajen--sveriges-vag--och-jarnvagsdata/), simplified offline and bundled as `Tagkollen/Resources/RailNetwork.json`. See [docs/rail-network.md](docs/rail-network.md).
 
 ## App icon, releases and the App Store
 

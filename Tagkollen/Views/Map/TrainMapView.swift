@@ -80,18 +80,20 @@ struct TrainMapView: View {
     }
 
     /// Everything `refreshRoute` depends on, so a change to any of it recomputes the route exactly
-    /// once: the journey itself, the station directory (stop coordinates come from it — a route
-    /// computed before it finished loading would be missing stops), and the rail network (straight
-    /// lines are drawn until it's parsed, then upgraded to real track).
+    /// once: the journey's ordered stops (only their signatures — the journey itself is refreshed
+    /// every 30 s with new times, which must not re-stitch an identical line), the station
+    /// directory (stop coordinates come from it — a route computed before it finished loading
+    /// would be missing stops), and the rail network (straight lines are drawn until it's parsed,
+    /// then upgraded to real track).
     private struct RouteInputs: Equatable {
-        let journey: TrainJourney?
+        let stopSignatures: [String]
         let stationsLoaded: Bool
         let networkLoaded: Bool
     }
 
     private var routeInputs: RouteInputs {
         RouteInputs(
-            journey: journeys.cached(selectedKey),
+            stopSignatures: journeys.cached(selectedKey)?.stops.map(\.signature) ?? [],
             stationsLoaded: stations.isLoaded,
             networkLoaded: RailNetwork.shared.isLoaded
         )
@@ -169,35 +171,24 @@ struct TrainMapView: View {
         }
     }
 
-    /// Recomputes `routeCoordinates` for the currently selected journey. Cheap when nothing
-    /// changed (an unchanged pair hits `RailNetwork`'s cache), but still only called when
-    /// `routeInputs` changes — never from `body`.
+    /// Recomputes `routeCoordinates` for the currently selected journey: each consecutive stop
+    /// pair's real track shape where the bundled network has it, a straight segment otherwise
+    /// (see `RailGraph.polyline(through:route:)`). Cheap when nothing changed (an unchanged pair
+    /// hits `RailNetwork`'s cache), but still only called when `routeInputs` changes — never
+    /// from `body`.
     private func refreshRoute() {
-        guard let journey = journeys.cached(selectedKey) else {
+        let stops = routeInputs.stopSignatures.compactMap { signature in
+            stations.station(signature)?.coordinate.map { c in
+                (signature: signature, coordinate: CLLocationCoordinate2D(latitude: c.latitude, longitude: c.longitude))
+            }
+        }
+        guard !stops.isEmpty else {
             if !routeCoordinates.isEmpty {
                 routeCoordinates = []
             }
             return
         }
-        routeCoordinates = routePolyline(for: stopPoints(for: journey))
-    }
-
-    /// Stitches each consecutive stop pair's real track shape (when both stations are in the
-    /// bundled rail network) into one continuous polyline, falling back to a straight segment
-    /// where either side is missing (e.g. a foreign border station).
-    private func routePolyline(for points: [(TrainStop, CLLocationCoordinate2D)]) -> [CLLocationCoordinate2D] {
-        guard let first = points.first?.1 else { return [] }
-        var result = [first]
-        for i in 0 ..< points.count - 1 {
-            let from = points[i].0.signature
-            let to = points[i + 1].0.signature
-            if let real = RailNetwork.shared.route(from: from, to: to) {
-                result.append(contentsOf: real.dropFirst())
-            } else {
-                result.append(points[i + 1].1)
-            }
-        }
-        return result
+        routeCoordinates = RailGraph.polyline(through: stops) { RailNetwork.shared.route(from: $0, to: $1) }
     }
 
     private var mapStyle: MapStyle {

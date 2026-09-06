@@ -39,7 +39,6 @@ def contract(graph, pinned=frozenset()):
 
     for start in topology_nodes:
         for neighbor in list(graph.neighbors(start)):
-            edge_key = frozenset((start, neighbor))
             if (start, neighbor) in visited_edges:
                 continue
             # Walk the chain starting at `start` -> `neighbor` until hitting another topology node.

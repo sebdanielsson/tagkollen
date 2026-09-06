@@ -18,19 +18,37 @@ Trafikverket's station signatures.
 
 ## Pipeline (`Scripts/rail-network/`)
 
+Everything runs from inside `Scripts/rail-network/` and reads/writes files next to the scripts
+(all of them git-ignored except the final copy under `Tagkollen/Resources/`):
+
+```bash
+cd Scripts/rail-network
+pip install -r requirements.txt   # shapely, pyproj, networkx — no GDAL needed
 ```
-pip install -r Scripts/rail-network/requirements.txt   # shapely, pyproj, networkx — no GDAL needed
-```
+
+Two inputs have to be in place first:
+
+- `railnet/Järnvägsnät_grundegenskaper3_0_GeoPackage.gpkg` — the NJDB download from Lastkajen,
+  unzipped. `build_graph.py` names the file and its table (`Järnvägsnät_med_grundegenskaper3_0`)
+  explicitly; adjust `GPKG`/`TABLE` there if a newer release changes them.
+- `stations.json` — the raw Open API response for every advertised station, saved as-is
+  (`snap_stations.py` reads `RESPONSE.RESULT[0].TrainStation`). Any API key works:
+
+  ```bash
+  curl -s -X POST https://api.trafikinfo.trafikverket.se/v2/data.json -H 'Content-Type: text/xml' \
+    -d "<REQUEST><LOGIN authenticationkey='$TRV_API_KEY'/><QUERY objecttype='TrainStation' schemaversion='1.5'><FILTER><EQ name='Advertised' value='true'/></FILTER><INCLUDE>LocationSignature</INCLUDE><INCLUDE>AdvertisedLocationName</INCLUDE><INCLUDE>Geometry.WGS84</INCLUDE></QUERY></REQUEST>" \
+    -o stations.json
+  ```
 
 1. **`build_graph.py`** — reads the GeoPackage straight out of SQLite (a GeoPackage is just
    SQLite; geometries are WKB with a small header we strip), keeping only open main-running
    track (`Status = 'Öppen'`, `SpTyp` in `nhsp`/`ahsp`/`tågspår` — excludes sidings and yard
    tracks). Builds an undirected graph: segment endpoints become nodes (snapped to 10cm to merge
    coincident points), segments become weighted edges.
-2. **`snap_stations.py`** — fetches every advertised `TrainStation` from the live API and snaps
-   each to its nearest graph node (grid-indexed for speed). ~600/718 stations match within a few
-   metres; the rest are foreign border stations (`At.`/`De.`/`Dk.` prefixes) not covered by the
-   Swedish network at all — expected, they just fall back to a straight line in the app.
+2. **`snap_stations.py`** — snaps every station in `stations.json` to its nearest graph node
+   (grid-indexed for speed). ~600/718 stations match within a few metres; the rest are foreign
+   border stations (`At.`/`De.`/`Dk.` prefixes) not covered by the Swedish network at all —
+   expected, they just fall back to a straight line in the app.
 3. **`contract_graph.py`** — the raw graph has ~400k nodes, almost all of them degree-2 points
    that just sit along a straight-ish run between real junctions. It collapses every such chain
    into a single edge carrying the full sub-polyline, *pinning* every snapped station as a kept
@@ -43,8 +61,9 @@ pip install -r Scripts/rail-network/requirements.txt   # shapely, pyproj, networ
    points, and the exact pre-simplification track length in metres so the app never has to
    measure polylines itself) and `stations` (signature → node index).
 
-Sanity check baked into the pipeline: Stockholm C → Mora C resolves to 329.6km, matching the
-real-world rail distance, computed in single-digit milliseconds even before contraction.
+Sanity check baked into `export_network.py`: it runs a shortest path Stockholm C → Mora C on the
+exact graph being exported and refuses to write the file if the result strays more than 5 km
+from the real-world 329.6 km, so a dropped line or a broken contraction can't ship silently.
 
 ## On the app side
 
@@ -62,7 +81,11 @@ real-world rail distance, computed in single-digit milliseconds even before cont
 ## Regenerating
 
 Needed only if NJDB publishes a materially different network (new lines, major reroutes) — the
-existing file doesn't need routine updates. Re-download the GeoPackage from Lastkajen, drop it in
-as `Scripts/rail-network/railnet/*.gpkg`, and rerun the four scripts in order (each writes its
-output next to itself; `export_network.py`'s `RailNetwork.json` goes to
-`Tagkollen/Resources/RailNetwork.json`).
+existing file doesn't need routine updates. Re-download the GeoPackage from Lastkajen and refresh
+`stations.json` as described above, then:
+
+```bash
+cd Scripts/rail-network
+python3 build_graph.py && python3 snap_stations.py && python3 contract_graph.py && python3 export_network.py
+cp RailNetwork.json ../../Tagkollen/Resources/RailNetwork.json
+```

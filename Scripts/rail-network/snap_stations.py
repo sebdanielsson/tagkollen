@@ -24,13 +24,17 @@ if __name__ == "__main__":
     # Spatial grid index for nearest-node lookup (avoid O(n*m) brute force over 400k nodes x 718 stations)
     from collections import defaultdict
 
+    # Scanning the 3x3 neighbourhood of `cell_size` cells guarantees every node within `cell_size`
+    # of the query is seen, so that is also the snap limit. Stations further from any open
+    # main-running track than that (harbours, museum lines, closed stations) are deliberately left
+    # out rather than glued onto an unrelated line; the app draws straight lines for them.
     cell_size = 200.0  # meters
     grid = defaultdict(list)
     for node in graph.nodes:
         cx, cy = int(node[0] // cell_size), int(node[1] // cell_size)
         grid[(cx, cy)].append(node)
 
-    def nearest_node(x, y, max_dist=500.0):
+    def nearest_node(x, y, max_dist=cell_size):
         cx, cy = int(x // cell_size), int(y // cell_size)
         best, best_d = None, max_dist
         for dcx in (-1, 0, 1):
@@ -52,7 +56,7 @@ if __name__ == "__main__":
         x, y = transformer.transform(lon, lat)
         node, dist = nearest_node(x, y)
         if node is None:
-            unmatched.append((st["LocationSignature"], "no node within 500m"))
+            unmatched.append((st["LocationSignature"], f"no node within {cell_size:.0f}m"))
             continue
         snapped[st["LocationSignature"]] = {"node": node, "dist": round(dist, 1), "name": st["AdvertisedLocationName"]}
 

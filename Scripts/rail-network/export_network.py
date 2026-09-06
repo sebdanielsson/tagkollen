@@ -1,5 +1,8 @@
 import json
+import os
 import pickle
+
+import networkx as nx
 import pyproj
 
 to_wgs84 = pyproj.Transformer.from_crs("EPSG:3006", "EPSG:4326", always_xy=True)
@@ -42,10 +45,21 @@ for sig, v in snapped.items():
 
 print(f"Nodes: {len(nodes_out)}, Edges: {len(edges_out)}, Stations: {len(stations_out)} (skipped {skipped})")
 
+# Sanity check against a known real-world rail distance: Stockholm C -> Mora C is ~329.6 km.
+# Runs on the exact graph (and weights) being exported, so a broken contraction or a dropped
+# line shows up here rather than as a wrong route in the app.
+CHECK_FROM, CHECK_TO, CHECK_KM = "Cst", "Mra", 329.6
+if CHECK_FROM in stations_out and CHECK_TO in stations_out:
+    km = nx.shortest_path_length(g, node_list[stations_out[CHECK_FROM]], node_list[stations_out[CHECK_TO]], weight="weight") / 1000
+    print(f"Sanity check {CHECK_FROM} -> {CHECK_TO}: {km:.1f} km (expected ~{CHECK_KM})")
+    if abs(km - CHECK_KM) > 5:
+        raise SystemExit(f"Route length {km:.1f} km is off by more than 5 km — refusing to export")
+else:
+    print(f"Sanity check skipped: {CHECK_FROM} or {CHECK_TO} not snapped")
+
 out = {"nodes": nodes_out, "edges": edges_out, "stations": stations_out}
 with open("RailNetwork.json", "w", encoding="utf-8") as f:
     json.dump(out, f, separators=(",", ":"))
 
-import os
 size = os.path.getsize("RailNetwork.json")
 print(f"RailNetwork.json size: {size / 1024:.0f} KB")

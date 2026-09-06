@@ -1,5 +1,4 @@
 import sqlite3
-import struct
 import networkx as nx
 from shapely import wkb as shapely_wkb
 from shapely.geometry import LineString, MultiLineString

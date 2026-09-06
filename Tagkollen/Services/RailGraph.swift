@@ -87,6 +87,35 @@ struct RailGraph: Sendable {
     }
 }
 
+extension RailGraph {
+    /// Stitches a journey's consecutive stop pairs into one polyline: the real track shape where
+    /// `route` knows it, a straight segment between the stations' own coordinates where it
+    /// doesn't (foreign station, network not loaded yet, no path). A real segment starts and ends
+    /// on the stations' track nodes, which can sit a few hundred metres from the directory
+    /// coordinate, so it's appended whole unless the previous segment already ended on its first
+    /// node — dropping that point unconditionally would cut the corner off the track.
+    static func polyline(
+        through stops: [(signature: String, coordinate: CLLocationCoordinate2D)],
+        route: (_ from: String, _ to: String) -> [CLLocationCoordinate2D]?
+    ) -> [CLLocationCoordinate2D] {
+        var result: [CLLocationCoordinate2D] = []
+        var endedOnTrack = false
+        for (from, to) in zip(stops, stops.dropFirst()) {
+            if let real = route(from.signature, to.signature) {
+                result.append(contentsOf: endedOnTrack ? real.dropFirst() : real[...])
+                endedOnTrack = true
+            } else {
+                if result.isEmpty {
+                    result.append(from.coordinate)
+                }
+                result.append(to.coordinate)
+                endedOnTrack = false
+            }
+        }
+        return result
+    }
+}
+
 /// Minimal binary min-heap keyed by priority, just enough for Dijkstra over a ~7k node graph.
 struct MinHeap<Element> {
     private var items: [(element: Element, priority: CLLocationDistance)] = []
