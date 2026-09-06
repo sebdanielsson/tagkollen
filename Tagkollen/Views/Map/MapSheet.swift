@@ -16,10 +16,13 @@ struct TrainSelection: Hashable {
 /// The persistent bottom card on iPhone: search, saved trains, quick stations and current delays.
 /// Train and station details push inside the card, like place cards in Apple Maps.
 struct MapSheet: View {
-    /// Type-erased so pushed screens (station boards) can append their own route types.
+    /// Owned by `MapScreen`, which mirrors it in a typed shadow (`MapNavigationStack`) so a pop
+    /// can restore the map. Nothing inside this stack may append to it directly — every push has
+    /// to go through `MapScreen`, or the shadow silently drifts and misdirects the next "back".
     @Binding var path: NavigationPath
     @Binding var detent: PresentationDetent
     var onSelectTrain: (TrainKey) -> Void
+    var onSelectStation: (TrainStation) -> Void
 
     @Environment(AppDependencies.self) private var deps
     @Environment(StationDirectory.self) private var stations
@@ -48,9 +51,6 @@ struct MapSheet: View {
                     case let .station(station):
                         StationBoardView(station: station, onSelectTrain: onSelectTrain)
                     }
-                }
-                .navigationDestination(for: TrainKey.self) { key in
-                    TrainDetailView(key: key)
                 }
         }
         .sheet(isPresented: $showSettings) {
@@ -404,8 +404,7 @@ struct MapSheet: View {
 
     private func open(_ station: TrainStation) {
         searchFocused = false
-        path = NavigationPath([MapSheetRoute.station(station)])
-        detent = .large
+        onSelectStation(station)
     }
 
     private func searchTrains() async {

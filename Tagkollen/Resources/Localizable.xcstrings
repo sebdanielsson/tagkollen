@@ -450,6 +450,16 @@
         }
       }
     },
+    "Directions": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vägbeskrivning"
+          }
+        }
+      }
+    },
     "Done": {
       "localizations": {
         "sv": {
@@ -1270,6 +1280,16 @@
         }
       }
     },
+    "Show stations": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa stationer"
+          }
+        }
+      }
+    },
     "Show train numbers": {
       "localizations": {
         "sv": {
@@ -1316,6 +1336,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Station"
+          }
+        }
+      }
+    },
+    "Station %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Station %@"
           }
         }
       }

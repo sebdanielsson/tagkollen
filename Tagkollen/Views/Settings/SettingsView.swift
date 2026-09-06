@@ -23,6 +23,7 @@ struct SettingsView: View {
                 Toggle("Show train numbers", isOn: $settings.showTrainLabels)
                 Toggle("Colour trains by delay", isOn: $settings.colorMarkersByDelay)
                 Toggle("Show inactive trains", isOn: $settings.showInactiveTrains)
+                Toggle("Show stations", isOn: $settings.showStations)
             }
 
             Section {

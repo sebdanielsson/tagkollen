@@ -1,3 +1,4 @@
+import MapKit
 import SwiftData
 import SwiftUI
 import TrafikverketKit
@@ -6,8 +7,10 @@ import TrafikverketKit
 struct StationBoardView: View {
     let station: TrainStation
     /// When set (the map card on iPhone), selecting a train goes through this instead of a plain
-    /// push, so the map behind can update too. `nil` falls back to a normal navigation push — used
-    /// where there's no map to update (the Search and Saved tabs on iPad).
+    /// push, so the map behind can update too — and so the push goes through `MapScreen`, which
+    /// mirrors the card's navigation path in a typed shadow. `nil` elsewhere: the board pushes
+    /// trains itself onto the enclosing stack, in the Search and Saved tabs and in the iPad map
+    /// inspector, where the map deliberately stays on the station being read.
     var onSelectTrain: ((TrainKey) -> Void)?
 
     enum Board: String, CaseIterable, Identifiable {
@@ -30,9 +33,19 @@ struct StationBoardView: View {
     @State private var rows: [TrainAnnouncement] = []
     @State private var isLoading = false
     @State private var error: String?
-    @State private var selected: TrainKey?
 
     var body: some View {
+        // Only where this board pushes its own trains. Inside the map card `onSelectTrain` is set
+        // and pushes go through `MapScreen`, which mirrors the path in a typed shadow — a
+        // destination declared here would land on that same stack and let a push slip past it.
+        if onSelectTrain == nil {
+            content.navigationDestination(for: TrainKey.self) { TrainDetailView(key: $0) }
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
         List {
             Section {
                 Picker("Board", selection: $board) {
@@ -84,7 +97,12 @@ struct StationBoardView: View {
         .navigationTitle(station.name)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if station.coordinate != nil {
+                    Button("Directions", systemImage: "arrow.triangle.turn.up.right.diamond.fill") {
+                        openDirections()
+                    }
+                }
                 Button(isFavorite ? "Saved" : "Save", systemImage: isFavorite ? "star.fill" : "star") {
                     toggleFavorite()
                 }
@@ -92,7 +110,6 @@ struct StationBoardView: View {
                 .sensoryFeedback(.success, trigger: isFavorite)
             }
         }
-        .navigationDestination(for: TrainKey.self) { TrainDetailView(key: $0) }
         .refreshable { await load() }
         .task(id: board) { await load() }
         .onAppear { settings.addRecentStation(station.locationSignature) }
@@ -108,6 +125,17 @@ struct StationBoardView: View {
 
     private var isFavorite: Bool {
         favoriteStations.contains { $0.signature == station.locationSignature }
+    }
+
+    /// Opens Apple Maps with directions to the station from the user's current location, in
+    /// whichever mode the user prefers — walking and transit are at least as likely as driving
+    /// when the destination is a railway station.
+    private func openDirections() {
+        guard let coordinate = station.coordinate else { return }
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let mapItem = MKMapItem(location: location, address: nil)
+        mapItem.name = station.name
+        mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDefault])
     }
 
     private func toggleFavorite() {
