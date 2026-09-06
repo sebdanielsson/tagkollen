@@ -20,6 +20,10 @@ struct MapScreen: View {
     @State private var sheetPath = NavigationPath()
     /// Typed shadow of `sheetPath`, kept in lockstep with every push — see `MapNavigationStack`.
     @State private var navigationStack = MapNavigationStack()
+    /// A focus request this screen deferred because live positions hadn't arrived yet. Kept here
+    /// rather than in `AppNavigation.pendingMapFocus`, which means "something outside the map
+    /// asked for this" and resets the card's trail — a retry of our own must not do that.
+    @State private var deferredFocus: DeferredFocus?
     @State private var sheetDetent: PresentationDetent = .medium
     @State private var sheetPresented = true
     @Namespace private var mapScope
@@ -33,6 +37,11 @@ struct MapScreen: View {
     static let collapsedSheetHeight: CGFloat = 76
     static let sheetTopPadding: CGFloat = 16
     private static let logger = Logger(subsystem: "se.tagkollen.app", category: "MapScreen")
+
+    private struct DeferredFocus {
+        let key: TrainKey
+        let pushesPath: Bool
+    }
 
     private var isRegular: Bool {
         sizeClass == .regular
@@ -73,20 +82,13 @@ struct MapScreen: View {
             startFreshTrail()
             focus(on: station)
         }
-        .onChange(of: isRegular) { _, regular in
-            // Back from the inspector layout to the card, which always starts at its root: re-push
-            // whatever is still selected, otherwise the map shows a selection the card doesn't.
-            guard !regular else { return }
-            if let selectedStation {
-                focus(on: selectedStation)
-            } else if let selectedKey {
-                focus(on: selectedKey)
-            }
-        }
         .onChange(of: live.updateCount) { _, _ in
             if let key = navigation.pendingMapFocus {
                 startFreshTrail()
                 focus(on: key)
+            } else if let deferred = deferredFocus {
+                // Our own retry, so the card keeps whatever trail it already had.
+                focus(on: deferred.key, pushingPath: deferred.pushesPath)
             } else if let selectedKey, selectedTrainID == nil, live.train(for: selectedKey) != nil {
                 // The selected train had no live position when chosen; it just started reporting one.
                 focus(on: selectedKey)
@@ -98,7 +100,15 @@ struct MapScreen: View {
             // grow both together, so this only fires for a pop). Trim the shadow to match, then
             // restore the map to whatever's now on top — the previous station's board, an earlier
             // train, or nothing at the root.
-            guard path.count < navigationStack.routes.count else { return }
+            guard path.count < navigationStack.routes.count else {
+                if path.count > navigationStack.routes.count {
+                    // Something appended without going through `push`, so the shadow is now
+                    // shallower than the real stack and the next "back" would restore the wrong
+                    // screen. Nothing does today; this is here so it can't fail silently.
+                    Self.logger.error("sheetPath grew to \(path.count) past the shadow's \(navigationStack.routes.count)")
+                }
+                return
+            }
             navigationStack.trim(to: path.count)
             restoreSelection()
         }
@@ -191,6 +201,14 @@ struct MapScreen: View {
                 // navigation stack, so a train pushes on top of the board with a back button and
                 // the map keeps showing the station the user is reading about.
                 StationBoardView(station: selectedStation)
+                    .toolbar {
+                        // The inspector has no dismiss chrome of its own, and unlike a train
+                        // detail the board has no Close button, so without this the panel can
+                        // only be closed by selecting something else.
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Close", systemImage: "xmark", action: clearSelection)
+                        }
+                    }
             }
         } else if let selection = currentSelection {
             NavigationStack {
@@ -244,8 +262,8 @@ struct MapScreen: View {
     /// Empties the card's navigation trail and its shadow together. Also used when focus arrives
     /// from outside the map (a deep link, or a link from another tab): whatever the card was
     /// showing belongs to an older, unrelated bit of browsing, so "back" shouldn't walk into it.
-    /// Runs in the regular size class too — the card isn't on screen there, but it comes back on
-    /// rotation, and a trail left behind would be stale by then.
+    /// Runs in the regular size class too, where the card isn't on screen — cheap, and it keeps
+    /// the two representations from ever disagreeing.
     private func startFreshTrail() {
         guard !sheetPath.isEmpty || !navigationStack.isEmpty else { return }
         sheetPath = NavigationPath()
@@ -318,6 +336,7 @@ struct MapScreen: View {
 
     private func focus(on key: TrainKey, pushingPath: Bool = true) {
         navigation.pendingMapFocus = nil
+        deferredFocus = nil
         selectedStation = nil
         if let train = live.train(for: key) {
             selectedKey = key
@@ -336,7 +355,7 @@ struct MapScreen: View {
             push(.train(TrainSelection(key: key, liveID: nil)), if: pushingPath)
         } else {
             // Live data not loaded yet; try again once positions arrive.
-            navigation.pendingMapFocus = key
+            deferredFocus = DeferredFocus(key: key, pushesPath: pushingPath)
         }
     }
 }

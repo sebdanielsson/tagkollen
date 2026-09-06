@@ -32,7 +32,9 @@ struct MapNavigationStack {
     /// it was pushed: a train selected before it reported a position, and the same train once it
     /// has one, are one screen, and treating them as two pushed a duplicate copy on top of it.
     /// Stations likewise compare by signature, so a directory refresh can't make a station look
-    /// like a different one.
+    /// like a different one. The trade-off is that two units reporting positions under one train
+    /// number (a coupled service) count as one screen; re-selecting the other unit moves the map
+    /// without pushing a second detail, which is the lesser of the two surprises.
     private static func addressSameScreen(_ lhs: MapSheetRoute, _ rhs: MapSheetRoute) -> Bool {
         switch (lhs, rhs) {
         case let (.train(a), .train(b)):

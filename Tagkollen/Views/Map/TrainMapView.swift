@@ -33,7 +33,9 @@ struct TrainMapView: View {
     /// reason as `displayedTrains`: `body` re-runs several times a second while positions stream,
     /// and a nationwide `ForEach` over the whole directory would rebuild ~700 annotations — and
     /// re-parse ~700 WKT coordinate strings — every time, almost all of them off-screen.
-    @State private var displayedStations: [LocatedStation] = []
+    @State private var displayedStations: [StationPin] = []
+    /// The map's height in points, needed to judge how far apart the station dots actually look.
+    @State private var mapHeight: CGFloat = 0
 
     var body: some View {
         Map(position: $camera, interactionModes: .all, selection: $selectedTrainID, scope: scope) {
@@ -42,18 +44,19 @@ struct TrainMapView: View {
                 routeOverlay(for: journey)
             }
             ForEach(displayedStations) { pin in
-                Annotation(coordinate: pin.clCoordinate, anchor: .center) {
-                    Button { onSelectStation(pin.station) } label: {
-                        // The dot stays small; the frame around it is an invisible tap target.
+                Annotation(coordinate: pin.station.clCoordinate, anchor: .center) {
+                    Button { onSelectStation(pin.station.station) } label: {
+                        // The dot stays small; the frame around it is an invisible tap target,
+                        // sized so it can't cover a neighbouring dot (see `StationPins.pins`).
                         // Station annotations are declared before the trains, so a train drawn on
                         // top of one still wins the tap.
-                        StationMarker(name: pin.station.name)
-                            .frame(width: stationHitSize, height: stationHitSize)
+                        StationMarker(name: pin.station.station.name)
+                            .frame(width: pin.hitSize, height: pin.hitSize)
                             .contentShape(.circle)
                     }
                     .buttonStyle(.plain)
                 } label: {
-                    Text(pin.station.name)
+                    Text(pin.station.station.name)
                 }
                 .annotationTitles(.hidden)
             }
@@ -95,6 +98,10 @@ struct TrainMapView: View {
             refreshDisplayedTrains()
             refreshDisplayedStations()
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+            mapHeight = height
+            refreshDisplayedStations()
+        }
         .onChange(of: live.updateCount, initial: true) { _, _ in
             scheduleRefresh()
         }
@@ -133,7 +140,7 @@ struct TrainMapView: View {
 
     private var routeInputs: RouteInputs {
         RouteInputs(
-            stopSignatures: journeys.cached(selectedKey)?.stops.map(\.signature) ?? [],
+            stopSignatures: stopSignatures,
             stationsLoaded: stations.isLoaded,
             networkLoaded: RailNetwork.shared.isLoaded
         )
@@ -165,23 +172,26 @@ struct TrainMapView: View {
     private struct StationInputs: Equatable {
         let show: Bool
         let directoryRevision: Int
-        let selected: String?
+        let excluded: Set<String>
     }
 
     private var stationInputs: StationInputs {
-        StationInputs(
-            show: settings.showStations,
-            directoryRevision: stations.revision,
-            selected: selectedStation?.locationSignature
-        )
+        StationInputs(show: settings.showStations, directoryRevision: stations.revision, excluded: excludedStations)
     }
 
-    /// Tap target for an ambient dot. 44pt is the recommended minimum, but on a wide camera it
-    /// covers several kilometres of map and swallows neighbouring stations — and overlapping
-    /// targets resolve by draw order, not by which dot is nearer — so it shrinks as the view
-    /// widens, back towards the size of the dot itself.
-    private var stationHitSize: CGFloat {
-        visibleRegion.span.latitudeDelta < 0.35 ? 44 : 24
+    /// Stations that already have a marker of their own: the selected station, and every stop of
+    /// the selected train's route. Drawing an ambient dot on top of a stop dot would hide whether
+    /// that stop is cancelled or already passed.
+    private var excludedStations: Set<String> {
+        var excluded = Set(stopSignatures)
+        if let signature = selectedStation?.locationSignature {
+            excluded.insert(signature)
+        }
+        return excluded
+    }
+
+    private var stopSignatures: [String] {
+        journeys.cached(selectedKey)?.stops.map(\.signature) ?? []
     }
 
     /// Recomputes the ambient station dots for the current camera (see `StationPins`), and only
@@ -190,7 +200,7 @@ struct TrainMapView: View {
     /// city-level camera shows a few dozen.
     private func refreshDisplayedStations() {
         let next = settings.showStations
-            ? StationPins.visible(from: stations.located, in: visibleRegion, excluding: selectedStation?.locationSignature)
+            ? StationPins.pins(from: stations.located, in: visibleRegion, excluding: excludedStations, mapHeight: mapHeight)
             : []
         guard next != displayedStations else { return }
         displayedStations = next
