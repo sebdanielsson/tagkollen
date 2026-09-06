@@ -27,7 +27,9 @@ for u, v, data in g.edges(data=True):
         chain = list(reversed(chain))
     # store only the interior points (endpoints are implied by node indices) to avoid duplication
     interior = [to_ll(*p) for p in chain[1:-1]]
-    edges_out.append([node_index[u], node_index[v], interior])
+    # `weight` is the exact pre-simplification track length in metres (SWEREF99TM), computed once
+    # here so the app doesn't need to reconstruct it from CLLocation distances at load time.
+    edges_out.append([node_index[u], node_index[v], interior, round(data["weight"], 1)])
 
 stations_out = {}
 skipped = 0

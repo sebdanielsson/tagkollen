@@ -61,6 +61,7 @@ final class AppDependencies {
     func start() async {
         guard !started else { return }
         started = true
+        RailNetwork.shared.preload()
         live.start()
         await stations.load()
         await alerts.refreshAuthorization()

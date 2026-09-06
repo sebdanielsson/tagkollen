@@ -23,6 +23,10 @@ struct TrainMapView: View {
     /// of on every position update anywhere in Sweden.
     @State private var displayedTrains: [LiveTrain] = []
     @State private var refreshTask: Task<Void, Never>?
+    /// The selected journey's route, following real track geometry where possible. Computed once
+    /// per selection (see `refreshRoute`) rather than on every `body` evaluation — Dijkstra over
+    /// the rail network isn't free, and the route never changes while a train just keeps moving.
+    @State private var routeCoordinates: [CLLocationCoordinate2D] = []
 
     var body: some View {
         Map(position: $camera, interactionModes: .all, selection: $selectedTrainID, scope: scope) {
@@ -62,9 +66,16 @@ struct TrainMapView: View {
         }
         .onChange(of: selectedKey) { _, _ in
             fitCameraToRouteIfNeeded()
+            refreshRoute()
         }
         .onChange(of: journeys.cached(selectedKey)) { _, _ in
             fitCameraToRouteIfNeeded()
+            refreshRoute()
+        }
+        .onChange(of: RailNetwork.shared.isLoaded) { _, _ in
+            // The network can still be loading when a route is first requested (straight-line
+            // fallback in the meantime); once it's ready, upgrade an already-shown route.
+            refreshRoute()
         }
     }
 
@@ -113,12 +124,9 @@ struct TrainMapView: View {
     /// Schematic route (straight segments between stations) and stop dots for the selected train.
     @MapContentBuilder
     private func routeOverlay(for journey: TrainJourney) -> some MapContent {
-        let points = journey.stops.compactMap { stop -> (TrainStop, CLLocationCoordinate2D)? in
-            guard let c = stations.station(stop.signature)?.coordinate else { return nil }
-            return (stop, CLLocationCoordinate2D(latitude: c.latitude, longitude: c.longitude))
-        }
+        let points = stopPoints(for: journey)
         if points.count > 1 {
-            MapPolyline(coordinates: routePolyline(for: points))
+            MapPolyline(coordinates: routeCoordinates)
                 .stroke(Color.accentColor.opacity(0.65), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round, dash: [8, 6]))
         }
         ForEach(points, id: \.0.id) { stop, coordinate in
@@ -133,6 +141,24 @@ struct TrainMapView: View {
             }
             .annotationTitles(visibleRegion.span.latitudeDelta < 1.5 ? .visible : .hidden)
         }
+    }
+
+    private func stopPoints(for journey: TrainJourney) -> [(TrainStop, CLLocationCoordinate2D)] {
+        journey.stops.compactMap { stop -> (TrainStop, CLLocationCoordinate2D)? in
+            guard let c = stations.station(stop.signature)?.coordinate else { return nil }
+            return (stop, CLLocationCoordinate2D(latitude: c.latitude, longitude: c.longitude))
+        }
+    }
+
+    /// Recomputes `routeCoordinates` for the currently selected journey. Cheap when nothing
+    /// changed (an unchanged pair hits `RailNetwork`'s cache), but still only called from
+    /// selection/journey/network-load changes — never from `body`.
+    private func refreshRoute() {
+        guard let journey = journeys.cached(selectedKey) else {
+            routeCoordinates = []
+            return
+        }
+        routeCoordinates = routePolyline(for: stopPoints(for: journey))
     }
 
     /// Stitches each consecutive stop pair's real track shape (when both stations are in the
