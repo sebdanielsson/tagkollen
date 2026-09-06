@@ -1,5 +1,6 @@
 import glob
 import os
+import re
 import sqlite3
 import sys
 
@@ -12,11 +13,12 @@ RAILNET_DIR = "railnet"
 
 def find_geopackage():
     """The NJDB download's file name carries its version, so it changes between releases — take
-    whatever GeoPackage is in `railnet/`, newest version first."""
-    found = sorted(glob.glob(os.path.join(RAILNET_DIR, "**", "*.gpkg"), recursive=True), reverse=True)
+    whatever GeoPackage is in `railnet/`, newest version first. Compared as numbers rather than as
+    text, where a hypothetical `3_10` would sort before `3_9`."""
+    found = glob.glob(os.path.join(RAILNET_DIR, "**", "*.gpkg"), recursive=True)
     if not found:
         sys.exit(f"No .gpkg under {RAILNET_DIR}/ — run download_njdb.py first (see docs/rail-network.md)")
-    return found[0]
+    return max(found, key=lambda path: [int(n) for n in re.findall(r"\d+", os.path.basename(path))] or [0])
 
 
 def find_table(con):

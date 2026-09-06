@@ -26,14 +26,17 @@ OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "railnet")
 
 
 def send(request):
-    """Performs a request, turning an HTTP error into the server's own message. Lastkajen answers
-    400 with a human-readable Swedish string for anything it doesn't like, credentials included."""
+    """Performs a request, reporting a failure as a message rather than a traceback. Lastkajen
+    answers 400 with a human-readable Swedish string for anything it doesn't like, credentials
+    included; a connection that never got that far has only its own reason to report."""
     try:
         with urllib.request.urlopen(request) as response:
             return response.read()
     except urllib.error.HTTPError as error:
         detail = error.read().decode("utf-8", "replace").strip()
         sys.exit(f"{request.get_full_url()} failed: HTTP {error.code} {error.reason}\n{detail}")
+    except urllib.error.URLError as error:
+        sys.exit(f"{request.get_full_url()} failed: {error.reason}")
 
 
 def call(path, bearer=None, **params):
@@ -47,7 +50,8 @@ def call(path, bearer=None, **params):
 
 
 def version_of(name):
-    """Sort key from a file name like `..._grundegenskaper3_0_GeoPackage.zip` -> (3, 0)."""
+    """Sort key from a file name like `..._grundegenskaper3_0_GeoPackage.zip` -> (3, 0). Numbers
+    rather than text, where a hypothetical `3_10` would sort before `3_9`."""
     numbers = [int(n) for n in re.findall(r"\d+", name)]
     return tuple(numbers) if numbers else (0,)
 
