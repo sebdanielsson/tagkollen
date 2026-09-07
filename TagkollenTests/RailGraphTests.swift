@@ -195,6 +195,38 @@ struct RailGraphPolylineTests {
     }
 }
 
+@Suite("Route legs")
+struct RailGraphLegsTests {
+    typealias Stop = (signature: String, coordinate: CLLocationCoordinate2D)
+
+    private func legs(_ stops: [Stop]) -> [[[Double]]] {
+        RailGraph.legs(through: stops, route: RailGraphFixture.graph.route).map { coordinates($0) ?? [] }
+    }
+
+    @Test("One leg per consecutive stop pair, each kept separate rather than merged")
+    func oneLegPerPair() {
+        let stops: [Stop] = [
+            ("A", RailGraphFixture.a), ("B", RailGraphFixture.b), ("C", RailGraphFixture.c),
+        ]
+        let result = legs(stops)
+        #expect(result.count == 2)
+        #expect(result[0] == coordinates([RailGraphFixture.a, RailGraphFixture.m, RailGraphFixture.b]))
+        #expect(result[1] == coordinates([RailGraphFixture.b, RailGraphFixture.c]))
+    }
+
+    @Test("A leg with no route falls back to a straight line between the two stops")
+    func fallsBackToStraightLeg() {
+        let z = CLLocationCoordinate2D(latitude: 62.0, longitude: 20.0)
+        let stops: [Stop] = [("Z", z), ("A", RailGraphFixture.a)]
+        #expect(legs(stops) == [coordinates([z, RailGraphFixture.a]) ?? []])
+    }
+
+    @Test("A single stop has no legs")
+    func singleStopHasNoLegs() {
+        #expect(legs([("A", RailGraphFixture.a)]).isEmpty)
+    }
+}
+
 @Suite("MinHeap")
 struct MinHeapTests {
     @Test("Pops in priority order with duplicates and enough entries to exercise both children")
