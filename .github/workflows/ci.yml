@@ -111,9 +111,17 @@ jobs:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
         run: Scripts/ci/write-asc-key.sh
 
-      # Cloud-managed signing: Xcode creates the distribution certificate and profiles through the
-      # API key, so no certificate or private key is stored in GitHub. Needs a *team* key with the
-      # Admin role (docs/release.md).
+      # Cloud-managed signing: Xcode creates provisioning profiles through the API key, so no
+      # profile is stored in GitHub. The distribution certificate itself is pinned (imported below)
+      # rather than left to cloud-managed signing to mint fresh each run — GitHub-hosted runners are
+      # ephemeral, so without a pinned identity every run would ask Apple for a new certificate and
+      # eventually exhaust the account's certificate limit (docs/release.md).
+      - name: Import signing certificate
+        env:
+          DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.DISTRIBUTION_CERTIFICATE_PASSWORD }}
+        run: Scripts/ci/import-signing-certificate.sh
+
       - name: Archive
         env:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
@@ -199,6 +207,13 @@ jobs:
           ASC_KEY: ${{ secrets.APP_STORE_CONNECT_KEY_BASE64 }}
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
         run: Scripts/ci/write-asc-key.sh
+
+      # Pinned distribution certificate — see the testflight job above and docs/release.md.
+      - name: Import signing certificate
+        env:
+          DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.DISTRIBUTION_CERTIFICATE_PASSWORD }}
+        run: Scripts/ci/import-signing-certificate.sh
 
       - name: Archive
         env:
