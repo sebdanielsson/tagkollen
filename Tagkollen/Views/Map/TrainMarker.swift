@@ -29,13 +29,6 @@ struct TrainMarker: View {
     private var full: some View {
         VStack(spacing: 2) {
             ZStack {
-                if let bearing = train.bearing {
-                    Image(systemName: "location.north.fill")
-                        .font(.system(size: isSelected ? 13 : 10, weight: .bold))
-                        .foregroundStyle(color)
-                        .rotationEffect(.degrees(Double(bearing)))
-                        .offset(y: isSelected ? -19 : -15)
-                }
                 Circle()
                     .fill(color.gradient)
                     .frame(width: isSelected ? 28 : 20, height: isSelected ? 28 : 20)
@@ -43,9 +36,20 @@ struct TrainMarker: View {
                         Circle().strokeBorder(.white.opacity(0.9), lineWidth: isSelected ? 3 : 2)
                     }
                     .shadow(color: .black.opacity(0.25), radius: isSelected ? 6 : 2, y: 1)
-                Image(systemName: "train.side.front.car")
-                    .font(.system(size: isSelected ? 13 : 9, weight: .semibold))
-                    .foregroundStyle(.white)
+                // A side-profile train silhouette doesn't read as "pointing" when rotated to an
+                // arbitrary bearing (a 90°/180° turn just looks like a mirrored, sideways train,
+                // not a heading). A plain arrow rotates cleanly through the full circle instead;
+                // fall back to the stationary train glyph when there's no bearing to show.
+                if let bearing = train.bearing {
+                    Image(systemName: "location.north.fill")
+                        .font(.system(size: isSelected ? 14 : 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .rotationEffect(.degrees(Double(bearing)))
+                } else {
+                    Image(systemName: "train.side.front.car")
+                        .font(.system(size: isSelected ? 13 : 9, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
             }
             if showLabel || isSelected {
                 Text(train.displayNumber)
