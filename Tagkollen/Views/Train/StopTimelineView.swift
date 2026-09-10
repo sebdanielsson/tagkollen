@@ -53,9 +53,16 @@ private struct StopRow: View {
     let isNext: Bool
     @State private var expanded = false
 
+    /// Matches the stop circle's plain .secondary fill: a translucent line lets the busy, blurred
+    /// map show through unevenly behind the sheet's glass background, which reads as broken dashes
+    /// rather than one continuous line even though the shape itself has no gaps.
     private var lineColor: Color {
-        stop.hasPassed ? .secondary.opacity(0.5) : .accentColor
+        stop.hasPassed ? .secondary : .accentColor
     }
+
+    /// Where `rail` sits horizontally, matching the two time columns' widths and spacing it used to
+    /// occupy as an `HStack` sibling.
+    private static let railXOffset = timeColumnWidth * 2 + columnSpacing * 2
 
     var body: some View {
         HStack(alignment: .top, spacing: Self.columnSpacing) {
@@ -63,7 +70,8 @@ private struct StopRow: View {
                 .frame(width: Self.timeColumnWidth, alignment: .leading)
             timeCell(stop.departure)
                 .frame(width: Self.timeColumnWidth, alignment: .leading)
-            rail
+            Color.clear
+                .frame(width: Self.railWidth)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(name)
@@ -115,6 +123,13 @@ private struct StopRow: View {
                 }
             }
             .padding(.bottom, isLast ? 0 : 14)
+        }
+        // Drawn as an overlay, not an HStack sibling: an overlay is proposed the row's already-
+        // resolved height, so the rail's bottom segment reliably fills exactly to the next row's
+        // top segment. As a sibling competing for space in the same HStack layout pass, it could
+        // occasionally resolve a hair short after a scroll-triggered relayout, leaving a visible gap.
+        .overlay(alignment: .topLeading) {
+            rail.offset(x: Self.railXOffset)
         }
         .contentShape(.rect)
         .onTapGesture { withAnimation(.snappy) { expanded.toggle() } }
