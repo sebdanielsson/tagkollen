@@ -27,10 +27,12 @@ struct TrainMapView: View {
     /// of on every position update anywhere in Sweden.
     @State private var displayedTrains: [LiveTrain] = []
     @State private var refreshTask: Task<Void, Never>?
-    /// The selected journey's route, following real track geometry where possible. Computed once
-    /// per selection (see `refreshRoute`) rather than on every `body` evaluation — Dijkstra over
-    /// the rail network isn't free, and the route never changes while a train just keeps moving.
-    @State private var routeCoordinates: [CLLocationCoordinate2D] = []
+    /// The selected journey's route, following real track geometry where possible, one entry per
+    /// leg between consecutive stops so `routeOverlay` can colour a cancelled leg differently.
+    /// Computed once per selection (see `refreshRoute`) rather than on every `body` evaluation —
+    /// Dijkstra over the rail network isn't free, and the route never changes while a train just
+    /// keeps moving.
+    @State private var routeLegs: [[CLLocationCoordinate2D]] = []
     /// The ambient station pins actually handed to the map, resolved outside `body` for the same
     /// reason as `displayedTrains`: `body` re-runs several times a second while positions stream,
     /// and a nationwide `ForEach` over the whole directory would rebuild ~700 annotations — and
@@ -123,7 +125,7 @@ struct TrainMapView: View {
         }
         .onChange(of: routeInputs, initial: true) { _, _ in
             // `initial: true` matters: `selectedKey` lives in `MapScreen` and outlives this view,
-            // but `routeCoordinates` doesn't — a size-class change (rotating a Max, iPad Split
+            // but `routeLegs` doesn't — a size-class change (rotating a Max, iPad Split
             // View) rebuilds the layout and with it a fresh `TrainMapView`, which must redraw the
             // already-selected route even though nothing changed from its own point of view.
             refreshRoute()
@@ -258,14 +260,38 @@ struct TrainMapView: View {
         withAnimation(.smooth) { camera = .region(region) }
     }
 
-    /// The selected train's route (`routeCoordinates`, following real track where the network
-    /// covers it) and a dot per stop.
+    /// One leg of the route between two consecutive stops, coloured red where the train doesn't
+    /// actually run it.
+    private struct ColoredLeg: Identifiable {
+        let id: Int
+        let coordinates: [CLLocationCoordinate2D]
+        let isCanceled: Bool
+    }
+
+    /// Pairs `routeLegs`' geometry with each leg's two stops to decide whether it's cancelled — a
+    /// leg is skipped when the train doesn't depart the first stop, or doesn't arrive at the
+    /// second, wherever `journey`'s cancellation lands (fully or partly cancelled runs alike).
+    private func coloredLegs(for journey: TrainJourney) -> [ColoredLeg] {
+        zip(zip(journey.stops, journey.stops.dropFirst()), routeLegs).enumerated().map { index, pair in
+            let ((from, to), coordinates) = pair
+            let isCanceled = (from.departure?.isCanceled ?? false) || (to.arrival?.isCanceled ?? false)
+            return ColoredLeg(id: index, coordinates: coordinates, isCanceled: isCanceled)
+        }
+    }
+
+    /// The selected train's route (`routeLegs`, following real track where the network covers it)
+    /// and a dot per stop.
     @MapContentBuilder
     private func routeOverlay(for journey: TrainJourney) -> some MapContent {
         let points = stopPoints(for: journey)
-        if routeCoordinates.count > 1 {
-            MapPolyline(coordinates: routeCoordinates)
-                .stroke(Color.accentColor.opacity(0.65), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round, dash: [8, 6]))
+        ForEach(coloredLegs(for: journey)) { leg in
+            if leg.coordinates.count > 1 {
+                MapPolyline(coordinates: leg.coordinates)
+                    .stroke(
+                        leg.isCanceled ? Color.red.opacity(0.75) : Color.accentColor.opacity(0.65),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round, dash: [8, 6])
+                    )
+            }
         }
         ForEach(points, id: \.0.id) { stop, coordinate in
             Annotation(coordinate: coordinate, anchor: .center) {
@@ -323,22 +349,21 @@ struct TrainMapView: View {
         }
     }
 
-    /// Recomputes `routeCoordinates` for the currently selected journey: each consecutive stop
-    /// pair's real track shape where the bundled network has it, a straight segment otherwise
-    /// (see `RailGraph.polyline(through:route:)`). Cheap when nothing changed (an unchanged pair
-    /// hits `RailNetwork`'s cache), but still only called when `routeInputs` changes — never
-    /// from `body`.
+    /// Recomputes `routeLegs` for the currently selected journey: each consecutive stop pair's real
+    /// track shape where the bundled network has it, a straight segment otherwise (see
+    /// `RailGraph.legs(through:route:)`). Cheap when nothing changed (an unchanged pair hits
+    /// `RailNetwork`'s cache), but still only called when `routeInputs` changes — never from `body`.
     private func refreshRoute() {
         let stops = routeInputs.stopSignatures.compactMap { signature in
             stopAnchor(for: signature).map { (signature: signature, coordinate: $0) }
         }
         guard !stops.isEmpty else {
-            if !routeCoordinates.isEmpty {
-                routeCoordinates = []
+            if !routeLegs.isEmpty {
+                routeLegs = []
             }
             return
         }
-        routeCoordinates = RailGraph.polyline(through: stops) { RailNetwork.shared.route(from: $0, to: $1) }
+        routeLegs = RailGraph.legs(through: stops) { RailNetwork.shared.route(from: $0, to: $1) }
     }
 
     private var mapStyle: MapStyle {

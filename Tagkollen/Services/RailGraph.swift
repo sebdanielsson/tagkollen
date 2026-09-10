@@ -118,6 +118,22 @@ extension RailGraph {
         }
         return result
     }
+
+    /// Same stitching as `polyline(through:route:)`, but keeps each leg as its own array instead of
+    /// merging them into one line — so a caller can style individual legs differently, e.g. drawing
+    /// a cancelled stretch of the journey in red.
+    static func legs(
+        through stops: [(signature: String, coordinate: CLLocationCoordinate2D)],
+        route: (_ from: String, _ to: String) -> [CLLocationCoordinate2D]?
+    ) -> [[CLLocationCoordinate2D]] {
+        zip(stops, stops.dropFirst()).map { from, to in
+            if let real = route(from.signature, to.signature), !real.isEmpty {
+                real
+            } else {
+                [from.coordinate, to.coordinate]
+            }
+        }
+    }
 }
 
 /// Minimal binary min-heap keyed by priority, just enough for Dijkstra over a ~7k node graph.
