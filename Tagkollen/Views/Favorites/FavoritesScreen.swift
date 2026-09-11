@@ -29,7 +29,8 @@ struct FavoritesScreen: View {
                 }
             }
             // A split view that opens on an empty detail pane wastes two thirds of an iPad, so the
-            // next train up is selected for you — and re-selected if the one showing is deleted.
+            // first row — the next train to leave — is selected for you, and another one is picked
+            // if the one showing is deleted.
             .onChange(of: upcoming.map(\.id), initial: true) { _, ids in
                 if selected == nil || !ids.contains(selected?.id ?? "") {
                     selected = upcoming.first?.key
@@ -46,11 +47,18 @@ struct FavoritesScreen: View {
     }
 
     private var upcoming: [FavoriteTrain] {
-        favorites.filter { !isPast($0) }
+        favorites.filter { !isPast($0) }.sorted { departure(of: $0) < departure(of: $1) }
     }
 
     private var past: [FavoriteTrain] {
-        favorites.filter(isPast)
+        favorites.filter(isPast).sorted { departure(of: $0) < departure(of: $1) }
+    }
+
+    /// The time each row shows, so the sections read in the order the user sees. The `@Query` can
+    /// only sort by `departureDate`, which `TrainKey` normalises to midnight — every run saved for
+    /// the same day ties there and falls back to storage order.
+    private func departure(of fav: FavoriteTrain) -> Date {
+        fav.boardingTime ?? fav.scheduledDeparture ?? fav.departureDate
     }
 
     private func isPast(_ fav: FavoriteTrain) -> Bool {

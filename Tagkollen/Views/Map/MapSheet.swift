@@ -166,11 +166,19 @@ struct MapSheet: View {
         stationsSection
     }
 
+    /// Sorted by the time each row shows, not by the `@Query`'s `departureDate` — `TrainKey`
+    /// normalises that to midnight, so runs saved for the same day tie and fall back to storage
+    /// order, which here would also decide which four make the cut.
     private var upcomingFavorites: [FavoriteTrain] {
         favorites.filter { fav in
             let end = fav.scheduledArrival ?? fav.departureDate.addingTimeInterval(36 * 3600)
             return end.addingTimeInterval(3 * 3600) > .now
         }
+        .sorted { departure(of: $0) < departure(of: $1) }
+    }
+
+    private func departure(of fav: FavoriteTrain) -> Date {
+        fav.boardingTime ?? fav.scheduledDeparture ?? fav.departureDate
     }
 
     private var savedTrainsSection: some View {
