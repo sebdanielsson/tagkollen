@@ -1,6 +1,6 @@
 # Trafikverket Open API notes
 
-Reference for how Tågkollen talks to the [Trafikverket Open API](https://data.trafikverket.se). Everything goes through `TrafikverketKit`.
+Reference for how Tågradar talks to the [Trafikverket Open API](https://data.trafikverket.se). Everything goes through `TrafikverketKit`.
 
 ## Endpoint and request shape
 
@@ -31,7 +31,7 @@ Reference for how Tågkollen talks to the [Trafikverket Open API](https://data.t
 
 ## Live updates
 
-Adding `sseurl="true"` to a query returns `INFO.SSEURL`. `$now`/`$dateadd` filters are rejected together with `sseurl`, so the live stream uses an unfiltered query (with `limit="1"` to keep the initial response small) and the map fetches a filtered snapshot separately. On connect the stream first replays the cached objects (thousands of events in a few seconds), then delivers live changes. Connecting to it yields Server-Sent Events whose `data:` payload has the same shape as a normal response and contains only changed objects. Tågkollen streams `TrainPosition` this way and falls back to polling the snapshot query every 15 s if the stream fails.
+Adding `sseurl="true"` to a query returns `INFO.SSEURL`. `$now`/`$dateadd` filters are rejected together with `sseurl`, so the live stream uses an unfiltered query (with `limit="1"` to keep the initial response small) and the map fetches a filtered snapshot separately. On connect the stream first replays the cached objects (thousands of events in a few seconds), then delivers live changes. Connecting to it yields Server-Sent Events whose `data:` payload has the same shape as a normal response and contains only changed objects. Tågradar streams `TrainPosition` this way and falls back to polling the snapshot query every 15 s if the stream fails.
 
 ## Queries the app makes
 

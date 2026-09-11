@@ -4,7 +4,7 @@ _Last updated: 2026-09-05_
 
 ## English
 
-Tågkollen does not collect, store or share any personal data.
+Tågradar does not collect, store or share any personal data.
 
 - **No accounts, no analytics, no tracking.** The app contains no third-party SDKs, advertising or analytics.
 - **Train data** is fetched directly from Trafikverket's Open API (`api.trafikinfo.trafikverket.se`). Requests contain the train numbers and stations you look at and an API key, but nothing that identifies you. Trafikverket's handling of API traffic is described in their own terms at <https://data.trafikverket.se>.
@@ -15,11 +15,11 @@ Tågkollen does not collect, store or share any personal data.
 
 Because the app has no backend, we cannot see who uses it or what they look at.
 
-Questions: open an issue at <https://github.com/sebdanielsson/tagkollen/issues>.
+Questions: open an issue at <https://github.com/sebdanielsson/tagradar/issues>.
 
 ## Svenska
 
-Tågkollen samlar inte in, lagrar eller delar några personuppgifter.
+Tågradar samlar inte in, lagrar eller delar några personuppgifter.
 
 - **Inga konton, ingen analys, ingen spårning.** Appen innehåller inga tredjeparts-SDK:er, annonser eller analysverktyg.
 - **Tågdata** hämtas direkt från Trafikverkets öppna API (`api.trafikinfo.trafikverket.se`). Anropen innehåller de tågnummer och stationer du tittar på samt en API-nyckel, men ingenting som identifierar dig. Trafikverkets hantering av API-trafik beskrivs i deras villkor på <https://data.trafikverket.se>.
@@ -30,4 +30,4 @@ Tågkollen samlar inte in, lagrar eller delar några personuppgifter.
 
 Eftersom appen inte har någon backend kan vi inte se vem som använder den eller vad de tittar på.
 
-Frågor: öppna ett ärende på <https://github.com/sebdanielsson/tagkollen/issues>.
+Frågor: öppna ett ärende på <https://github.com/sebdanielsson/tagradar/issues>.

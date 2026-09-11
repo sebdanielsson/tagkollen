@@ -6,7 +6,7 @@ default_platform(:ios)
 
 platform :ios do
   desc "Upload an .ipa plus metadata and screenshots to App Store Connect and submit for review"
-  desc "  fastlane release ipa:path/to/Tagkollen.ipa version:1.2.0"
+  desc "  fastlane release ipa:path/to/Tagradar.ipa version:1.2.0"
   lane :release do |options|
     api_key = app_store_connect_api_key(
       key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),

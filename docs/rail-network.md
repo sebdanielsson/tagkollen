@@ -1,6 +1,6 @@
 # Rail network geometry
 
-`Tagkollen/Resources/RailNetwork.json` lets the map draw a train's route following the real
+`Tagradar/Resources/RailNetwork.json` lets the map draw a train's route following the real
 shape of the track instead of straight lines between stations (`RailNetwork.swift`). It's
 generated offline from Trafikverket's National Railway Database (NJDB) and checked in as a
 static bundled resource — nothing about it is fetched at runtime.
@@ -19,7 +19,7 @@ Trafikverket's station signatures.
 ## Pipeline (`Scripts/rail-network/`)
 
 Everything runs from inside `Scripts/rail-network/` and reads/writes files next to the scripts
-(all of them git-ignored except the final copy under `Tagkollen/Resources/`):
+(all of them git-ignored except the final copy under `Tagradar/Resources/`):
 
 The scripts are run with [uv](https://docs.astral.sh/uv/), which reads `pyproject.toml` and
 `uv.lock` and sets up the interpreter and dependencies itself — no GDAL needed, a GeoPackage is
@@ -107,5 +107,5 @@ existing file doesn't need routine updates. Re-download the GeoPackage from Last
 cd Scripts/rail-network
 uv run download_njdb.py   # or unzip the Lastkajen download into railnet/ yourself
 uv run build_graph.py && uv run snap_stations.py && uv run contract_graph.py && uv run export_network.py
-cp RailNetwork.json ../../Tagkollen/Resources/RailNetwork.json
+cp RailNetwork.json ../../Tagradar/Resources/RailNetwork.json
 ```

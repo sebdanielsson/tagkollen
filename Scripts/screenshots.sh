@@ -28,7 +28,7 @@ if [ -f .env.local ]; then
 fi
 : "${TRV_API_KEY:?TRV_API_KEY is not set — put it in .env.local}"
 
-BUNDLE_ID="${APP_BUNDLE_ID:-se.tagkollen.app}"
+BUNDLE_ID="${APP_BUNDLE_ID:-se.tagradar.app}"
 DERIVED=".build/DerivedData"
 OUT_ROOT="fastlane/screenshots"
 IDB="${IDB:-$HOME/.local/bin/idb}"
@@ -186,12 +186,12 @@ fi
 echo "▶ Featuring train $TRAIN; saved list: $SAVED"
 
 if [ -z "${SKIP_BUILD:-}" ]; then
-  [ -d Tagkollen.xcodeproj ] || Scripts/bootstrap.sh
+  [ -d Tagradar.xcodeproj ] || Scripts/bootstrap.sh
   echo "▶ Building"
-  xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen -configuration Debug \
+  xcodebuild -project Tagradar.xcodeproj -scheme Tagradar -configuration Debug \
     -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DERIVED" build -quiet
 fi
-APP=$(find "$DERIVED/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name "Tagkollen.app" | head -1)
+APP=$(find "$DERIVED/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name "Tagradar.app" | head -1)
 [ -n "$APP" ] || { echo "No build in $DERIVED — run without SKIP_BUILD"; exit 1; }
 
 udid_for() {

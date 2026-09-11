@@ -1,0 +1,151 @@
+import Foundation
+import os
+import TrafikverketKit
+
+/// All advertised stations, cached on disk and refreshed weekly. Used to turn signatures
+/// like `Cst` into "Stockholm Central" and to search stations by name.
+@MainActor
+@Observable
+final class StationDirectory {
+    private(set) var stationsBySignature: [String: TrainStation] = [:]
+    private(set) var all: [TrainStation] = []
+    /// Every station that has a coordinate, with the coordinate already parsed —
+    /// `TrainStation.coordinate` re-parses its WKT string on every access, and the map filters the
+    /// whole directory each time the camera settles.
+    private(set) var located: [LocatedStation] = []
+    /// Bumped whenever the directory is replaced. Views observe this rather than `all.count` to
+    /// notice a refresh that changed station details without changing how many there are.
+    private(set) var revision = 0
+    private(set) var isLoading = false
+    private(set) var lastRefresh: Date?
+    private(set) var error: String?
+
+    private let client: TrafikverketClient
+    private let logger = Logger(subsystem: "se.tagradar.app", category: "Stations")
+    private static let maxCacheAge: TimeInterval = 7 * 24 * 3600
+
+    init(client: TrafikverketClient) {
+        self.client = client
+    }
+
+    var isLoaded: Bool {
+        !all.isEmpty
+    }
+
+    func station(_ signature: String) -> TrainStation? {
+        stationsBySignature[signature]
+    }
+
+    func name(_ signature: String?) -> String {
+        guard let signature else { return "–" }
+        return stationsBySignature[signature]?.name ?? signature
+    }
+
+    func shortName(_ signature: String?) -> String {
+        guard let signature else { return "–" }
+        let st = stationsBySignature[signature]
+        return st?.advertisedShortLocationName ?? st?.name ?? signature
+    }
+
+    /// Case- and diacritic-insensitive prefix/word search on name and signature.
+    func search(_ text: String, limit: Int = 40) -> [TrainStation] {
+        let needle = text.trimmingCharacters(in: .whitespaces)
+        guard !needle.isEmpty else { return [] }
+        let folded = needle.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+        var exact: [TrainStation] = []
+        var prefix: [TrainStation] = []
+        var contains: [TrainStation] = []
+        for st in all {
+            let name = st.name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+            let sig = st.locationSignature.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+            if sig == folded || name == folded {
+                exact.append(st)
+            } else if name.hasPrefix(folded) || name.split(separator: " ").contains(where: { $0.hasPrefix(folded) }) {
+                prefix.append(st)
+            } else if name.contains(folded) {
+                contains.append(st)
+            }
+            if exact.count + prefix.count + contains.count > limit * 3 {
+                break
+            }
+        }
+        return Array((exact + prefix + contains).prefix(limit))
+    }
+
+    // MARK: Loading
+
+    func load() async {
+        if let cached = Self.readCache() {
+            apply(cached.stations)
+            lastRefresh = cached.savedAt
+        }
+        let stale = lastRefresh.map { Date.now.timeIntervalSince($0) > Self.maxCacheAge } ?? true
+        if all.isEmpty || stale {
+            await refresh()
+        }
+    }
+
+    func refresh() async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let query = Query<TrainStation>()
+                .filter(.equal("Advertised", true))
+                .include(TrainStation.appFields)
+                .limit(5000)
+            let result = try await client.fetch(query)
+            let live = result.objects.filter { !($0.deleted ?? false) }
+            guard !live.isEmpty else { return }
+            apply(live)
+            lastRefresh = .now
+            error = nil
+            Self.writeCache(live)
+        } catch {
+            self.error = error.localizedDescription
+            logger.error("Station refresh failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func apply(_ stations: [TrainStation]) {
+        stationsBySignature = Dictionary(stations.map { ($0.locationSignature, $0) }, uniquingKeysWith: { a, _ in a })
+        all = stations.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        located = all.compactMap { station in
+            station.coordinate.map { LocatedStation(station: station, coordinate: $0) }
+        }
+        revision += 1
+    }
+
+    // MARK: Disk cache
+
+    private static var cacheURL: URL {
+        try? FileManager.default.createDirectory(at: SharedStorage.containerURL, withIntermediateDirectories: true)
+        return SharedStorage.stationsCacheURL
+    }
+
+    private static func readCache() -> CachedStations? {
+        guard let data = try? Data(contentsOf: cacheURL) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(CachedStations.self, from: data)
+    }
+
+    private static func writeCache(_ stations: [TrainStation]) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        if let data = try? encoder.encode(CachedStations(savedAt: .now, stations: stations)) {
+            try? data.write(to: cacheURL, options: .atomic)
+        }
+    }
+}
+
+/// A station paired with its parsed coordinate, so callers that plot many stations at once don't
+/// re-parse the same well-known-text strings over and over.
+struct LocatedStation: Identifiable, Equatable, Sendable {
+    let station: TrainStation
+    let coordinate: Coordinate
+
+    var id: String {
+        station.locationSignature
+    }
+}

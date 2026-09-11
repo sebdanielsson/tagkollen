@@ -29,7 +29,7 @@ public final class TrafikverketClient: Sendable {
         keyProvider: any APIKeyProvider,
         endpoint: URL = TrafikverketClient.defaultEndpoint,
         session: URLSession = .shared,
-        userAgent: String = "Tagkollen (+https://github.com/sebdanielsson/tagkollen)"
+        userAgent: String = "Tagradar (+https://github.com/sebdanielsson/tagradar)"
     ) {
         self.keyProvider = keyProvider
         self.endpoint = endpoint

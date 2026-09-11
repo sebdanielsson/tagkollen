@@ -5,7 +5,7 @@ body:
   - type: textarea
     id: idea
     attributes:
-      label: What would you like Tågkollen to do?
+      label: What would you like Tågradar to do?
     validations:
       required: true
   - type: textarea

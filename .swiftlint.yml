@@ -1,7 +1,7 @@
 included:
-  - Tagkollen
-  - TagkollenWidgets
-  - TagkollenTests
+  - Tagradar
+  - TagradarWidgets
+  - TagradarTests
   - Packages/TrafikverketKit/Sources
   - Packages/TrafikverketKit/Tests
 excluded:

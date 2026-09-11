@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build, install and launch Tågkollen on an iOS Simulator, optionally taking a screenshot.
+# Build, install and launch Tågradar on an iOS Simulator, optionally taking a screenshot.
 #
 #   Scripts/simulator.sh                      # iPhone 17 Pro
 #   Scripts/simulator.sh "iPad Pro 13-inch (M5)"
@@ -20,14 +20,14 @@ if [ -f .env.local ]; then
 fi
 DEVICE="${1:-iPhone 17 Pro}"
 SHOT="${2:-}"
-BUNDLE_ID="${APP_BUNDLE_ID:-se.tagkollen.app}"
+BUNDLE_ID="${APP_BUNDLE_ID:-se.tagradar.app}"
 DERIVED=".build/DerivedData"
 
 if [ -d /Applications/Xcode.app ] && [ -z "${DEVELOPER_DIR:-}" ]; then
   export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 fi
 
-[ -d Tagkollen.xcodeproj ] || Scripts/bootstrap.sh
+[ -d Tagradar.xcodeproj ] || Scripts/bootstrap.sh
 
 UDID=$(xcrun simctl list devices available -j | python3 -c "
 import json,sys
@@ -45,12 +45,12 @@ if [ -z "${SKIP_BUILD:-}" ]; then
 echo "▶ Building for $DEVICE ($UDID)"
 # Keep (ad hoc) code signing on: without it the widget extension loses its entitlements and App Intents
 # registration, so widgets stay on their placeholder and the App Group is unavailable.
-xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen -configuration Debug \
+xcodebuild -project Tagradar.xcodeproj -scheme Tagradar -configuration Debug \
   -destination "id=$UDID" -derivedDataPath "$DERIVED" \
   build -quiet
 fi
 
-APP=$(find "$DERIVED/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name "Tagkollen.app" | head -1)
+APP=$(find "$DERIVED/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name "Tagradar.app" | head -1)
 xcrun simctl boot "$UDID" 2>/dev/null || true
 open -a Simulator --args -CurrentDeviceUDID "$UDID" >/dev/null 2>&1 || true
 xcrun simctl bootstatus "$UDID" -b >/dev/null
