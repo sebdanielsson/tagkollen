@@ -14,7 +14,9 @@ struct FavoritesScreen: View {
     @State private var journeys: [String: TrainJourney] = [:]
     @State private var selected: TrainKey?
     /// What this screen picked on its own, so a later re-sort can refine that choice while leaving
-    /// a row the user actually tapped alone.
+    /// a row the user actually tapped alone. Cleared by `selection`, which is the only way a tap
+    /// reaches `selected` — equality with the current selection can't tell the two apart once the
+    /// user taps the row that was already highlighted.
     @State private var autoSelected: TrainKey?
     @State private var isRefreshing = false
 
@@ -36,10 +38,7 @@ struct FavoritesScreen: View {
             // later, fills in the real departure times and re-sorts the list, so a pick made before
             // that is refined rather than defended — it was never the user's choice to begin with.
             // A row they tapped themselves is left alone, and is only replaced once it is gone.
-            .onChange(of: upcoming.map(\.id), initial: true) { _, _ in
-                // Existence is checked against every saved train, not just this section: a train
-                // picked from Earlier is still a real selection, and treating it as gone would
-                // throw the user back to the next departure whenever the upcoming list re-sorted.
+            .onChange(of: selectionInputs, initial: true) { _, _ in
                 let ourOwn = selected == nil || selected == autoSelected
                 let stillSaved = selected.map { key in favorites.contains { $0.id == key.id } } ?? false
                 guard ourOwn || !stillSaved else { return }
@@ -54,6 +53,30 @@ struct FavoritesScreen: View {
                     .navigationDestination(for: TrainStation.self) { StationBoardView(station: $0) }
             }
         }
+    }
+
+    /// What the selection above reacts to: the upcoming order decides which train is "next", and
+    /// the full set decides whether the selected one is still saved — a train picked from Earlier
+    /// and then deleted changes only the latter.
+    private struct SelectionInputs: Equatable {
+        let saved: [String]
+        let upcoming: [String]
+    }
+
+    private var selectionInputs: SelectionInputs {
+        SelectionInputs(saved: favorites.map(\.id), upcoming: upcoming.map(\.id))
+    }
+
+    /// Writes through to `selected`, and marks the choice as the user's — this binding is only
+    /// driven by the list, while the screen's own picks assign `selected` directly.
+    private var selection: Binding<TrainKey?> {
+        Binding(
+            get: { selected },
+            set: { key in
+                selected = key
+                autoSelected = nil
+            }
+        )
     }
 
     private var upcoming: [FavoriteTrain] {
@@ -91,7 +114,7 @@ struct FavoritesScreen: View {
     }
 
     private var list: some View {
-        List(selection: $selected) {
+        List(selection: selection) {
             if !favoriteStations.isEmpty {
                 Section("Stations") {
                     ForEach(favoriteStations) { fav in

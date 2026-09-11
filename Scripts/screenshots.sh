@@ -210,6 +210,10 @@ for DEVICE in "${DEVICES[@]}"; do
     esac
     OUT="$OUT_ROOT/$LOCALE"
     mkdir -p "$OUT"
+    # This device's previous captures, so a renamed or dropped shot can't linger and be stripped,
+    # listed and uploaded alongside the new ones. Other device families and locales are untouched,
+    # which is what makes a partial rerun safe.
+    rm -f "$OUT/$PREFIX"-*.png
     echo "▶ $DEVICE · $LOCALE → $OUT/$PREFIX-*.png"
 
     # Language is passed per launch rather than written to the simulator's global preferences, which
