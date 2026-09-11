@@ -47,11 +47,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Tågkollen använder din plats för att centrera kartan och visa tåg nära dig.</string>
+	<string>Tågkollen uses your location to centre the map and show trains near you.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Mikrofonen används för att söka efter tåg och stationer med rösten.</string>
+	<string>The microphone is used to search for trains and stations with your voice.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Taligenkänning används för att söka efter tåg och stationer med rösten.</string>
+	<string>Speech recognition is used to search for trains and stations with your voice.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSSupportsLiveActivitiesFrequentUpdates</key>

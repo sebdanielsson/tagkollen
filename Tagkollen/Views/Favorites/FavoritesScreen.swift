@@ -13,6 +13,11 @@ struct FavoritesScreen: View {
 
     @State private var journeys: [String: TrainJourney] = [:]
     @State private var selected: TrainKey?
+    /// What this screen picked on its own, so a later re-sort can refine that choice while leaving
+    /// a row the user actually tapped alone. Cleared by `selection`, which is the only way a tap
+    /// reaches `selected` — equality with the current selection can't tell the two apart once the
+    /// user taps the row that was already highlighted.
+    @State private var autoSelected: TrainKey?
     @State private var isRefreshing = false
 
     var body: some View {
@@ -28,6 +33,18 @@ struct FavoritesScreen: View {
                     }
                 }
             }
+            // A split view that opens on an empty detail pane wastes two thirds of an iPad, so the
+            // next train to leave is selected for you. The first refresh usually arrives moments
+            // later, fills in the real departure times and re-sorts the list, so a pick made before
+            // that is refined rather than defended — it was never the user's choice to begin with.
+            // A row they tapped themselves is left alone, and is only replaced once it is gone.
+            .onChange(of: selectionInputs, initial: true) { _, _ in
+                let ourOwn = selected == nil || selected == autoSelected
+                let stillSaved = selected.map { key in favorites.contains { $0.id == key.id } } ?? false
+                guard ourOwn || !stillSaved else { return }
+                selected = upcoming.first?.key
+                autoSelected = selected
+            }
         } else {
             NavigationStack {
                 list
@@ -38,12 +55,57 @@ struct FavoritesScreen: View {
         }
     }
 
+    /// What the selection above reacts to: the upcoming order decides which train is "next", and
+    /// the full set decides whether the selected one is still saved — a train picked from Earlier
+    /// and then deleted changes only the latter.
+    private struct SelectionInputs: Equatable {
+        let saved: [String]
+        let upcoming: [String]
+    }
+
+    private var selectionInputs: SelectionInputs {
+        SelectionInputs(saved: favorites.map(\.id), upcoming: upcoming.map(\.id))
+    }
+
+    /// Writes through to `selected`, and marks the choice as the user's — this binding is only
+    /// driven by the list, while the screen's own picks assign `selected` directly.
+    private var selection: Binding<TrainKey?> {
+        Binding(
+            get: { selected },
+            set: { key in
+                selected = key
+                autoSelected = nil
+            }
+        )
+    }
+
     private var upcoming: [FavoriteTrain] {
-        favorites.filter { !isPast($0) }
+        inDepartureOrder(favorites.filter { !isPast($0) })
     }
 
     private var past: [FavoriteTrain] {
-        favorites.filter(isPast)
+        inDepartureOrder(favorites.filter(isPast))
+    }
+
+    /// Orders a section by the time its rows show. The `@Query` can only sort by `departureDate`,
+    /// which `TrainKey` normalises to midnight, so every run saved for the same day ties there and
+    /// falls back to storage order. The key is built once per train rather than inside the
+    /// comparator, which would rebuild a snapshot on every comparison.
+    private func inDepartureOrder(_ trains: [FavoriteTrain]) -> [FavoriteTrain] {
+        trains.map { ($0, departure(of: $0)) }
+            .sorted { $0.1 < $1.1 }
+            .map(\.0)
+    }
+
+    /// Read from the same snapshot `FavoriteTrainRow` renders, so a trip segment sorts by its
+    /// boarding stop and a run whose cached fields are still empty takes its place as soon as the
+    /// journey arrives.
+    private func departure(of fav: FavoriteTrain) -> Date {
+        var snapshot = TrainSnapshot(favorite: fav)
+        if let journey = journeys[fav.id] {
+            snapshot.apply(journey)
+        }
+        return snapshot.scheduledDeparture ?? fav.departureDate
     }
 
     private func isPast(_ fav: FavoriteTrain) -> Bool {
@@ -52,7 +114,7 @@ struct FavoritesScreen: View {
     }
 
     private var list: some View {
-        List(selection: $selected) {
+        List(selection: selection) {
             if !favoriteStations.isEmpty {
                 Section("Stations") {
                     ForEach(favoriteStations) { fav in

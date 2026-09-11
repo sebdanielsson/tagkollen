@@ -86,7 +86,7 @@ Each certificate is valid for a year; when one expires, repeat steps 2–4 for t
 - Merge work into `main` with conventional commit messages → TestFlight build appears, release PR is updated.
 - When ready to ship: merge the release PR → wait for the *App Store* job → approve/release in App Store Connect.
 - On-demand TestFlight from any branch: Actions → CI/CD → *Run workflow*.
-- Store text lives in `fastlane/metadata/<locale>/*.txt` (English `en-US`, Swedish `sv`); screenshots in `fastlane/screenshots/<locale>/` (`Scripts/screenshots.sh` regenerates them at the sizes App Store Connect requires; `LOCALE=sv` for Swedish). Both are uploaded with every release and overwrite what is in App Store Connect.
+- Store text lives in `fastlane/metadata/<locale>/*.txt` (English `en-US`, Swedish `sv`); screenshots in `fastlane/screenshots/<locale>/` (`Scripts/screenshots.sh` regenerates them at the sizes App Store Connect requires; `LOCALES=sv` for Swedish only). Both are uploaded with every release and overwrite what is in App Store Connect.
 - App Privacy details cannot be updated through the API key; change them in App Store Connect if the app ever starts collecting data.
 
 ## Building to your own device from another team

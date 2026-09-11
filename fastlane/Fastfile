@@ -37,7 +37,9 @@ platform :ios do
       submission_information: {
         add_id_info_uses_idfa: false,
         export_compliance_uses_encryption: false,
-        content_rights_contains_third_party_content: false
+        # The app displays Trafikverket's train data, which is CC0 but still theirs; see
+        # docs/app-store.md. Must match the Content Rights answer in App Store Connect.
+        content_rights_contains_third_party_content: true
       }
     )
   end
