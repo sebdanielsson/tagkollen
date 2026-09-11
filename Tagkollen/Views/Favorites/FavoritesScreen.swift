@@ -28,6 +28,13 @@ struct FavoritesScreen: View {
                     }
                 }
             }
+            // A split view that opens on an empty detail pane wastes two thirds of an iPad, so the
+            // next train up is selected for you — and re-selected if the one showing is deleted.
+            .onChange(of: upcoming.map(\.id), initial: true) { _, ids in
+                if selected == nil || !ids.contains(selected?.id ?? "") {
+                    selected = upcoming.first?.key
+                }
+            }
         } else {
             NavigationStack {
                 list
