@@ -58,7 +58,7 @@ Left sidebar → General → App Information. Fields marked *(uploaded)* are pus
 
 | Field | Value |
 |---|---|
-| Name *(uploaded)* | `Tågradar` (9 of 30 characters) |
+| Name *(uploaded)* | `Tågradar` (8 of 30 characters) |
 | Subtitle, English *(uploaded)* | `Live trains across Sweden` (25 of 30) |
 | Underrubrik, Swedish *(uploaded)* | `Sveriges tåg i realtid` (22 of 30) |
 | Privacy Policy URL *(uploaded)* | `https://github.com/sebdanielsson/tagradar/blob/main/PRIVACY.md` |
@@ -109,7 +109,7 @@ Almost all of this is uploaded, but the fields are listed so you can check them 
 | Field | Value |
 |---|---|
 | Promotional text *(uploaded)* | `Every train in Sweden, live, straight from Trafikverket's open data. No account, no ads, no tracking.` (101 of 170) |
-| Description *(uploaded)* | `fastlane/metadata/en-US/description.txt` (787 of 4000) and `sv/description.txt` |
+| Description *(uploaded)* | `fastlane/metadata/en-US/description.txt` (786 of 4000) and `sv/description.txt` |
 | Keywords, English *(uploaded)* | `train,trains,Sweden,SJ,Trafikverket,delay,departures,railway,live map,timetable` (79 of 100) |
 | Nyckelord, Swedish *(uploaded)* | `tåg,tågtider,försening,avgångar,Trafikverket,SJ,järnväg,karta,tidtabell,pendeltåg` (81 of 100) |
 | Support URL *(uploaded)* | `https://github.com/sebdanielsson/tagradar/issues` |
