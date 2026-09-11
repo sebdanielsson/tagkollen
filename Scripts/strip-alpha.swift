@@ -1,4 +1,3 @@
-#!/usr/bin/env swift
 // Rewrites each PNG given on the command line as an opaque RGB image, in place.
 //
 //   swift Scripts/strip-alpha.swift fastlane/screenshots/en-US/*.png

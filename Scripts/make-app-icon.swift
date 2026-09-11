@@ -26,7 +26,18 @@ func context() -> CGContext {
 }
 
 func write(_ ctx: CGContext, to url: URL, opaque: Bool) {
-    guard let image = ctx.makeImage() else { fatalError("no image") }
+    guard var image = ctx.makeImage() else { fatalError("no image") }
+    if opaque {
+        // The drawing context always carries an alpha channel, and App Store Connect rejects one
+        // even when every pixel is opaque — so the flat previews are redrawn without it.
+        guard let flat = CGContext(
+            data: nil, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ) else { fatalError("no opaque context") }
+        flat.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        guard let flattened = flat.makeImage() else { fatalError("no opaque image") }
+        image = flattened
+    }
     let rep = NSBitmapImageRep(cgImage: image)
     guard let png = rep.representation(using: .png, properties: [:]) else { fatalError("no png") }
     try! FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
