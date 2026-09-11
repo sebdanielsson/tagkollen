@@ -13,7 +13,7 @@ public struct SSEConnection: Sendable {
     let session: URLSession
     let userAgent: String
 
-    public init(url: URL, session: URLSession = .shared, userAgent: String = "Tagkollen") {
+    public init(url: URL, session: URLSession = .shared, userAgent: String = "Tagradar") {
         self.url = url
         self.session = session
         self.userAgent = userAgent

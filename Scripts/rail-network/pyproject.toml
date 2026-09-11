@@ -1,7 +1,7 @@
 [project]
 name = "rail-network"
 version = "0"
-description = "Offline pipeline turning Trafikverket's NJDB GeoPackage into Tagkollen's bundled RailNetwork.json"
+description = "Offline pipeline turning Trafikverket's NJDB GeoPackage into Tagradar's bundled RailNetwork.json"
 requires-python = ">=3.14"
 dependencies = ["networkx>=3.5", "pyproj>=3.7", "shapely>=2.1"]
 

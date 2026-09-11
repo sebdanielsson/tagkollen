@@ -1,4 +1,4 @@
-# Contributing to Tågkollen
+# Contributing to Tågradar
 
 Thanks for taking the time to contribute. This document explains how to get set up and what we expect from changes.
 
@@ -6,7 +6,7 @@ Thanks for taking the time to contribute. This document explains how to get set 
 
 1. Install Xcode 26 and [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
 2. Register a free API key at [data.trafikverket.se](https://data.trafikverket.se) and put it in `.env.local` as `TRV_API_KEY=...`.
-3. Run `Scripts/bootstrap.sh` to generate `Tagkollen.xcodeproj`, then open it.
+3. Run `Scripts/bootstrap.sh` to generate `Tagradar.xcodeproj`, then open it.
 4. To run on your own iPhone, add `DEVELOPMENT_TEAM` and, unless you are on the release team, `APP_BUNDLE_ID=<your own prefix>` to `.env.local` (see `docs/release.md`).
 
 The `.xcodeproj` is generated and git-ignored. Edit `project.yml` instead and re-run `xcodegen`.
@@ -20,14 +20,14 @@ The `.xcodeproj` is generated and git-ignored. Edit `project.yml` instead and re
 - **iPhone and iPad.** Check both a compact (iPhone) and a regular (iPad) layout before opening a pull request.
 - **Localisation.** All user-facing strings go through SwiftUI's string catalog (`Localizable.xcstrings`). English is the source language; Swedish is a translation.
 - **Formatting and linting.** Run `swiftformat .` and `swiftlint` before committing. CI checks both.
-- **Tests.** `TrafikverketKit` is covered by `swift test`; app logic (journey assembly, formatting) lives in `TagkollenTests`. Add tests for new parsing or business logic.
+- **Tests.** `TrafikverketKit` is covered by `swift test`; app logic (journey assembly, formatting) lives in `TagradarTests`. Add tests for new parsing or business logic.
 
 ## Pull requests
 
 - Keep pull requests focused. One feature or fix per PR.
 - Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages and PR titles (`feat: …`, `fix: …`, `docs: …`, `chore: …`). PRs are squash-merged and the title becomes the commit on `main`; release-please derives the next version and the changelog from it. See `docs/release.md`.
 - Describe what changed and why, and add screenshots for UI changes (iPhone and iPad).
-- Make sure `xcodebuild test` passes for the `Tagkollen` scheme.
+- Make sure `xcodebuild test` passes for the `Tagradar` scheme.
 - Follow the existing code style; the linters encode most of it.
 
 ## Reporting bugs

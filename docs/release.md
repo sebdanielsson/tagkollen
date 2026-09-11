@@ -1,4 +1,4 @@
-# Releasing Tågkollen
+# Releasing Tågradar
 
 How builds get to TestFlight and the App Store, and what a maintainer has to set up once. The pipeline is `.github/workflows/ci.yml`; nothing is built or signed on anyone's Mac.
 
@@ -36,8 +36,8 @@ Squash-merge pull requests and make the PR title a conventional commit; that tit
 
 ### 1. Apple Developer / App Store Connect
 
-- Paid Apple Developer Program membership. Bundle identifier `se.tagkollen.app` (plus `.widgets`) is registered by Xcode's automatic signing on the first archive, together with App Groups (`group.se.tagkollen.app`), Keychain Sharing and Background Modes.
-- In App Store Connect, create the app once: name **Tågkollen**, bundle ID `se.tagkollen.app`, SKU e.g. `tagkollen`, primary language English, availability Sweden (and anywhere else). The workflow fills in metadata, screenshots and the What's New text; **age rating** (4+) and the **App Privacy** questionnaire ("no data collected", see `PRIVACY.md`) must be answered by hand in App Store Connect the first time.
+- Paid Apple Developer Program membership. Bundle identifier `se.tagradar.app` (plus `.widgets`) is registered by Xcode's automatic signing on the first archive, together with App Groups (`group.se.tagradar.app`), Keychain Sharing and Background Modes.
+- In App Store Connect, create the app once: name **Tågradar**, bundle ID `se.tagradar.app`, SKU e.g. `tagradar`, primary language English, availability Sweden (and anywhere else). The workflow fills in metadata, screenshots and the What's New text; **age rating** (4+) and the **App Privacy** questionnaire ("no data collected", see `PRIVACY.md`) must be answered by hand in App Store Connect the first time.
 - **API key**: App Store Connect → Users and Access → Integrations → App Store Connect API → *Team Keys* → Generate. Role **Admin** (cloud-managed signing needs Admin; App Manager is enough for uploads but not for creating the distribution certificate). Download the `.p8` once; note the Key ID and the Issuer ID.
 - TestFlight: add internal testers under the app's TestFlight tab. Every upload becomes available to them automatically.
 
@@ -91,14 +91,14 @@ Each certificate is valid for a year; when one expires, repeat steps 2–4 for t
 
 ## Building to your own device from another team
 
-Bundle IDs and App Groups are unique across Apple teams, so a developer who is not on the release team cannot sign `se.tagkollen.app`. Put your own prefix in `.env.local` and run `Scripts/bootstrap.sh`:
+Bundle IDs and App Groups are unique across Apple teams, so a developer who is not on the release team cannot sign `se.tagradar.app`. Put your own prefix in `.env.local` and run `Scripts/bootstrap.sh`:
 
 ```bash
-APP_BUNDLE_ID=se.example.tagkollen
+APP_BUNDLE_ID=se.example.tagradar
 DEVELOPMENT_TEAM=XXXXXXXXXX
 ```
 
-Everything derived from it (widget bundle ID, App Group, Keychain group, background task identifier) follows. CI and release builds do not set `APP_BUNDLE_ID` and therefore use `se.tagkollen.app`.
+Everything derived from it (widget bundle ID, App Group, Keychain group, background task identifier) follows. CI and release builds do not set `APP_BUNDLE_ID` and therefore use `se.tagradar.app`.
 
 ## Local equivalents
 

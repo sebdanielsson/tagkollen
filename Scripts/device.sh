@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build, sign and install Tågkollen on a connected iPhone or iPad, then launch it.
+# Build, sign and install Tågradar on a connected iPhone or iPad, then launch it.
 #
 #   Scripts/device.sh                 # first connected device
 #   Scripts/device.sh "My iPhone"     # by name
@@ -35,19 +35,19 @@ for d in devices:
 ' "$DEVICE_JSON" "$NAME")
 [ -n "$UDID" ] || { echo "No connected device${NAME:+ named $NAME}" >&2; exit 1; }
 echo "▶ Building for device $UDID"
-xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen -configuration Debug \
+xcodebuild -project Tagradar.xcodeproj -scheme Tagradar -configuration Debug \
   -destination "id=$UDID" -derivedDataPath .build/DerivedData \
   -allowProvisioningUpdates -allowProvisioningDeviceRegistration build -quiet
-APP=$(find .build/DerivedData/Build/Products/Debug-iphoneos -maxdepth 1 -name "Tagkollen.app" | head -1)
+APP=$(find .build/DerivedData/Build/Products/Debug-iphoneos -maxdepth 1 -name "Tagradar.app" | head -1)
 echo "▶ Installing"
 xcrun devicectl device install app --device "$UDID" "$APP"
 echo "▶ Launching"
-if xcrun devicectl device process launch --device "$UDID" "${APP_BUNDLE_ID:-se.tagkollen.app}" >/dev/null 2>&1; then
+if xcrun devicectl device process launch --device "$UDID" "${APP_BUNDLE_ID:-se.tagradar.app}" >/dev/null 2>&1; then
   echo "Done."
 else
   cat <<'MSG'
 Installed, but iOS refused to launch it. On a free Personal Team this happens once per device:
   Settings > General > VPN & Device Management > Developer App > "Apple Development: …" > Trust
-Then tap the Tågkollen icon (or rerun this script). Personal Team builds expire after 7 days; rerun to refresh.
+Then tap the Tågradar icon (or rerun this script). Personal Team builds expire after 7 days; rerun to refresh.
 MSG
 fi

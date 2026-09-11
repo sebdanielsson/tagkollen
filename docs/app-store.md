@@ -1,6 +1,6 @@
 # App Store submission
 
-Everything App Store Connect asks for before Tågkollen can go on sale, in the order its forms ask for it, with the exact value to enter. Work top to bottom; each section says whether the repository already handles it.
+Everything App Store Connect asks for before Tågradar can go on sale, in the order its forms ask for it, with the exact value to enter. Work top to bottom; each section says whether the repository already handles it.
 
 The build pipeline itself (TestFlight on every push to `main`, App Store submission when a release is tagged) is `docs/release.md`. This page is only about the listing.
 
@@ -16,12 +16,12 @@ Sources: Apple's [App information](https://developer.apple.com/help/app-store-co
 | App Review notes | `fastlane/metadata/review_information/notes.txt` |
 | Categories, copyright | `fastlane/metadata/*.txt` |
 | IDFA, export compliance, content rights answers | `fastlane/Fastfile` (`submission_information:`) |
-| App icon | `Tagkollen/AppIcon.icon`, compiled into the build |
+| App icon | `Tagradar/AppIcon.icon`, compiled into the build |
 | **Trader status, age rating, App Privacy, pricing, availability, review contact details** | **By hand in App Store Connect — no API can set them** |
 
 Everything in the first group is overwritten on every release, so edit it in the repository, not in the browser.
 
-Permission alerts are localized too: the English source strings are the `NS*UsageDescription` keys in `project.yml`, and `Tagkollen/Resources/InfoPlist.xcstrings` holds the Swedish.
+Permission alerts are localized too: the English source strings are the `NS*UsageDescription` keys in `project.yml`, and `Tagradar/Resources/InfoPlist.xcstrings` holds the Swedish.
 
 **Do the by-hand parts before merging the release PR.** `fastlane release` ends with `submit_for_review: true`, and Apple refuses a submission whose age rating or App Privacy answers are missing — the whole App Store job fails at its last step.
 
@@ -38,16 +38,16 @@ Permission alerts are localized too: the English source strings are the `NS*Usag
 
 ## 2. Register the app
 
-- [ ] **Bundle ID** `se.tagkollen.app` with App Groups (`group.se.tagkollen.app`), Keychain Sharing and Background Modes. Xcode's automatic signing registers it on the first archive, and the widget extension's `se.tagkollen.app.widgets` with it.
+- [ ] **Bundle ID** `se.tagradar.app` with App Groups (`group.se.tagradar.app`), Keychain Sharing and Background Modes. Xcode's automatic signing registers it on the first archive, and the widget extension's `se.tagradar.app.widgets` with it.
 - [ ] **Create the app record.** App Store Connect → Apps → **+** → New App. It must exist before the App Store job runs, or `fastlane release` has nothing to upload to.
 
   | Field | Value |
   |---|---|
   | Platforms | iOS |
-  | Name | `Tågkollen` |
+  | Name | `Tågradar` |
   | Primary language | English (U.S.) |
-  | Bundle ID | `se.tagkollen.app` |
-  | SKU | `tagkollen` |
+  | Bundle ID | `se.tagradar.app` |
+  | SKU | `tagradar` |
   | User access | Full Access |
 
 - [ ] **Add the Swedish localization.** The version page's language selector → Swedish. The App Store job uploads `fastlane/metadata/sv/*.txt` into it; if the locale does not exist yet the upload has nowhere to put the Swedish text.
@@ -58,10 +58,10 @@ Left sidebar → General → App Information. Fields marked *(uploaded)* are pus
 
 | Field | Value |
 |---|---|
-| Name *(uploaded)* | `Tågkollen` (9 of 30 characters) |
+| Name *(uploaded)* | `Tågradar` (8 of 30 characters) |
 | Subtitle, English *(uploaded)* | `Live trains across Sweden` (25 of 30) |
 | Underrubrik, Swedish *(uploaded)* | `Sveriges tåg i realtid` (22 of 30) |
-| Privacy Policy URL *(uploaded)* | `https://github.com/sebdanielsson/tagkollen/blob/main/PRIVACY.md` |
+| Privacy Policy URL *(uploaded)* | `https://github.com/sebdanielsson/tagradar/blob/main/PRIVACY.md` |
 | Primary category *(uploaded)* | Travel |
 | Secondary category *(uploaded)* | Navigation |
 | License agreement | Apple's standard EULA — leave as is |
@@ -70,7 +70,7 @@ Left sidebar → General → App Information. Fields marked *(uploaded)* are pus
 
 ### Age rating
 
-App Information → Age Rating → Edit. The questionnaire was expanded in 2025 and now produces 4+, 9+, 13+, 16+ or 18+. Tågkollen answers **None / No** to every question, which yields **4+**:
+App Information → Age Rating → Edit. The questionnaire was expanded in 2025 and now produces 4+, 9+, 13+, 16+ or 18+. Tågradar answers **None / No** to every question, which yields **4+**:
 
 - No cartoon, fantasy or realistic violence; no profanity, crude humour, sexual content, nudity, horror or gambling themes.
 - No alcohol, tobacco or drug references, no medical or wellness content, no violent themes.
@@ -90,7 +90,7 @@ App Information → Age Rating → Edit. The questionnaire was expanded in 2025 
 
 Left sidebar → App Privacy. This one genuinely cannot be automated, and a missing answer blocks the submission.
 
-- [ ] **Privacy Policy URL:** `https://github.com/sebdanielsson/tagkollen/blob/main/PRIVACY.md`
+- [ ] **Privacy Policy URL:** `https://github.com/sebdanielsson/tagradar/blob/main/PRIVACY.md`
 - [ ] **Data collection:** choose **"No, we do not collect data from this app."**
 
 That answer is accurate and worth being able to defend, because the app does touch location, microphone and speech:
@@ -100,7 +100,7 @@ That answer is accurate and worth being able to defend, because the app does tou
 - Microphone audio and speech recognition are handled by Apple's own services under Apple's privacy terms; the app stores no recordings. Apple's questionnaire asks what *you* collect, not what the system does on the user's behalf.
 - Trafikverket receives anonymous API requests carrying train numbers, station signatures and an API key — nothing that identifies the user.
 
-This matches `PRIVACY.md` and `Tagkollen/Resources/PrivacyInfo.xcprivacy`, which declares no collected data types, no tracking, and the one required-reason API the app uses (`UserDefaults`, reason `CA92.1` — shared with the widget through the App Group). The widget extension is a separate binary and reaches the same App Group, so `project.yml` builds that manifest into it as well; keep both in step, and update it if a new required-reason API is ever added.
+This matches `PRIVACY.md` and `Tagradar/Resources/PrivacyInfo.xcprivacy`, which declares no collected data types, no tracking, and the one required-reason API the app uses (`UserDefaults`, reason `CA92.1` — shared with the widget through the App Group). The widget extension is a separate binary and reaches the same App Group, so `project.yml` builds that manifest into it as well; keep both in step, and update it if a new required-reason API is ever added.
 
 ## 6. The version page (1.0.0)
 
@@ -109,11 +109,11 @@ Almost all of this is uploaded, but the fields are listed so you can check them 
 | Field | Value |
 |---|---|
 | Promotional text *(uploaded)* | `Every train in Sweden, live, straight from Trafikverket's open data. No account, no ads, no tracking.` (101 of 170) |
-| Description *(uploaded)* | `fastlane/metadata/en-US/description.txt` (787 of 4000) and `sv/description.txt` |
+| Description *(uploaded)* | `fastlane/metadata/en-US/description.txt` (786 of 4000) and `sv/description.txt` |
 | Keywords, English *(uploaded)* | `train,trains,Sweden,SJ,Trafikverket,delay,departures,railway,live map,timetable` (79 of 100) |
 | Nyckelord, Swedish *(uploaded)* | `tåg,tågtider,försening,avgångar,Trafikverket,SJ,järnväg,karta,tidtabell,pendeltåg` (81 of 100) |
-| Support URL *(uploaded)* | `https://github.com/sebdanielsson/tagkollen/issues` |
-| Marketing URL *(uploaded)* | `https://github.com/sebdanielsson/tagkollen` |
+| Support URL *(uploaded)* | `https://github.com/sebdanielsson/tagradar/issues` |
+| Marketing URL *(uploaded)* | `https://github.com/sebdanielsson/tagradar` |
 | Copyright *(uploaded)* | `2026 Sebastian Danielsson` |
 | What's New *(uploaded)* | The GitHub release body for the tag |
 | Version | `1.0.0`, from `version.txt` — release-please owns it |
@@ -148,7 +148,7 @@ Because the data is live, the script picks a train that is actually moving and p
 
 ## 7. App icon
 
-Nothing to upload — `Tagkollen/AppIcon.icon` is an Icon Composer package and Xcode compiles every size and all six iOS 26 appearances (default, dark, clear light, clear dark, tinted light, tinted dark) from it, including the 1024 × 1024 App Store icon.
+Nothing to upload — `Tagradar/AppIcon.icon` is an Icon Composer package and Xcode compiles every size and all six iOS 26 appearances (default, dark, clear light, clear dark, tinted light, tinted dark) from it, including the 1024 × 1024 App Store icon.
 
 - Colours: default background Trafikverket red `#D70000` (the main red in Trafikverket's graphic manual), dark appearance `#AF0000`. Clear and tinted variants are derived by the system from the white layers.
 - The glyph is original artwork drawn by `Scripts/make-app-icon.swift`. Apple's SF Symbols licence forbids using SF Symbols, or glyphs confusingly similar to them, in an app icon.
@@ -156,7 +156,7 @@ Nothing to upload — `Tagkollen/AppIcon.icon` is an Icon Composer package and X
 
   ```bash
   "/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" \
-    Tagkollen/AppIcon.icon --export-image --output-file out.png --platform iOS --rendition Dark \
+    Tagradar/AppIcon.icon --export-image --output-file out.png --platform iOS --rendition Dark \
     --width 1024 --height 1024 --scale 1
   ```
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prepares a local development environment:
 #  1. Creates Config/Secrets.xcconfig from .env.local (TRV_API_KEY=...) if present
-#  2. Generates Tagkollen.xcodeproj with XcodeGen
+#  2. Generates Tagradar.xcodeproj with XcodeGen
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -16,7 +16,7 @@ mkdir -p Config
   echo "TRV_API_KEY = ${TRV_API_KEY:-}"
   echo "DEVELOPMENT_TEAM = ${DEVELOPMENT_TEAM:-}"
   # Optional: your own bundle identifier prefix when building under another Apple team.
-  echo "APP_BUNDLE_ID = ${APP_BUNDLE_ID:-se.tagkollen.app}"
+  echo "APP_BUNDLE_ID = ${APP_BUNDLE_ID:-se.tagradar.app}"
 } > Config/Secrets.xcconfig
 
 if ! command -v xcodegen >/dev/null 2>&1; then
@@ -24,4 +24,4 @@ if ! command -v xcodegen >/dev/null 2>&1; then
   exit 1
 fi
 xcodegen generate --quiet
-echo "Generated Tagkollen.xcodeproj. Open it with: open Tagkollen.xcodeproj"
+echo "Generated Tagradar.xcodeproj. Open it with: open Tagradar.xcodeproj"

@@ -9,4 +9,4 @@ Se alla Sveriges tåg live på en karta, direkt från Trafikverkets öppna data.
 • Widgetar för hemskärm och låsskärm med ett sparat tåg eller en stations avgångar
 • Svenska och engelska. Inget konto, inga annonser, ingen spårning.
 
-Tågkollen är öppen källkod och har ingen koppling till Trafikverket. Data: Trafikverkets öppna API (CC0).
+Tågradar är öppen källkod och har ingen koppling till Trafikverket. Data: Trafikverkets öppna API (CC0).

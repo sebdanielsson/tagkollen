@@ -10,5 +10,5 @@ Please do not open public issues for security problems. Use GitHub's private vul
 
 ## Scope notes
 
-- Tågkollen stores the user's Trafikverket API key in the iOS Keychain and never transmits it anywhere other than `api.trafikinfo.trafikverket.se`.
+- Tågradar stores the user's Trafikverket API key in the iOS Keychain and never transmits it anywhere other than `api.trafikinfo.trafikverket.se`.
 - The app collects no analytics and has no backend of its own.

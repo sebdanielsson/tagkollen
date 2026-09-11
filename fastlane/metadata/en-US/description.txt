@@ -9,4 +9,4 @@ See every train in Sweden live on a map, straight from Trafikverket's open data.
 • Home Screen and Lock Screen widgets for a saved train or a station's departures
 • Swedish and English. No account, no ads, no tracking.
 
-Tågkollen is open source and not affiliated with Trafikverket. Data: Trafikverket Open API (CC0).
+Tågradar is open source and not affiliated with Trafikverket. Data: Trafikverket Open API (CC0).

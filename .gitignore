@@ -37,7 +37,7 @@ fastlane/test_output/
 *.p8
 
 # Rail network pipeline (Scripts/rail-network): downloaded GeoPackage, inputs and intermediates.
-# The only artefact that's committed is Tagkollen/Resources/RailNetwork.json.
+# The only artefact that's committed is Tagradar/Resources/RailNetwork.json.
 Scripts/rail-network/railnet/
 Scripts/rail-network/stations.json
 Scripts/rail-network/snapped_stations.json

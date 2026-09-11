@@ -69,7 +69,7 @@ jobs:
           destination=$(Scripts/ci/simulator-destination.sh)
           : "${destination:?simulator-destination.sh printed no destination}"
           echo "Destination: $destination"
-          xcodebuild -project Tagkollen.xcodeproj -scheme Tagkollen \
+          xcodebuild -project Tagradar.xcodeproj -scheme Tagradar \
             -destination "$destination" \
             -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO build test | xcbeautify --renderer github-actions
@@ -81,7 +81,7 @@ jobs:
     name: TestFlight
     needs: verify
     if: >-
-      github.repository == 'sebdanielsson/tagkollen' &&
+      github.repository == 'sebdanielsson/tagradar' &&
       ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
        (github.event_name == 'workflow_dispatch' && inputs.testflight))
     runs-on: macos-26
@@ -134,8 +134,8 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild archive \
-            -project Tagkollen.xcodeproj -scheme Tagkollen -configuration Release \
-            -archivePath "$RUNNER_TEMP/Tagkollen.xcarchive" \
+            -project Tagradar.xcodeproj -scheme Tagradar -configuration Release \
+            -archivePath "$RUNNER_TEMP/Tagradar.xcarchive" \
             -destination 'generic/platform=iOS' \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$ASC_KEY_PATH" \
@@ -150,14 +150,14 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/Tagkollen.xcarchive" \
+            -archivePath "$RUNNER_TEMP/Tagradar.xcarchive" \
             -exportOptionsPlist ExportOptions.plist \
             -exportPath "$RUNNER_TEMP/export" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-          echo "Uploaded Tågkollen $(cat version.txt) (build ${{ github.run_number }}) to TestFlight." >> "$GITHUB_STEP_SUMMARY"
+          echo "Uploaded Tågradar $(cat version.txt) (build ${{ github.run_number }}) to TestFlight." >> "$GITHUB_STEP_SUMMARY"
 
   release-please:
     name: Release PR
@@ -230,8 +230,8 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild archive \
-            -project Tagkollen.xcodeproj -scheme Tagkollen -configuration Release \
-            -archivePath "$RUNNER_TEMP/Tagkollen.xcarchive" \
+            -project Tagradar.xcodeproj -scheme Tagradar -configuration Release \
+            -archivePath "$RUNNER_TEMP/Tagradar.xcarchive" \
             -destination 'generic/platform=iOS' \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$ASC_KEY_PATH" \
@@ -246,7 +246,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/Tagkollen.xcarchive" \
+            -archivePath "$RUNNER_TEMP/Tagradar.xcarchive" \
             -exportOptionsPlist ExportOptions-export.plist \
             -exportPath "$RUNNER_TEMP/export" \
             -allowProvisioningUpdates \
@@ -269,14 +269,14 @@ jobs:
           FASTLANE_SKIP_UPDATE_CHECK: "1"
           FASTLANE_HIDE_CHANGELOG: "1"
           VERSION: ${{ needs.release-please.outputs.version }}
-        run: fastlane release ipa:"$RUNNER_TEMP/export/Tagkollen.ipa" version:"$VERSION"
+        run: fastlane release ipa:"$RUNNER_TEMP/export/Tagradar.ipa" version:"$VERSION"
 
       - uses: actions/upload-artifact@v7.0.1
         with:
-          name: Tagkollen-${{ needs.release-please.outputs.tag_name }}
+          name: Tagradar-${{ needs.release-please.outputs.tag_name }}
           path: |
             ${{ runner.temp }}/export/*.ipa
-            ${{ runner.temp }}/Tagkollen.xcarchive/dSYMs
+            ${{ runner.temp }}/Tagradar.xcarchive/dSYMs
           retention-days: 90
           if-no-files-found: warn
 
@@ -284,4 +284,4 @@ jobs:
         env:
           VERSION: ${{ needs.release-please.outputs.version }}
         run: |
-          echo "Tågkollen $VERSION (build ${{ github.run_number }}) uploaded and submitted for review. Release it in App Store Connect once approved." >> "$GITHUB_STEP_SUMMARY"
+          echo "Tågradar $VERSION (build ${{ github.run_number }}) uploaded and submitted for review. Release it in App Store Connect once approved." >> "$GITHUB_STEP_SUMMARY"

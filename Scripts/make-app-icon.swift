@@ -1,4 +1,4 @@
-// Renders the app icon layers for the Icon Composer package at Tagkollen/AppIcon.icon and a
+// Renders the app icon layers for the Icon Composer package at Tagradar/AppIcon.icon and a
 // flattened 1024×1024 preview for the App Store / README.
 //
 //   swift Scripts/make-app-icon.swift
@@ -10,7 +10,7 @@
 import AppKit
 
 let side = 1024
-let iconDir = URL(fileURLWithPath: "Tagkollen/AppIcon.icon/Assets")
+let iconDir = URL(fileURLWithPath: "Tagradar/AppIcon.icon/Assets")
 let marketingDir = URL(fileURLWithPath: "Marketing")
 
 /// Trafikverket's main red, RGB 215 0 0 (#D70000), and the darker shade used for the dark appearance (#AF0000).
