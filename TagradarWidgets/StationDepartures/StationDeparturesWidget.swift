@@ -6,6 +6,9 @@ struct DepartureItem: Hashable, Sendable, Identifiable {
     let id: String
     let ident: String
     let planned: Date?
+    /// The day the run itself departed, which is not the day it calls here when that happens after
+    /// midnight. `TrainKey` is built from this, the way `StationBoardView` already does it.
+    let scheduledDeparture: Date?
     let expected: Date?
     let destination: String
     let product: String?
@@ -17,6 +20,7 @@ struct DepartureItem: Hashable, Sendable, Identifiable {
         id = row.activityId
         ident = row.advertisedTrainIdent ?? "–"
         planned = row.advertisedTimeAtLocation
+        scheduledDeparture = row.scheduledDepartureDateTime
         expected = row.estimatedTimeAtLocation ?? row.timeAtLocation
         let targets = (row.toLocation ?? []).sorted { ($0.order ?? 0) < ($1.order ?? 0) }
         destination = targets.map { names.shortName($0.locationName) }.joined(separator: " / ")
@@ -28,8 +32,8 @@ struct DepartureItem: Hashable, Sendable, Identifiable {
     }
 
     var deepLink: URL? {
-        guard ident != "–", let planned else { return nil }
-        return URL(string: "tagradar://train/\(TrainKey(ident: ident, departureDate: planned).id)")
+        guard ident != "–", let day = scheduledDeparture ?? planned else { return nil }
+        return URL(string: "tagradar://train/\(TrainKey(ident: ident, departureDate: day).id)")
     }
 }
 
