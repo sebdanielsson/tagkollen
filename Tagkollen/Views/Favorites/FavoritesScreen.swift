@@ -13,6 +13,9 @@ struct FavoritesScreen: View {
 
     @State private var journeys: [String: TrainJourney] = [:]
     @State private var selected: TrainKey?
+    /// What this screen picked on its own, so a later re-sort can refine that choice while leaving
+    /// a row the user actually tapped alone.
+    @State private var autoSelected: TrainKey?
     @State private var isRefreshing = false
 
     var body: some View {
@@ -29,13 +32,15 @@ struct FavoritesScreen: View {
                 }
             }
             // A split view that opens on an empty detail pane wastes two thirds of an iPad, so the
-            // next train to leave is selected for you, and another one is picked if the one showing
-            // is deleted. A later re-sort leaves the selection alone: moving the pane out from
-            // under someone already reading it would be the worse surprise.
+            // next train to leave is selected for you. The first refresh usually arrives moments
+            // later, fills in the real departure times and re-sorts the list, so a pick made before
+            // that is refined rather than defended — it was never the user's choice to begin with.
+            // A row they tapped themselves is left alone, and is only replaced once it is gone.
             .onChange(of: upcoming.map(\.id), initial: true) { _, ids in
-                if selected == nil || !ids.contains(selected?.id ?? "") {
-                    selected = upcoming.first?.key
-                }
+                let ourOwn = selected == nil || selected == autoSelected
+                guard ourOwn || !ids.contains(selected?.id ?? "") else { return }
+                selected = upcoming.first?.key
+                autoSelected = selected
             }
         } else {
             NavigationStack {

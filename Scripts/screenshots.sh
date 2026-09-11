@@ -76,7 +76,8 @@ moving = query(
     '<QUERY objecttype="TrainPosition" namespace="järnväg.trafikinfo" schemaversion="1.1" limit="500">'
     '<FILTER><AND><GT name="TimeStamp" value="$dateadd(-0.00:10:00)"/>'
     '<GT name="Speed" value="80"/><EQ name="Status.Active" value="true"/></AND></FILTER>'
-    "<INCLUDE>Train.AdvertisedTrainNumber</INCLUDE><INCLUDE>Position.WGS84</INCLUDE></QUERY>"
+    "<INCLUDE>Train.AdvertisedTrainNumber</INCLUDE><INCLUDE>Position.WGS84</INCLUDE>"
+    "<INCLUDE>Train.OperationalTrainDepartureDate</INCLUDE></QUERY>"
 ).get("TrainPosition", [])
 
 
@@ -94,10 +95,23 @@ def out_in_the_country(position: dict) -> bool:
     return all(abs(lat - mlat) > 0.45 or abs(lon - mlon) > 0.45 for mlat, mlon in metros)
 
 
+def departure_day(position: dict) -> str:
+    """The run's own departure day, which is not always the calendar day it is moving on.
+
+    A night train still going at 01:00 belongs to yesterday, and `LiveTrain.key` identifies it by
+    that day — so a bare number handed to `-train` would resolve to today and miss it."""
+    raw = (position.get("Train") or {}).get("OperationalTrainDepartureDate") or ""
+    return raw[:10]
+
+
 idents = sorted({
     p["Train"]["AdvertisedTrainNumber"]
     for p in moving
-    if p.get("Train", {}).get("AdvertisedTrainNumber") and out_in_the_country(p)
+    if p.get("Train", {}).get("AdvertisedTrainNumber")
+    and out_in_the_country(p)
+    # Only runs the stop query below is about to ask for, so the count that ranks a candidate
+    # belongs to the run that is actually moving.
+    and departure_day(p) == TODAY
 })
 if not idents:
     sys.exit("no train is out on the line right now — pass TRAIN=<number>")
@@ -129,8 +143,10 @@ ranked = running or ranked
 if not ranked:
     sys.exit("none of the moving trains is advertised today — pass TRAIN=<number>")
 
-# The runner-up rides along in the Saved list, so that section shows two rows rather than one.
-print(" ".join(ranked[:2]))
+# Emitted as full `<number>@<day>` keys: `-train` and `-save` both parse them, and a bare number
+# would be resolved as today's run. The runner-up rides along in the Saved list, so that section
+# shows two rows rather than one.
+print(" ".join(f"{ident}@{TODAY}" for ident in ranked[:2]))
 PY
 }
 
