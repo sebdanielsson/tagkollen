@@ -36,9 +36,13 @@ struct FavoritesScreen: View {
             // later, fills in the real departure times and re-sorts the list, so a pick made before
             // that is refined rather than defended — it was never the user's choice to begin with.
             // A row they tapped themselves is left alone, and is only replaced once it is gone.
-            .onChange(of: upcoming.map(\.id), initial: true) { _, ids in
+            .onChange(of: upcoming.map(\.id), initial: true) { _, _ in
+                // Existence is checked against every saved train, not just this section: a train
+                // picked from Earlier is still a real selection, and treating it as gone would
+                // throw the user back to the next departure whenever the upcoming list re-sorted.
                 let ourOwn = selected == nil || selected == autoSelected
-                guard ourOwn || !ids.contains(selected?.id ?? "") else { return }
+                let stillSaved = selected.map { key in favorites.contains { $0.id == key.id } } ?? false
+                guard ourOwn || !stillSaved else { return }
                 selected = upcoming.first?.key
                 autoSelected = selected
             }
