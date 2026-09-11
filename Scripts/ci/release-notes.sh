@@ -9,6 +9,8 @@ if [ -z "$notes" ]; then
   notes="Bug fixes and improvements."
 fi
 for dir in fastlane/metadata/*/; do
+  # Locale folders only. review_information/ also lives here and has no release notes.
+  [ -f "${dir}description.txt" ] || continue
   printf '%s\n' "$notes" > "${dir}release_notes.txt"
 done
 echo "Release notes:"; printf '%s\n' "$notes"

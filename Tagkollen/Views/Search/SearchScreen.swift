@@ -50,13 +50,24 @@ struct SearchScreen: View {
             }
         }
         .onChange(of: navigation.pendingStationSignature, initial: true) { _, signature in
-            guard let signature, let station = stations.station(signature) else { return }
-            navigation.pendingStationSignature = nil
-            selectedKey = nil
-            selectedStation = station
-            if sizeClass != .regular {
-                path.append(station)
-            }
+            open(pendingStation: signature)
+        }
+        .onChange(of: stations.isLoaded) { _, loaded in
+            // On a fresh install the directory is still loading when a deep link arrives, so the
+            // signature resolves to nothing and the request would otherwise be dropped silently.
+            guard loaded else { return }
+            open(pendingStation: navigation.pendingStationSignature)
+        }
+    }
+
+    /// Consumes a station deep link once its signature can be resolved.
+    private func open(pendingStation signature: String?) {
+        guard let signature, let station = stations.station(signature) else { return }
+        navigation.pendingStationSignature = nil
+        selectedKey = nil
+        selectedStation = station
+        if sizeClass != .regular {
+            path.append(station)
         }
     }
 

@@ -64,7 +64,7 @@ Left sidebar → General → App Information. Fields marked *(uploaded)* are pus
 | Secondary category *(uploaded)* | Navigation |
 | License agreement | Apple's standard EULA — leave as is |
 
-- [ ] **Content Rights.** "Does your app contain, show, or access third-party content?" → **No**. The train data is Trafikverket's, published under CC0, and the map is Apple's own MapKit; neither is licensed third-party content in the sense this question asks about. `fastlane/Fastfile` sends the matching `content_rights_contains_third_party_content: false` with every submission, so if you ever answer Yes here, change it there too.
+- [ ] **Content Rights.** "Does your app contain, show, or access third-party content?" → **Yes**, then confirm you hold the rights. Every screen shows Trafikverket's train data, which is theirs and not yours; CC0 grants exactly the permission the confirmation asks you to attest to. Answering No would be the riskier reading of a question about what the app displays rather than who wrote it. `fastlane/Fastfile` sends the matching `content_rights_contains_third_party_content: true` with every submission — keep the two in step.
 
 ### Age rating
 

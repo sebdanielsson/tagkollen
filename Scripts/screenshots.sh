@@ -46,11 +46,13 @@ read -r -a LOCALE_LIST <<<"${LOCALES:-en-US sv}"
 # The train to feature. Pinning TRAIN makes a rerun reproducible; otherwise pick one that is
 # actually moving right now, so the map has a live position and a drawn route to show.
 pick_train() {
-  python3 - "$TRV_API_KEY" <<'PY'
-import datetime, json, sys, urllib.request
+  # The key comes through the environment, not argv, so it never shows up in `ps`.
+  python3 - <<'PY'
+import datetime, json, os, sys, urllib.request
 
-KEY = sys.argv[1]
+KEY = os.environ["TRV_API_KEY"]
 ENDPOINT = "https://api.trafikinfo.trafikverket.se/v2/data.json"
+TODAY = datetime.date.today().isoformat()
 
 
 def query(body: str):
@@ -63,12 +65,14 @@ def query(body: str):
         return json.load(response)["RESPONSE"]["RESULT"][0]
 
 
-# Trains reporting a position in the last ten minutes and moving at line speed: those are under way,
-# not stabled, so the map has something to draw.
+# Trains reporting an active position in the last ten minutes and moving at line speed: those are
+# under way, not stabled, so the map has something to draw. Status.Active matters because the map
+# hides inactive positions unless the user turns them on (TrainMapView), so an inactive pick would
+# give us the empty map this is here to avoid.
 moving = query(
     '<QUERY objecttype="TrainPosition" namespace="järnväg.trafikinfo" schemaversion="1.1" limit="500">'
     '<FILTER><AND><GT name="TimeStamp" value="$dateadd(-0.00:10:00)"/>'
-    '<GT name="Speed" value="80"/></AND></FILTER>'
+    '<GT name="Speed" value="80"/><EQ name="Status.Active" value="true"/></AND></FILTER>'
     "<INCLUDE>Train.AdvertisedTrainNumber</INCLUDE></QUERY>"
 ).get("TrainPosition", [])
 idents = sorted({p["Train"]["AdvertisedTrainNumber"] for p in moving if p.get("Train", {}).get("AdvertisedTrainNumber")})
@@ -80,7 +84,8 @@ stops = query(
     '<QUERY objecttype="TrainAnnouncement" namespace="rail.trafficinfo" schemaversion="2.0" limit="6000">'
     "<FILTER><AND>"
     f'<IN name="AdvertisedTrainIdent" value="{",".join(idents)}"/>'
-    f'<EQ name="ScheduledDepartureDateTime" value="{datetime.date.today().isoformat()}"/>'
+    f'<GTE name="ScheduledDepartureDateTime" value="{TODAY}T00:00:00"/>'
+    f'<LT name="ScheduledDepartureDateTime" value="{TODAY}T23:59:59"/>'
     '<EQ name="ActivityType" value="Avgang"/>'
     "</AND></FILTER>"
     "<INCLUDE>AdvertisedTrainIdent</INCLUDE></QUERY>"
@@ -101,7 +106,10 @@ if [ -n "${TRAIN:-}" ]; then
   SAVED="${SAVED:-$TRAIN}"
 else
   echo "▶ Picking a train that is under way…"
-  read -r TRAIN SECOND <<<"$(pick_train)"
+  # Assigned first: inside a here-string the picker's exit status would be lost and the run would
+  # go on to capture an empty map with an empty train number.
+  PICKED=$(pick_train) || { echo "Could not pick a train — pass TRAIN=<number>"; exit 1; }
+  read -r TRAIN SECOND <<<"$PICKED"
   SAVED="${SAVED:-$TRAIN,$SECOND}"
 fi
 echo "▶ Featuring train $TRAIN; saved list: $SAVED"
