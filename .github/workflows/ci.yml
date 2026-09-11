@@ -112,14 +112,19 @@ jobs:
         run: Scripts/ci/write-asc-key.sh
 
       # Cloud-managed signing: Xcode creates provisioning profiles through the API key, so no
-      # profile is stored in GitHub. The distribution certificate itself is pinned (imported below)
-      # rather than left to cloud-managed signing to mint fresh each run — GitHub-hosted runners are
-      # ephemeral, so without a pinned identity every run would ask Apple for a new certificate and
-      # eventually exhaust the account's certificate limit (docs/release.md).
+      # profile is stored in GitHub. Both the distribution and development certificates are pinned
+      # (imported below) rather than left to cloud-managed signing to mint fresh each run —
+      # GitHub-hosted runners are ephemeral, so without pinned identities every run would ask Apple
+      # for new certificates and eventually exhaust the account's certificate limit. Archiving the
+      # Release configuration alone isn't enough to avoid this: -allowProvisioningUpdates syncs
+      # every signing style referenced in the project, including the Development one the Debug
+      # configuration uses (docs/release.md).
       - name: Import signing certificate
         env:
           DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
           DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          DEVELOPMENT_CERTIFICATE_P12_BASE64: ${{ secrets.DEVELOPMENT_CERTIFICATE_P12_BASE64 }}
+          DEVELOPMENT_CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPMENT_CERTIFICATE_PASSWORD }}
         run: Scripts/ci/import-signing-certificate.sh
 
       - name: Archive
@@ -208,11 +213,13 @@ jobs:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
         run: Scripts/ci/write-asc-key.sh
 
-      # Pinned distribution certificate — see the testflight job above and docs/release.md.
+      # Pinned distribution and development certificates — see the testflight job above and docs/release.md.
       - name: Import signing certificate
         env:
           DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
           DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          DEVELOPMENT_CERTIFICATE_P12_BASE64: ${{ secrets.DEVELOPMENT_CERTIFICATE_P12_BASE64 }}
+          DEVELOPMENT_CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPMENT_CERTIFICATE_PASSWORD }}
         run: Scripts/ci/import-signing-certificate.sh
 
       - name: Archive

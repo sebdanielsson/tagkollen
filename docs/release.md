@@ -54,23 +54,27 @@ Repository → Settings → Secrets and variables → Actions → *Repository se
 | `TRV_API_KEY` | Trafikverket Open API key baked into the build |
 | `DISTRIBUTION_CERTIFICATE_P12_BASE64` | The pinned Apple Distribution certificate, base64 encoded — see below |
 | `DISTRIBUTION_CERTIFICATE_PASSWORD` | The export password chosen when creating that `.p12` |
+| `DEVELOPMENT_CERTIFICATE_P12_BASE64` | The pinned Apple Development certificate, base64 encoded — see below |
+| `DEVELOPMENT_CERTIFICATE_PASSWORD` | The export password chosen when creating that `.p12` |
 
 `Scripts/ci/write-asc-key.sh` checks that the decoded key is a PEM file before Xcode uses it. "Authentication failed: Make sure a bearer token was provided" from `xcodebuild` means the key, key ID and issuer ID do not belong together, the key was revoked, or it is an *individual* key instead of a *team* key.
 
-#### Why a pinned certificate
+#### Why pinned certificates
 
-Provisioning profiles are still fully cloud-managed (`-allowProvisioningUpdates`), but the *distribution certificate itself* is pinned rather than left for Xcode to create automatically. GitHub-hosted runners are ephemeral — a fresh VM every run, with no keychain from the previous run — so cloud-managed signing can never reuse a certificate it created earlier; it has to ask Apple for a brand new one each time it can't find a matching private key locally. Apple caps how many Apple Distribution certificates an account can hold at once, so this eventually fails with `Choose a certificate to revoke. Your account has reached the maximum number of certificates.`
+Provisioning profiles are still fully cloud-managed (`-allowProvisioningUpdates`), but the certificates themselves are pinned rather than left for Xcode to create automatically. GitHub-hosted runners are ephemeral — a fresh VM every run, with no keychain from the previous run — so cloud-managed signing can never reuse a certificate it created earlier; it has to ask Apple for a brand new one each time it can't find a matching private key locally. Apple caps how many certificates of each type an account can hold at once, so this eventually fails with `Choose a certificate to revoke. Your account has reached the maximum number of certificates.`
 
-`Scripts/ci/import-signing-certificate.sh` imports the same certificate + private key into a temporary keychain before every archive, so Xcode always finds a valid local identity and only has to manage the provisioning profile — which doesn't count against the certificate limit.
+Both an Apple Distribution *and* an Apple Development certificate need pinning. Archiving only the Release configuration isn't enough to dodge this: `-allowProvisioningUpdates` syncs every signing style referenced anywhere in the project, including the Apple Development one the Debug configuration uses (`CODE_SIGN_STYLE: Automatic` sits on `settings.base` in `project.yml`, so it applies to every config) — so an ephemeral runner with only the distribution certificate pinned still mints a fresh development certificate on every run and eventually exhausts that limit instead.
 
-To create the pinned certificate once:
+`Scripts/ci/import-signing-certificate.sh` imports both certificates + private keys into a temporary keychain before every archive, so Xcode always finds valid local identities and only has to manage provisioning profiles — which don't count against the certificate limit.
 
-1. developer.apple.com → Certificates, Identifiers & Profiles → Certificates → if the account is already at the limit, revoke an old/unused **Apple Distribution** certificate first to free a slot.
-2. On a Mac with this account signed into Xcode, either let Xcode create one (Settings → Accounts → Manage Certificates → **+** → Apple Distribution) or create it in the portal from a CSR (Keychain Access → Certificate Assistant → *Request a Certificate From a Certificate Authority*).
-3. In Keychain Access, find that certificate under **My Certificates** (it must show the private key nested under it — export fails otherwise), select it, *File → Export Items…*, save as `DistributionCertificate.p12` with an export password.
-4. `base64 -i DistributionCertificate.p12 | pbcopy` → paste as the `DISTRIBUTION_CERTIFICATE_P12_BASE64` secret; the export password becomes `DISTRIBUTION_CERTIFICATE_PASSWORD`.
+To create a pinned certificate once (repeat for both Distribution and Development):
 
-The certificate is valid for a year; when it expires, repeat steps 2–4 and update the two secrets.
+1. developer.apple.com → Certificates, Identifiers & Profiles → Certificates → if the account is already at the limit, revoke an old/unused certificate of that type first to free a slot.
+2. On a Mac with this account signed into Xcode, either let Xcode create one (Settings → Accounts → Manage Certificates → **+** → Apple Distribution / Apple Development) or create it in the portal from a CSR (Keychain Access → Certificate Assistant → *Request a Certificate From a Certificate Authority*).
+3. In Keychain Access, find that certificate under **My Certificates** (it must show the private key nested under it — export fails otherwise), select it, *File → Export Items…*, save as `DistributionCertificate.p12` / `DevelopmentCertificate.p12` with an export password.
+4. `base64 -i DistributionCertificate.p12 | pbcopy` → paste as the `DISTRIBUTION_CERTIFICATE_P12_BASE64` secret; the export password becomes `DISTRIBUTION_CERTIFICATE_PASSWORD`. Same pattern for the development certificate's two secrets.
+
+Each certificate is valid for a year; when one expires, repeat steps 2–4 for that type and update its two secrets.
 
 ### 3. GitHub settings
 
