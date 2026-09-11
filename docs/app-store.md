@@ -74,7 +74,7 @@ App Information → Age Rating → Edit. The questionnaire was expanded in 2025 
 
 - No cartoon, fantasy or realistic violence; no profanity, crude humour, sexual content, nudity, horror or gambling themes.
 - No alcohol, tobacco or drug references, no medical or wellness content, no violent themes.
-- **Unrestricted web access:** No. The app opens no web views; the only external links are the support and privacy URLs, which open in Safari.
+- **Unrestricted web access:** No. There is no in-app browser and no address bar, so nothing a user types can navigate anywhere. The few links the app does show — Trafikverket's key registration page, the GitHub source and issue tracker, and an operator's own site from a journey's facts — hand a fixed URL to Safari.
 - **User-generated content / social features / messaging:** No. There is no account, no server and nothing any user can publish.
 - **In-app controls (parental controls, purchases, advertising):** None.
 - [ ] Answered, showing 4+.
