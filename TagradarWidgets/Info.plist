@@ -34,5 +34,9 @@
 	</dict>
 	<key>TRVAPIKey</key>
 	<string>$(TRV_API_KEY)</string>
+	<key>TagradarAppGroup</key>
+	<string>group.$(TAGRADAR_BUNDLE_ID)</string>
+	<key>TagradarKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)$(TAGRADAR_BUNDLE_ID)</string>
 </dict>
 </plist>

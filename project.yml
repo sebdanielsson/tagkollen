@@ -154,6 +154,11 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
         TRVAPIKey: "$(TRV_API_KEY)"
         AppIdentifierPrefix: "$(AppIdentifierPrefix)"
+        # SharedStorage reads these from whichever bundle it is running in. Without them the
+        # extension falls back to the release identifiers and, on any other team, looks for a group
+        # its entitlements do not grant — so it sees none of the app's saved trains or station cache.
+        TagradarAppGroup: "group.$(TAGRADAR_BUNDLE_ID)"
+        TagradarKeychainGroup: "$(AppIdentifierPrefix)$(TAGRADAR_BUNDLE_ID)"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: "$(TAGRADAR_BUNDLE_ID).widgets"

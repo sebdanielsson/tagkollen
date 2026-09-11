@@ -107,10 +107,10 @@ struct StationDeparturesView: View {
     var body: some View {
         switch entry.content {
         case let .board(station, signature, departures):
-            board(station: station, departures: departures)
+            board(station: station, signature: signature, departures: departures)
                 .widgetURL(URL(string: "tagradar://station/\(signature)"))
         case .placeholder:
-            board(station: "Stockholm Central", departures: [])
+            board(station: "Stockholm Central", signature: nil, departures: [])
                 .redacted(reason: .placeholder)
         case .noStation:
             message("No station chosen", detail: "Edit the widget to pick a station, or star one in Tågradar.", icon: "building.columns")
@@ -130,7 +130,7 @@ struct StationDeparturesView: View {
     }
 
     @ViewBuilder
-    private func board(station: String, departures: [DepartureItem]) -> some View {
+    private func board(station: String, signature: String?, departures: [DepartureItem]) -> some View {
         let rows = Array(departures.filter { !$0.canceled || family != .accessoryRectangular }.prefix(rowLimit))
         VStack(alignment: .leading, spacing: family == .accessoryRectangular ? 0 : 6) {
             HStack(spacing: 6) {
@@ -154,7 +154,7 @@ struct StationDeparturesView: View {
                     if family == .accessoryRectangular {
                         accessoryRow(item)
                     } else {
-                        row(item)
+                        row(item, signature: signature)
                     }
                 }
                 Spacer(minLength: 0)
@@ -163,8 +163,12 @@ struct StationDeparturesView: View {
         .widgetAccentable(family == .accessoryRectangular)
     }
 
-    private func row(_ item: DepartureItem) -> some View {
-        Link(destination: item.deepLink ?? URL(string: "tagradar://station")!) {
+    /// A departure with no advertised number has no train to open, so the row falls back to the
+    /// board it came from. `tagradar://station` on its own carries no signature and is ignored by
+    /// `AppNavigation`, which made those rows dead to the touch.
+    private func row(_ item: DepartureItem, signature: String?) -> some View {
+        let board = signature.flatMap { URL(string: "tagradar://station/\($0)") }
+        return Link(destination: item.deepLink ?? board ?? URL(string: "tagradar://")!) {
             HStack(spacing: 8) {
                 TimePair(planned: item.planned, expected: item.expected, canceled: item.canceled, font: .subheadline.weight(.semibold))
                     .frame(minWidth: 44, alignment: .leading)
