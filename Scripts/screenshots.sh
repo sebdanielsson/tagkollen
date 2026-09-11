@@ -118,7 +118,7 @@ if not candidates:
 # map. Asked one departure day at a time, because just after midnight the trains still moving are
 # the overnight runs that departed yesterday, and a query about today would return nothing for them.
 counts: dict[str, int] = {}
-canceled: set[str] = set()
+canceled_counts: dict[str, int] = {}
 for day in sorted(set(candidates.values())):
     idents = sorted(ident for ident, d in candidates.items() if d == day)
     stops = query(
@@ -135,13 +135,14 @@ for day in sorted(set(candidates.values())):
         ident = row["AdvertisedTrainIdent"]
         counts[ident] = counts.get(ident, 0) + 1
         if row.get("Canceled"):
-            canceled.add(ident)
+            canceled_counts[ident] = canceled_counts.get(ident, 0) + 1
 
 # A cancelled run is honest data but a poor advertisement: it puts a red badge on the first thing
-# anyone sees on the store page. Prefer a run that is going ahead, and only fall back if every
-# candidate is cancelled.
+# anyone sees on the store page. Cancelled means every stop is, the same rule `TrainJourney.status`
+# applies — a single cancelled stop shows as an ordinary delay and is no reason to pass a train
+# over. Only fall back to a cancelled candidate if every one of them is.
 ranked = sorted(counts, key=lambda ident: -counts[ident])
-running = [ident for ident in ranked if ident not in canceled]
+running = [ident for ident in ranked if canceled_counts.get(ident, 0) < counts[ident]]
 ranked = running or ranked
 if not ranked:
     sys.exit("none of the moving trains is advertised on its departure day — pass TRAIN=<number>")
