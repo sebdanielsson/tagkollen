@@ -104,25 +104,27 @@ def departure_day(position: dict) -> str:
     return raw[:10]
 
 
-# Each candidate paired with the day its own run departed, which is what identifies it from here on.
-candidates: dict[str, str] = {}
+# A candidate is a run — an advertised number together with the day it departed — never a bare
+# number: around midnight the same number can be moving on two days at once, and keeping only one
+# of them would describe a different run than the position that was actually picked.
+candidates: set[tuple[str, str]] = set()
 for position in moving:
     ident = (position.get("Train") or {}).get("AdvertisedTrainNumber")
     day = departure_day(position)
     if ident and day and out_in_the_country(position):
-        candidates[ident] = day
+        candidates.add((ident, day))
 if not candidates:
     sys.exit("no train is out on the line right now — pass TRAIN=<number>")
 
 # Every announcement for those runs, one departure day at a time — just after midnight the trains
 # still moving are the overnight runs that departed yesterday, and a query about today would return
 # nothing for them.
-stations: dict[str, set[str]] = {}
+stations: dict[tuple[str, str], set[str]] = {}
 # Cancellation flags in calling order, which is why the query is ordered: what the Saved row shows
 # depends on which stops are cancelled, not just how many.
-flags: dict[str, list[bool]] = {}
-for day in sorted(set(candidates.values())):
-    idents = sorted(ident for ident, d in candidates.items() if d == day)
+flags: dict[tuple[str, str], list[bool]] = {}
+for day in sorted({d for _, d in candidates}):
+    idents = sorted(ident for ident, d in candidates if d == day)
     stops = query(
         '<QUERY objecttype="TrainAnnouncement" namespace="rail.trafficinfo" schemaversion="2.0"'
         ' limit="10000" orderby="AdvertisedTimeAtLocation">'
@@ -130,23 +132,27 @@ for day in sorted(set(candidates.values())):
         f'<IN name="AdvertisedTrainIdent" value="{",".join(idents)}"/>'
         f'<GTE name="ScheduledDepartureDateTime" value="{day}T00:00:00"/>'
         f'<LT name="ScheduledDepartureDateTime" value="{day}T23:59:59"/>'
+        # Advertised rows only, because those are the ones `TrainJourney.buildStops` turns into
+        # stops. A passing point carries times but is no station, and letting one be the first or
+        # last row here would answer the cancellation question about the wrong place.
+        '<EQ name="Advertised" value="true"/>'
         "</AND></FILTER>"
         "<INCLUDE>AdvertisedTrainIdent</INCLUDE><INCLUDE>LocationSignature</INCLUDE>"
         "<INCLUDE>Canceled</INCLUDE></QUERY>"
     ).get("TrainAnnouncement", [])
     for row in stops:
-        ident = row["AdvertisedTrainIdent"]
-        stations.setdefault(ident, set()).add(row["LocationSignature"])
-        flags.setdefault(ident, []).append(bool(row.get("Canceled")))
+        run = (row["AdvertisedTrainIdent"], day)
+        stations.setdefault(run, set()).add(row["LocationSignature"])
+        flags.setdefault(run, []).append(bool(row.get("Canceled")))
 
 
-def shows_as_canceled(ident: str) -> bool:
+def shows_as_canceled(run: tuple[str, str]) -> bool:
     """Whether the Saved row would carry the red badge.
 
     `TrainSnapshot.apply` sets `.canceled` when the first or the last stop is cancelled, or when
     every one is — so a run with a cancelled stop in the middle still presents normally and is no
     reason to pass it over, while one cancelled at either end is."""
-    rows = flags[ident]
+    rows = flags[run]
     return rows[0] or rows[-1] or all(rows)
 
 
@@ -154,8 +160,8 @@ def shows_as_canceled(ident: str) -> bool:
 # anyone sees on the store page. Rank by how many stations a run calls at — a long-distance one
 # fills the timeline and the map — and only fall back to a cancelled candidate if every one of them
 # is cancelled.
-ranked = sorted(stations, key=lambda ident: -len(stations[ident]))
-running = [ident for ident in ranked if not shows_as_canceled(ident)]
+ranked = sorted(stations, key=lambda run: -len(stations[run]))
+running = [run for run in ranked if not shows_as_canceled(run)]
 ranked = running or ranked
 if not ranked:
     sys.exit("none of the moving trains is advertised on its departure day — pass TRAIN=<number>")
@@ -163,7 +169,7 @@ if not ranked:
 # Emitted as full `<number>@<day>` keys: `-train` and `-save` both parse them, and a bare number
 # would be resolved as today's run. The runner-up rides along in the Saved list, so that section
 # shows two rows rather than one.
-print(" ".join(f"{ident}@{candidates[ident]}" for ident in ranked[:2]))
+print(" ".join(f"{ident}@{day}" for ident, day in ranked[:2]))
 PY
 }
 
