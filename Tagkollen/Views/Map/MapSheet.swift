@@ -174,11 +174,19 @@ struct MapSheet: View {
             let end = fav.scheduledArrival ?? fav.departureDate.addingTimeInterval(36 * 3600)
             return end.addingTimeInterval(3 * 3600) > .now
         }
-        .sorted { departure(of: $0) < departure(of: $1) }
+        .map { ($0, departure(of: $0)) }
+        .sorted { $0.1 < $1.1 }
+        .map(\.0)
     }
 
+    /// Read from the same snapshot `FavoriteTrainRow` renders, so a trip segment sorts by its
+    /// boarding stop and a freshly pinned run takes its place as soon as its journey is cached.
     private func departure(of fav: FavoriteTrain) -> Date {
-        fav.boardingTime ?? fav.scheduledDeparture ?? fav.departureDate
+        var snapshot = TrainSnapshot(favorite: fav)
+        if let journey = journeyStore.cached(fav.key) {
+            snapshot.apply(journey)
+        }
+        return snapshot.scheduledDeparture ?? fav.departureDate
     }
 
     private var savedTrainsSection: some View {

@@ -76,11 +76,31 @@ moving = query(
     '<QUERY objecttype="TrainPosition" namespace="järnväg.trafikinfo" schemaversion="1.1" limit="500">'
     '<FILTER><AND><GT name="TimeStamp" value="$dateadd(-0.00:10:00)"/>'
     '<GT name="Speed" value="80"/><EQ name="Status.Active" value="true"/></AND></FILTER>'
-    "<INCLUDE>Train.AdvertisedTrainNumber</INCLUDE></QUERY>"
+    "<INCLUDE>Train.AdvertisedTrainNumber</INCLUDE><INCLUDE>Position.WGS84</INCLUDE></QUERY>"
 ).get("TrainPosition", [])
-idents = sorted({p["Train"]["AdvertisedTrainNumber"] for p in moving if p.get("Train", {}).get("AdvertisedTrainNumber")})
+
+
+def out_in_the_country(position: dict) -> bool:
+    """Far enough from the three big commuter areas for the train to be the subject of the shot.
+
+    Zoomed to a train inside one, the map is forty overlapping markers and the drawn route
+    disappears underneath them."""
+    wkt = (position.get("Position") or {}).get("WGS84") or ""
+    try:
+        lon, lat = (float(n) for n in wkt.removeprefix("POINT (").removesuffix(")").split())
+    except ValueError:
+        return False
+    metros = ((59.33, 18.06), (57.71, 11.97), (55.60, 13.00))  # Stockholm, Göteborg, Malmö
+    return all(abs(lat - mlat) > 0.45 or abs(lon - mlon) > 0.45 for mlat, mlon in metros)
+
+
+idents = sorted({
+    p["Train"]["AdvertisedTrainNumber"]
+    for p in moving
+    if p.get("Train", {}).get("AdvertisedTrainNumber") and out_in_the_country(p)
+})
 if not idents:
-    sys.exit("no train is moving right now — pass TRAIN=<number>")
+    sys.exit("no train is out on the line right now — pass TRAIN=<number>")
 
 # Of those, the one calling at the most stations: a long-distance run fills the timeline and the map.
 stops = query(
@@ -91,16 +111,25 @@ stops = query(
     f'<LT name="ScheduledDepartureDateTime" value="{TODAY}T23:59:59"/>'
     '<EQ name="ActivityType" value="Avgang"/>'
     "</AND></FILTER>"
-    "<INCLUDE>AdvertisedTrainIdent</INCLUDE></QUERY>"
+    "<INCLUDE>AdvertisedTrainIdent</INCLUDE><INCLUDE>Canceled</INCLUDE></QUERY>"
 ).get("TrainAnnouncement", [])
 counts: dict[str, int] = {}
+canceled: set[str] = set()
 for row in stops:
-    counts[row["AdvertisedTrainIdent"]] = counts.get(row["AdvertisedTrainIdent"], 0) + 1
-if not counts:
+    ident = row["AdvertisedTrainIdent"]
+    counts[ident] = counts.get(ident, 0) + 1
+    if row.get("Canceled"):
+        canceled.add(ident)
+# A cancelled run is honest data but a poor advertisement: it puts a red badge on the first thing
+# anyone sees on the store page. Prefer a run that is going ahead, and only fall back if every
+# candidate is cancelled.
+ranked = sorted(counts, key=lambda ident: -counts[ident])
+running = [ident for ident in ranked if ident not in canceled]
+ranked = running or ranked
+if not ranked:
     sys.exit("none of the moving trains is advertised today — pass TRAIN=<number>")
 
 # The runner-up rides along in the Saved list, so that section shows two rows rather than one.
-ranked = sorted(counts, key=lambda ident: -counts[ident])
 print(" ".join(ranked[:2]))
 PY
 }

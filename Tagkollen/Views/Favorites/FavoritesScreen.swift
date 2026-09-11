@@ -29,8 +29,9 @@ struct FavoritesScreen: View {
                 }
             }
             // A split view that opens on an empty detail pane wastes two thirds of an iPad, so the
-            // first row — the next train to leave — is selected for you, and another one is picked
-            // if the one showing is deleted.
+            // next train to leave is selected for you, and another one is picked if the one showing
+            // is deleted. A later re-sort leaves the selection alone: moving the pane out from
+            // under someone already reading it would be the worse surprise.
             .onChange(of: upcoming.map(\.id), initial: true) { _, ids in
                 if selected == nil || !ids.contains(selected?.id ?? "") {
                     selected = upcoming.first?.key
@@ -47,18 +48,32 @@ struct FavoritesScreen: View {
     }
 
     private var upcoming: [FavoriteTrain] {
-        favorites.filter { !isPast($0) }.sorted { departure(of: $0) < departure(of: $1) }
+        inDepartureOrder(favorites.filter { !isPast($0) })
     }
 
     private var past: [FavoriteTrain] {
-        favorites.filter(isPast).sorted { departure(of: $0) < departure(of: $1) }
+        inDepartureOrder(favorites.filter(isPast))
     }
 
-    /// The time each row shows, so the sections read in the order the user sees. The `@Query` can
-    /// only sort by `departureDate`, which `TrainKey` normalises to midnight — every run saved for
-    /// the same day ties there and falls back to storage order.
+    /// Orders a section by the time its rows show. The `@Query` can only sort by `departureDate`,
+    /// which `TrainKey` normalises to midnight, so every run saved for the same day ties there and
+    /// falls back to storage order. The key is built once per train rather than inside the
+    /// comparator, which would rebuild a snapshot on every comparison.
+    private func inDepartureOrder(_ trains: [FavoriteTrain]) -> [FavoriteTrain] {
+        trains.map { ($0, departure(of: $0)) }
+            .sorted { $0.1 < $1.1 }
+            .map(\.0)
+    }
+
+    /// Read from the same snapshot `FavoriteTrainRow` renders, so a trip segment sorts by its
+    /// boarding stop and a run whose cached fields are still empty takes its place as soon as the
+    /// journey arrives.
     private func departure(of fav: FavoriteTrain) -> Date {
-        fav.boardingTime ?? fav.scheduledDeparture ?? fav.departureDate
+        var snapshot = TrainSnapshot(favorite: fav)
+        if let journey = journeys[fav.id] {
+            snapshot.apply(journey)
+        }
+        return snapshot.scheduledDeparture ?? fav.departureDate
     }
 
     private func isPast(_ fav: FavoriteTrain) -> Bool {
