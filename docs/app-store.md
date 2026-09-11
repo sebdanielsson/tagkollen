@@ -100,7 +100,7 @@ That answer is accurate and worth being able to defend, because the app does tou
 - Microphone audio and speech recognition are handled by Apple's own services under Apple's privacy terms; the app stores no recordings. Apple's questionnaire asks what *you* collect, not what the system does on the user's behalf.
 - Trafikverket receives anonymous API requests carrying train numbers, station signatures and an API key — nothing that identifies the user.
 
-This matches `PRIVACY.md` and the bundled `Tagkollen/Resources/PrivacyInfo.xcprivacy`, which declares no collected data types, no tracking, and the one required-reason API the app uses (`UserDefaults`, reason `CA92.1` — shared with the widget through the App Group). Update the manifest if a new required-reason API is ever added.
+This matches `PRIVACY.md` and `Tagkollen/Resources/PrivacyInfo.xcprivacy`, which declares no collected data types, no tracking, and the one required-reason API the app uses (`UserDefaults`, reason `CA92.1` — shared with the widget through the App Group). The widget extension is a separate binary and reaches the same App Group, so `project.yml` builds that manifest into it as well; keep both in step, and update it if a new required-reason API is ever added.
 
 ## 6. The version page (1.0.0)
 

@@ -126,6 +126,9 @@ targets:
       - path: Tagkollen/Support/StationNames.swift
       - path: Tagkollen/Views/Components/DelayBadge.swift
       - path: Tagkollen/Resources/Localizable.xcstrings
+      # The extension is its own binary, so it needs its own declaration of the required-reason
+      # APIs it uses — SharedStorage above reaches UserDefaults through the App Group.
+      - path: Tagkollen/Resources/PrivacyInfo.xcprivacy
     dependencies:
       - package: TrafikverketKit
       # Explicit links so the App Intents metadata processor runs for the widget configuration intents.

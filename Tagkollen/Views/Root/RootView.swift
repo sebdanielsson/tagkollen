@@ -111,8 +111,8 @@ extension RootView {
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
                 .map { TrainKey(id: $0) ?? .today($0) }
-            let pinned = Set(((try? modelContext.fetch(FetchDescriptor<FavoriteTrain>())) ?? []).map(\.id))
-            for key in keys where !pinned.contains(key.id) {
+            var pinned = Set(((try? modelContext.fetch(FetchDescriptor<FavoriteTrain>())) ?? []).map(\.id))
+            for key in keys where pinned.insert(key.id).inserted {
                 modelContext.insert(FavoriteTrain(key: key, journey: nil))
             }
             try? modelContext.save()
