@@ -21,6 +21,8 @@ Sources: Apple's [App information](https://developer.apple.com/help/app-store-co
 
 Everything in the first group is overwritten on every release, so edit it in the repository, not in the browser.
 
+Permission alerts are localized too: the English source strings are the `NS*UsageDescription` keys in `project.yml`, and `Tagkollen/Resources/InfoPlist.xcstrings` holds the Swedish.
+
 **Do the by-hand parts before merging the release PR.** `fastlane release` ends with `submit_for_review: true`, and Apple refuses a submission whose age rating or App Privacy answers are missing — the whole App Store job fails at its last step.
 
 ## 1. Account, once per developer account
@@ -172,6 +174,5 @@ Nothing to upload — `Tagkollen/AppIcon.icon` is an Icon Composer package and X
 
 ## Still worth doing
 
-- [ ] The three permission strings in `project.yml` (`NSLocationWhenInUseUsageDescription`, `NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription`) exist only in Swedish. An English-speaking reviewer sees Swedish alerts. Localising them needs an `InfoPlist.xcstrings` next to `Localizable.xcstrings`.
 - [ ] Accessibility pass: Dynamic Type at the largest sizes, VoiceOver on the map controls, delay badges and the stop timeline.
 - [ ] Trademark hygiene: "Trafikverket" appears only as the source of the data, with a non-affiliation note in both descriptions, and the red is a colour rather than their logotype. Never put the Trafikverket logotype in the app or the listing.

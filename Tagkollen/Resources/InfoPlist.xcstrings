@@ -1,0 +1,39 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "Permission alert shown the first time the map is centred on the user.",
+      "localizations" : {
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tågkollen använder din plats för att centrera kartan och visa tåg nära dig."
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription" : {
+      "comment" : "Permission alert shown the first time voice search is used.",
+      "localizations" : {
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonen används för att söka efter tåg och stationer med rösten."
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription" : {
+      "comment" : "Permission alert shown the first time voice search is used.",
+      "localizations" : {
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taligenkänning används för att söka efter tåg och stationer med rösten."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

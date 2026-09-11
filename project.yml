@@ -82,9 +82,11 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         ITSAppUsesNonExemptEncryption: false
-        NSLocationWhenInUseUsageDescription: "Tågkollen använder din plats för att centrera kartan och visa tåg nära dig."
-        NSMicrophoneUsageDescription: "Mikrofonen används för att söka efter tåg och stationer med rösten."
-        NSSpeechRecognitionUsageDescription: "Taligenkänning används för att söka efter tåg och stationer med rösten."
+        # Source strings; the Swedish ones live in Tagkollen/Resources/InfoPlist.xcstrings, like
+        # every other user-facing string in the app.
+        NSLocationWhenInUseUsageDescription: "Tågkollen uses your location to centre the map and show trains near you."
+        NSMicrophoneUsageDescription: "The microphone is used to search for trains and stations with your voice."
+        NSSpeechRecognitionUsageDescription: "Speech recognition is used to search for trains and stations with your voice."
         UIBackgroundModes: [fetch]
         BGTaskSchedulerPermittedIdentifiers: ["$(TAGKOLLEN_BUNDLE_ID).refresh"]
         TagkollenAppGroup: "group.$(TAGKOLLEN_BUNDLE_ID)"
