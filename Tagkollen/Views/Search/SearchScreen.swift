@@ -52,10 +52,10 @@ struct SearchScreen: View {
         .onChange(of: navigation.pendingStationSignature, initial: true) { _, signature in
             open(pendingStation: signature)
         }
-        .onChange(of: stations.isLoaded) { _, loaded in
-            // On a fresh install the directory is still loading when a deep link arrives, so the
-            // signature resolves to nothing and the request would otherwise be dropped silently.
-            guard loaded else { return }
+        .onChange(of: stations.revision) { _, _ in
+            // A deep link can arrive before the station it names is in the directory, and the
+            // directory is applied twice on a cold start — the disk cache, then the live refresh.
+            // `revision` covers both passes; `isLoaded` only ever changes on the first.
             open(pendingStation: navigation.pendingStationSignature)
         }
     }

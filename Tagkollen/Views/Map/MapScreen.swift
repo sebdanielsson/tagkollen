@@ -76,8 +76,11 @@ struct MapScreen: View {
             startFreshTrail()
             focus(on: station)
         }
-        .onChange(of: stations.isLoaded) { _, loaded in
-            guard loaded, !isRegular, let signature = navigation.pendingStationSignature,
+        .onChange(of: stations.revision) { _, _ in
+            // Same reason as the pending signature above, but for a link that arrived before the
+            // station it names was in the directory. `revision` fires for the disk cache and the
+            // live refresh alike, where `isLoaded` only ever changes on the first of the two.
+            guard !isRegular, let signature = navigation.pendingStationSignature,
                   let station = stations.station(signature) else { return }
             navigation.pendingStationSignature = nil
             startFreshTrail()

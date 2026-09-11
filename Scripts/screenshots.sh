@@ -49,10 +49,13 @@ pick_train() {
   # The key comes through the environment, not argv, so it never shows up in `ps`.
   python3 - <<'PY'
 import datetime, json, os, sys, urllib.request
+from zoneinfo import ZoneInfo
 
 KEY = os.environ["TRV_API_KEY"]
 ENDPOINT = "https://api.trafikinfo.trafikverket.se/v2/data.json"
-TODAY = datetime.date.today().isoformat()
+# A run's departure day is Swedish civil time, the same as TrainKey — so a capture from another
+# timezone, or from Sweden just after midnight, does not ask for the wrong day.
+TODAY = datetime.datetime.now(ZoneInfo("Europe/Stockholm")).date().isoformat()
 
 
 def query(body: str):
