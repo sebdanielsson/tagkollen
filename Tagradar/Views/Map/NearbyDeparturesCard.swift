@@ -300,6 +300,14 @@ struct NearbyDeparturesCard: View {
         // is not refreshed just because this one was. Resolving a different station makes every
         // entry that disagrees stale, however young.
         cache = cache.filter { $0.value.station?.id == nearest.id }
+        // Rows are otherwise kept through a load so a refresh doesn't blink — but rows belong to
+        // the station they were fetched for, and the line below is about to put a different name
+        // above them. Dropping them here trades the blink for not captioning one station's
+        // platform with another's departures.
+        if station?.id != nearest.id {
+            rows = []
+            loadedBoard = nil
+        }
         // Known as soon as we have a location fix, well before the departures/arrivals fetch
         // resolves, so the card can label itself immediately instead of alongside the skeleton.
         station = nearest
@@ -314,11 +322,17 @@ struct NearbyDeparturesCard: View {
                 try await deps.trains.arrivals(to: nearest.locationSignature, start: start, limit: Self.fetchLimit)
             }
             guard !Task.isCancelled else { return }
-            rows = fetched
+            // The lookback reaches back past the timetable so a run standing at the platform on a
+            // delay survives; it also drags in the runs that genuinely left in those ten minutes,
+            // and the query is ordered by advertised time, so unfiltered they take the preview's
+            // three rows at a hub. `timeAtLocation` is the API recording that the call actually
+            // happened — departure or arrival — so a late train still waiting has none and stays.
+            let pending = fetched.filter { !$0.hasDeparted }
+            rows = pending
             loadedBoard = board
             error = nil
             cache[board] = CacheEntry(
-                station: nearest, distance: metres, rows: fetched, loadedAt: .now, revision: stations.revision
+                station: nearest, distance: metres, rows: pending, loadedAt: .now, revision: stations.revision
             )
         } catch {
             guard !Task.isCancelled else { return }
