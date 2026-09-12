@@ -102,10 +102,10 @@ struct MapTrainsCard: View {
         if let journey = journeyStore.cached(fav.key) {
             snapshot.apply(journey)
         }
-        let arrival = snapshot.scheduledArrival
-            ?? fav.scheduledArrival
-            ?? fav.departureDate.addingTimeInterval(36 * 3600)
-        return arrival.addingTimeInterval(3 * 3600)
+        return TrainSnapshot.endOfRun(
+            departureDate: fav.departureDate,
+            scheduledArrival: snapshot.scheduledArrival ?? fav.scheduledArrival
+        )
     }
 
     /// Whether to offer the "star a train" prompt. Only when this style has nothing to show at
@@ -143,13 +143,34 @@ struct MapTrainsCard: View {
 
     private var recentCard: some View {
         rows(recents) { recent in
-            RecentTrainRow(recent: recent, journey: journeyStore.cached(recent.key))
+            // A saved run renders from its favorite, trip segment and all. Reading it back from
+            // the stored record instead would show whole-run times and a whole-run delay here
+            // while the saved tab shows the user's leg — for the same train, one tap apart.
+            if let favorite = favorite(for: recent) {
+                FavoriteTrainRow(favorite: favorite, journey: journeyStore.cached(recent.key))
+            } else {
+                RecentTrainRow(recent: recent, journey: journeyStore.cached(recent.key))
+            }
         } select: {
             onSelectTrain($0.key)
         } accessory: { recent in
             saveButton(for: recent)
         }
         .task(id: shown(recents).map(\.id)) {
+            // A run starred from the detail view before its journey arrived has a favorite with
+            // nothing in it, and the branch above renders that instead of this record — so the row
+            // would drop to "Train 537 · – → –" while the record beside it still knows the route
+            // and the times. Repaired here rather than while rendering, which must not write.
+            // A successful load fills the favorite in too; this is what the offline case has.
+            var repaired = false
+            for recent in shown(recents) {
+                if let favorite = favorite(for: recent), recent.fillIn(favorite) {
+                    repaired = true
+                }
+            }
+            if repaired {
+                try? modelContext.save()
+            }
             await load(shown(recents).map(\.key))
         }
     }

@@ -108,6 +108,24 @@ struct TrainSnapshot: Hashable, Sendable, Identifiable {
         return end.addingTimeInterval(30 * 60) < .now
     }
 
+    /// When a run stops being worth offering: its arrival, plus three hours of slack. An unknown
+    /// arrival is assumed to be 36 h out, the longest run in the country.
+    ///
+    /// The single definition of that window. The saved tab needs the date — it sorts the runs that
+    /// are past into their own group — and the recent tab only needs the yes or no below, but they
+    /// have to be the same window or one tab retires a run while the other still lists it.
+    static func endOfRun(departureDate: Date, scheduledArrival: Date?) -> Date {
+        let arrival = scheduledArrival ?? departureDate.addingTimeInterval(36 * 3600)
+        return arrival.addingTimeInterval(3 * 3600)
+    }
+
+    /// Whether a run still belongs on the map card, saved or merely opened. Deliberately more
+    /// generous than `isOver`: that asks whether the run has finished, this asks whether the user
+    /// still has a reason to tap it, and someone who just got off a delayed train does.
+    static func isCurrentRun(departureDate: Date, scheduledArrival: Date?, now: Date = .now) -> Bool {
+        endOfRun(departureDate: departureDate, scheduledArrival: scheduledArrival) > now
+    }
+
     /// Fills the live fields from a journey. With a segment, "origin" and "destination" become the
     /// boarding and alighting stops and delays, next stop and status are judged for that part only:
     /// a late departure from the run's first station does not matter to someone boarding later.

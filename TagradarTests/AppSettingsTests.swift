@@ -42,7 +42,12 @@ struct AppSettingsTests {
         let tomorrow = Date.now.addingTimeInterval(24 * 3600)
         settings.addRecentTrain(train("542"))
         settings.addRecentTrain(train("542", day: tomorrow))
-        #expect(settings.recentTrains.count == 2)
+        // Both survive, and by key rather than by number — a count alone would pass even if the
+        // wrong one had been kept twice.
+        #expect(settings.recentTrains.map(\.id) == [
+            TrainKey(ident: "542", departureDate: tomorrow).id,
+            TrainKey(ident: "542", departureDate: .now).id,
+        ])
     }
 
     @Test("Only the 8 most recent trains are kept")
@@ -61,6 +66,19 @@ struct AppSettingsTests {
         settings.addRecentTrain(train("542", day: yesterday))
         settings.addRecentTrain(train("1234"))
         #expect(settings.recentTrains.map(\.ident) == ["1234"])
+    }
+
+    /// Storing it anyway would spend one of the eight slots on a run the card can never show,
+    /// evicting one it can — the list would look like it had lost a train for no reason.
+    @Test("A run that is already over never takes a slot")
+    func finishedRunsNeverTakeASlot() {
+        let settings = settings()
+        let yesterday = Date.now.addingTimeInterval(-24 * 3600)
+        for ident in 1 ... 8 {
+            settings.addRecentTrain(train(String(ident)))
+        }
+        settings.addRecentTrain(train("542", day: yesterday))
+        #expect(settings.recentTrains.map(\.ident) == ["8", "7", "6", "5", "4", "3", "2", "1"])
     }
 
     @Test("The list survives a new instance reading the same defaults")
