@@ -26,7 +26,6 @@ struct StationBoardView: View {
 
     @Environment(AppDependencies.self) private var deps
     @Environment(AppSettings.self) private var settings
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.modelContext) private var modelContext
     @Query private var favoriteStations: [FavoriteStation]
     @State private var board: Board = .departures

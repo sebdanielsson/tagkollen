@@ -21,7 +21,8 @@ The app is already well positioned, because it was written size-class-first rath
 
 - No `UIScreen.main` anywhere — nothing assumes a single display.
 - No `userInterfaceIdiom`, `UIDevice.current` or interface-orientation branching.
-- Layout is driven by `horizontalSizeClass` in `MapScreen`, `StationBoardView` and `TrainDetailView`. `RootView` does not branch on it at all, and `MapSheet` deliberately does not read it: a split-view sidebar column is compact width on every device, so it takes an explicit style from `MapScreen` instead.
+- Layout is driven by `horizontalSizeClass` in `MapScreen` and `TrainDetailView`. `RootView` does not branch on it at all, and `MapSheet` deliberately does not read it: a split-view sidebar column is compact width on every device, so it takes an explicit style from `MapScreen` instead. `StationBoardView` picks its navigation behaviour from whether a selection callback was supplied, not from the size class.
+- One deliberate exception to size-class-only layout: the regular layout reads the window's own proportions to decide whether the sidebar is shown, because binding `columnVisibility` at all opts out of `NavigationSplitView`'s automatic behaviour and the sidebar would otherwise stay wherever the previous pose left it. This is the one place a pose change, rather than a size-class change, moves the layout, so it is worth re-checking against the real device.
 - The regular-width layout is a `NavigationSplitView` (the card as a sidebar beside the map) with an `.inspector` for the selected train or station, so columns collapse, tile and overlay on their own across poses.
 - `Info.plist` sets `UIApplicationSupportsMultipleScenes` and has no `UIRequiresFullScreen` and no orientation lock.
 - Hard-coded `.frame(width:height:)` calls are fixed-size glyphs and hit targets (dots, 44 pt buttons) and a few narrow column widths in the stop timeline and the map card. None is derived from or assumes a screen size.

@@ -177,7 +177,12 @@ struct MapSheet: View {
 
     @ViewBuilder
     private var idleContent: some View {
-        savedTrainsSection
+        // Nothing upcoming and nothing to prompt for means the section has no content at all:
+        // with only past runs saved they are in `earlierSection`, and a "Saved trains" heading
+        // over an empty card would just be a hole above them.
+        if showsSavedPrompt || !shownFavorites.isEmpty {
+            savedTrainsSection
+        }
         if style == .sidebar, !pastFavorites.isEmpty {
             earlierSection
         }
