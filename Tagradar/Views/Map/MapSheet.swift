@@ -195,9 +195,10 @@ struct MapSheet: View {
             switch self {
             case .favorite: .yellow
             case .recent: .accentColor
-            // Opaque, so it reads the same in both appearances; `Color.secondary` is a
-            // translucent label colour that turns *darkest* of the three in light mode.
-            case .major: .gray
+            // Darkened because `.gradient` lifts the top of the circle: plain `.gray` leaves the
+            // white glyph at 2.6:1, under the 3:1 floor for graphical objects. Not `.secondary` —
+            // that is a 60%-alpha *label* colour, so the bubble would tint with whatever is behind it.
+            case .major: .gray.mix(with: .black, by: 0.25)
             }
         }
     }
