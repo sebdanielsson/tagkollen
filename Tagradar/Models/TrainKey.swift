@@ -33,6 +33,13 @@ struct TrainKey: Hashable, Codable, Sendable, Identifiable {
     }
 }
 
+extension TrainAnnouncement {
+    /// The run this row belongs to, for navigating from a departure/arrival board to its detail.
+    var key: TrainKey {
+        TrainKey(ident: advertisedTrainIdent ?? "", departureDate: scheduledDepartureDateTime ?? .now)
+    }
+}
+
 /// Small bridge so the app can parse `yyyy-MM-dd` the same way the kit does.
 enum TRVDateParserBridge {
     static func date(fromDay day: String) -> Date? {

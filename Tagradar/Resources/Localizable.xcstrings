@@ -4,6 +4,16 @@
     "%@ %@": {
       "shouldTranslate": false
     },
+    "%@ away": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ bort"
+          }
+        }
+      }
+    },
     "%@ departs soon": {
       "localizations": {
         "sv": {
@@ -106,6 +116,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aviseringar för sparade tåg"
+          }
+        }
+      }
+    },
+    "Allow location": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tillåt plats"
+          }
+        }
+      }
+    },
+    "Allow location access for Tågradar in Settings to see departures near you.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tillåt platsåtkomst för Tågradar i Inställningar för att se avgångar nära dig."
           }
         }
       }
@@ -260,6 +290,16 @@
         }
       }
     },
+    "Cancel": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avbryt"
+          }
+        }
+      }
+    },
     "Canceled": {
       "localizations": {
         "sv": {
@@ -316,6 +356,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fortsätt"
+          }
+        }
+      }
+    },
+    "Could not find a station near you.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hittade ingen station nära dig."
           }
         }
       }
@@ -650,6 +700,16 @@
         }
       }
     },
+    "Location access is off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platsåtkomst är av"
+          }
+        }
+      }
+    },
     "Map": {
       "localizations": {
         "sv": {
@@ -686,6 +746,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dämpad"
+          }
+        }
+      }
+    },
+    "Near you": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nära dig"
           }
         }
       }
@@ -780,12 +850,32 @@
         }
       }
     },
+    "No arrivals nearby right now.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga ankomster i närheten just nu."
+          }
+        }
+      }
+    },
     "No departures in the next six hours.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Inga avgångar de närmaste sex timmarna."
+          }
+        }
+      }
+    },
+    "No departures nearby right now.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga avgångar i närheten just nu."
           }
         }
       }
@@ -950,6 +1040,16 @@
         }
       }
     },
+    "Open Settings": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna Inställningar"
+          }
+        }
+      }
+    },
     "Operational train number": {
       "localizations": {
         "sv": {
@@ -1046,6 +1146,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Anslut igen"
+          }
+        }
+      }
+    },
+    "Refresh": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppdatera"
           }
         }
       }
@@ -1150,6 +1260,16 @@
         }
       }
     },
+    "See departures and arrivals for the station closest to you.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se avgångar och ankomster för stationen närmast dig."
+          }
+        }
+      }
+    },
     "Settings": {
       "localizations": {
         "sv": {
@@ -1206,6 +1326,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Visa inaktiva tåg"
+          }
+        }
+      }
+    },
+    "Show more": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa fler"
           }
         }
       }
