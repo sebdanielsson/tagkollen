@@ -411,7 +411,15 @@ struct MapScreen: View {
             mapState.selectedTrainID = nil
             push(.train(TrainSelection(key: key, liveID: nil)), if: pushingPath)
         } else {
-            // Live data not loaded yet; try again once positions arrive.
+            // Live data has not arrived, so whether this train is reporting a position is unknown.
+            // Open the timetable anyway — `TrainDetailView` builds it from the key alone, and the
+            // saved list is on screen during exactly this window, offline included, so deferring
+            // would make a tap do nothing. The camera catches up when positions land; the retry
+            // re-pushes the same screen, which `MapNavigationStack` drops.
+            mapState.selectedStation = nil
+            mapState.selectedKey = key
+            mapState.selectedTrainID = nil
+            push(.train(TrainSelection(key: key, liveID: nil)), if: pushingPath)
             mapState.deferredFocus = MapState.DeferredFocus(key: key, pushesPath: pushingPath)
         }
     }
