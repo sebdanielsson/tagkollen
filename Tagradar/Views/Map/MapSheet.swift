@@ -26,10 +26,8 @@ struct MapSheet: View {
 
     @Environment(AppDependencies.self) private var deps
     @Environment(StationDirectory.self) private var stations
-    @Environment(JourneyStore.self) private var journeyStore
     @Environment(AppSettings.self) private var settings
     @Environment(SpeechSearch.self) private var speech
-    @Query(sort: \FavoriteTrain.departureDate) private var favorites: [FavoriteTrain]
     @Query(sort: \FavoriteStation.createdAt) private var favoriteStations: [FavoriteStation]
 
     @State private var query = ""
@@ -162,78 +160,8 @@ struct MapSheet: View {
 
     @ViewBuilder
     private var idleContent: some View {
-        savedTrainsSection
+        MapTrainsCard(onSelectTrain: onSelectTrain)
         stationsSection
-        if !settings.recentTrainSearches.isEmpty {
-            recentSearchesSection
-        }
-    }
-
-    /// Sorted by the time each row shows, not by the `@Query`'s `departureDate` — `TrainKey`
-    /// normalises that to midnight, so runs saved for the same day tie and fall back to storage
-    /// order, which here would also decide which four make the cut.
-    private var upcomingFavorites: [FavoriteTrain] {
-        favorites.filter { fav in
-            let end = fav.scheduledArrival ?? fav.departureDate.addingTimeInterval(36 * 3600)
-            return end.addingTimeInterval(3 * 3600) > .now
-        }
-        .map { ($0, departure(of: $0)) }
-        .sorted { $0.1 < $1.1 }
-        .map(\.0)
-    }
-
-    /// Read from the same snapshot `FavoriteTrainRow` renders, so a trip segment sorts by its
-    /// boarding stop and a freshly pinned run takes its place as soon as its journey is cached.
-    private func departure(of fav: FavoriteTrain) -> Date {
-        var snapshot = TrainSnapshot(favorite: fav)
-        if let journey = journeyStore.cached(fav.key) {
-            snapshot.apply(journey)
-        }
-        return snapshot.scheduledDeparture ?? fav.departureDate
-    }
-
-    private var savedTrainsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Saved trains")
-                .font(.title3.weight(.semibold))
-            if upcomingFavorites.isEmpty {
-                HStack(spacing: 12) {
-                    Image(systemName: "star")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 32)
-                    Text("Tap the star on a train to keep it here. Handy for a trip later this week.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.fill.quaternary, in: .rect(cornerRadius: 16))
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(upcomingFavorites.prefix(4).enumerated()), id: \.element.id) { index, fav in
-                        Button {
-                            onSelectTrain(fav.key)
-                        } label: {
-                            FavoriteTrainRow(favorite: fav, journey: journeyStore.cached(fav.key))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .contentShape(.rect)
-                        }
-                        .buttonStyle(.plain)
-                        if index < min(upcomingFavorites.count, 4) - 1 {
-                            Divider().padding(.leading, 14)
-                        }
-                    }
-                }
-                .background(.fill.quaternary, in: .rect(cornerRadius: 16))
-                .task(id: upcomingFavorites.map(\.id)) {
-                    for fav in upcomingFavorites.prefix(4) {
-                        _ = try? await journeyStore.load(fav.key)
-                    }
-                }
-            }
-        }
     }
 
     private enum QuickStationKind {
@@ -297,33 +225,6 @@ struct MapSheet: View {
                                     .lineLimit(2)
                                     .frame(width: 72)
                             }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
-            .scrollIndicators(.hidden)
-        }
-    }
-
-    private var recentSearchesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Recently searched")
-                .font(.title3.weight(.semibold))
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(settings.recentTrainSearches, id: \.self) { ident in
-                        Button {
-                            searchFocused = false
-                            query = ident
-                        } label: {
-                            Text(ident)
-                                .font(.subheadline.weight(.medium))
-                                .monospacedDigit()
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(.fill.tertiary, in: .capsule)
                         }
                         .buttonStyle(.plain)
                     }
@@ -464,9 +365,6 @@ struct MapSheet: View {
         do {
             journeys = try await deps.trains.search(ident: trimmed, on: date)
             searchError = nil
-            if !journeys.isEmpty {
-                settings.addRecentTrainSearch(trimmed)
-            }
         } catch {
             journeys = []
             searchError = error.localizedDescription

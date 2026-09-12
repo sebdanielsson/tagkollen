@@ -53,15 +53,23 @@ final class AppSettings {
         recentStations = Array(list.prefix(8))
     }
 
-    /// Train idents the user has searched for, newest first — not necessarily saved as favorites.
-    private(set) var recentTrainSearches: [String] {
-        didSet { defaults.set(recentTrainSearches, forKey: Keys.recentTrainSearches) }
+    /// Train runs the user has opened, newest first — not necessarily saved as favorites.
+    /// Runs whose journey is over are dropped as they are read, so the stored list never needs
+    /// sweeping and a card built from it can't offer a shortcut back to yesterday.
+    var recentTrains: [RecentTrain] {
+        storedRecentTrains.filter { $0.isCurrent() }
     }
 
-    func addRecentTrainSearch(_ ident: String) {
-        var list = recentTrainSearches.filter { $0 != ident }
-        list.insert(ident, at: 0)
-        recentTrainSearches = Array(list.prefix(8))
+    func addRecentTrain(_ train: RecentTrain) {
+        var list = storedRecentTrains.filter { $0.id != train.id && $0.isCurrent() }
+        list.insert(train, at: 0)
+        storedRecentTrains = Array(list.prefix(8))
+    }
+
+    private var storedRecentTrains: [RecentTrain] {
+        didSet {
+            defaults.set(try? JSONEncoder().encode(storedRecentTrains), forKey: Keys.recentTrains)
+        }
     }
 
     private let defaults: UserDefaults
@@ -75,7 +83,7 @@ final class AppSettings {
         static let pollingInterval = "settings.pollingInterval"
         static let alertsEnabled = "settings.alertsEnabled"
         static let recentStations = "settings.recentStations"
-        static let recentTrainSearches = "settings.recentTrainSearches"
+        static let recentTrains = "settings.recentTrains"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -88,7 +96,8 @@ final class AppSettings {
         let stored = defaults.double(forKey: Keys.pollingInterval)
         pollingInterval = stored > 0 ? stored : 15
         recentStations = defaults.stringArray(forKey: Keys.recentStations) ?? []
-        recentTrainSearches = defaults.stringArray(forKey: Keys.recentTrainSearches) ?? []
+        storedRecentTrains = (defaults.data(forKey: Keys.recentTrains))
+            .flatMap { try? JSONDecoder().decode([RecentTrain].self, from: $0) } ?? []
         alertsEnabled = defaults.object(forKey: Keys.alertsEnabled) as? Bool ?? false
     }
 }

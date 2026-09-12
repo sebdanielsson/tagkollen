@@ -1070,12 +1070,12 @@
         }
       }
     },
-    "Recently searched": {
+    "Recent": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Senast sökta"
+            "value": "Senaste"
           }
         }
       }
