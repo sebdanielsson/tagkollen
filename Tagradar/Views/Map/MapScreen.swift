@@ -214,6 +214,15 @@ struct MapScreen: View {
             inspectorDetail
                 .inspectorColumnWidth(min: 340, ideal: 400, max: 520)
         }
+        // Binding `columnVisibility` at all opts out of the automatic behaviour: the split view
+        // resolves `.automatic` once and writes the concrete value back, after which a rotation
+        // leaves the sidebar wherever it was. Landscape has the width for all three columns and
+        // portrait does not, so follow the shape of the window the way Mail does.
+        .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { isWide in
+            withAnimation {
+                columnVisibility = isWide ? .all : .detailOnly
+            }
+        }
     }
 
     /// What the iPad inspector shows for the current selection. Stations get their board here for

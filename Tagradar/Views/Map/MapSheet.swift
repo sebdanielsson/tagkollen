@@ -188,13 +188,10 @@ struct MapSheet: View {
     /// normalises that to midnight, so runs saved for the same day tie and fall back to storage
     /// order, which here would also decide which four make the cut.
     private var upcomingFavorites: [FavoriteTrain] {
-        favorites.filter { fav in
-            let end = fav.scheduledArrival ?? fav.departureDate.addingTimeInterval(36 * 3600)
-            return end.addingTimeInterval(3 * 3600) > .now
-        }
-        .map { ($0, departure(of: $0)) }
-        .sorted { $0.1 < $1.1 }
-        .map(\.0)
+        favorites.filter { end(of: $0) > .now }
+            .map { ($0, departure(of: $0)) }
+            .sorted { $0.1 < $1.1 }
+            .map(\.0)
     }
 
     /// Read from the same snapshot `FavoriteTrainRow` renders, so a trip segment sorts by its
@@ -207,17 +204,27 @@ struct MapSheet: View {
         return snapshot.scheduledDeparture ?? fav.departureDate
     }
 
+    /// When a saved run stops being upcoming, plus three hours of slack. Read through the same
+    /// snapshot as the row, so a trip segment ends at the alighting stop rather than at the
+    /// terminus — otherwise someone who gets off halfway keeps the row in Upcoming for the rest of
+    /// the run. Falls back to a day and a half past departure while the journey is still unknown.
+    private func end(of fav: FavoriteTrain) -> Date {
+        var snapshot = TrainSnapshot(favorite: fav)
+        if let journey = journeyStore.cached(fav.key) {
+            snapshot.apply(journey)
+        }
+        let arrival = snapshot.scheduledArrival ?? fav.departureDate.addingTimeInterval(36 * 3600)
+        return arrival.addingTimeInterval(3 * 3600)
+    }
+
     /// Runs that have already arrived. The card has no room for them; the sidebar keeps them so a
     /// train saved for a trip that is over can still be found and removed, which is otherwise only
     /// possible by searching the run up again and un-starring it from its detail.
     private var pastFavorites: [FavoriteTrain] {
-        favorites.filter { fav in
-            let end = fav.scheduledArrival ?? fav.departureDate.addingTimeInterval(36 * 3600)
-            return end.addingTimeInterval(3 * 3600) <= .now
-        }
-        .map { ($0, departure(of: $0)) }
-        .sorted { $0.1 > $1.1 }
-        .map(\.0)
+        favorites.filter { end(of: $0) <= .now }
+            .map { ($0, departure(of: $0)) }
+            .sorted { $0.1 > $1.1 }
+            .map(\.0)
     }
 
     /// The card only has room for the next few; the sidebar shows them all.
@@ -246,8 +253,13 @@ struct MapSheet: View {
             } else {
                 rows(for: shownFavorites)
                     .task(id: shownFavorites.map(\.id)) {
-                        for fav in shownFavorites {
-                            _ = try? await journeyStore.load(fav.key)
+                        // Concurrently: the sidebar lists every upcoming run, and awaiting each
+                        // one in turn would leave the last row blank for N round trips.
+                        // `JourneyStore` de-duplicates anything already in flight.
+                        await withTaskGroup { group in
+                            for key in shownFavorites.map(\.key) {
+                                group.addTask { _ = try? await journeyStore.load(key) }
+                            }
                         }
                     }
             }
@@ -477,7 +489,9 @@ extension MapSheet {
         return ordered
             .filter { seen.insert($0.0).inserted }
             .compactMap { sig, kind in stations.station(sig).map { QuickStation(station: $0, kind: kind) } }
-            .prefix(14)
+            // The strip is swiped sideways, so it stops at a sensible number; the sidebar is a
+            // scrolling list and showing every starred station is the point of it.
+            .prefix(style == .sidebar ? .max : 14)
             .map(\.self)
     }
 
