@@ -53,6 +53,17 @@ final class AppSettings {
         recentStations = Array(list.prefix(8))
     }
 
+    /// Train idents the user has searched for, newest first — not necessarily saved as favorites.
+    private(set) var recentTrainSearches: [String] {
+        didSet { defaults.set(recentTrainSearches, forKey: Keys.recentTrainSearches) }
+    }
+
+    func addRecentTrainSearch(_ ident: String) {
+        var list = recentTrainSearches.filter { $0 != ident }
+        list.insert(ident, at: 0)
+        recentTrainSearches = Array(list.prefix(8))
+    }
+
     private let defaults: UserDefaults
 
     private enum Keys {
@@ -64,6 +75,7 @@ final class AppSettings {
         static let pollingInterval = "settings.pollingInterval"
         static let alertsEnabled = "settings.alertsEnabled"
         static let recentStations = "settings.recentStations"
+        static let recentTrainSearches = "settings.recentTrainSearches"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -76,6 +88,7 @@ final class AppSettings {
         let stored = defaults.double(forKey: Keys.pollingInterval)
         pollingInterval = stored > 0 ? stored : 15
         recentStations = defaults.stringArray(forKey: Keys.recentStations) ?? []
+        recentTrainSearches = defaults.stringArray(forKey: Keys.recentTrainSearches) ?? []
         alertsEnabled = defaults.object(forKey: Keys.alertsEnabled) as? Bool ?? false
     }
 }

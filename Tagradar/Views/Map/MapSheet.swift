@@ -164,6 +164,9 @@ struct MapSheet: View {
     private var idleContent: some View {
         savedTrainsSection
         stationsSection
+        if !settings.recentTrainSearches.isEmpty {
+            recentSearchesSection
+        }
     }
 
     /// Sorted by the time each row shows, not by the `@Query`'s `departureDate` — `TrainKey`
@@ -304,6 +307,33 @@ struct MapSheet: View {
         }
     }
 
+    private var recentSearchesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Recently searched")
+                .font(.title3.weight(.semibold))
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(settings.recentTrainSearches, id: \.self) { ident in
+                        Button {
+                            searchFocused = false
+                            query = ident
+                        } label: {
+                            Text(ident)
+                                .font(.subheadline.weight(.medium))
+                                .monospacedDigit()
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(.fill.tertiary, in: .capsule)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+            .scrollIndicators(.hidden)
+        }
+    }
+
     // MARK: Search results
 
     private var looksLikeTrainNumber: Bool {
@@ -434,6 +464,9 @@ struct MapSheet: View {
         do {
             journeys = try await deps.trains.search(ident: trimmed, on: date)
             searchError = nil
+            if !journeys.isEmpty {
+                settings.addRecentTrainSearch(trimmed)
+            }
         } catch {
             journeys = []
             searchError = error.localizedDescription
