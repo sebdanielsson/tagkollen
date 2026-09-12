@@ -21,8 +21,8 @@ The app is already well positioned, because it was written size-class-first rath
 
 - No `UIScreen.main` anywhere — nothing assumes a single display.
 - No `userInterfaceIdiom`, `UIDevice.current` or interface-orientation branching.
-- Layout is driven by `horizontalSizeClass` in `RootView`, `MapScreen`, `FavoritesScreen`, `SearchScreen`, `StationBoardView` and `TrainDetailView`.
-- `NavigationSplitView` and `TabView` with `.tabViewStyle(.sidebarAdaptable)` are already in use, so columns collapse, tile and overlay on their own across poses.
+- Layout is driven by `horizontalSizeClass` in `MapScreen`, `StationBoardView` and `TrainDetailView`. `RootView` does not branch on it at all, and `MapSheet` deliberately does not read it: a split-view sidebar column is compact width on every device, so it takes an explicit style from `MapScreen` instead.
+- The regular-width layout is a `NavigationSplitView` (the card as a sidebar beside the map) with an `.inspector` for the selected train or station, so columns collapse, tile and overlay on their own across poses.
 - `Info.plist` sets `UIApplicationSupportsMultipleScenes` and has no `UIRequiresFullScreen` and no orientation lock.
 - Hard-coded `.frame(width:height:)` calls are fixed-size glyphs and hit targets (dots, 44 pt buttons) and a few narrow column widths in the stop timeline and the map card. None is derived from or assumes a screen size.
 
@@ -30,7 +30,7 @@ The inner display is **regular in both dimensions** and does not honour `UISuppo
 
 ## Fixed: state reset when the layout switched
 
-`RootView` chooses between two structurally different subtrees:
+`RootView` used to choose between two structurally different subtrees:
 
 ```swift
 Group {
@@ -38,19 +38,21 @@ Group {
 }
 ```
 
-`phone` hosts `MapScreen()` directly; `tabs` hosts it inside a `Tab` in a `TabView`. Those are different positions in the view tree, so SwiftUI treats them as different view identities. When the size class flips, the old `MapScreen` is destroyed and a new one is built with fresh `@State`, discarding `camera`, `visibleRegion`, `selectedTrainID`, `selectedKey`, `selectedStation`, `sheetDetent`, the card's trail (`sheetPath` and `navigationStack`) and any `deferredFocus`. The map snaps back to the whole-of-Sweden region, the selected train is lost and the card returns to its root.
+`phone` hosted `MapScreen()` directly; `tabs` hosted it inside a `Tab` in a `TabView`. Those are different positions in the view tree, so SwiftUI treated them as different view identities. When the size class flips, the old `MapScreen` is destroyed and a new one is built with fresh `@State`, discarding `camera`, `visibleRegion`, `selectedTrainID`, `selectedKey`, `selectedStation`, `sheetDetent`, the card's trail (`sheetPath` and `navigationStack`) and any `deferredFocus`. The map snaps back to the whole-of-Sweden region, the selected train is lost and the card returns to its root.
 
 This is not Duo-specific. iPhone Plus and Max models report a regular width in landscape, so rotating an iPhone 17 Pro Max already triggers it today.
 
-To reproduce: run on an iPhone 17 Pro Max simulator, select a train, then rotate to landscape with Cmd+Left or Cmd+Right. The layout becomes the iPad tab layout and the map resets.
+It reproduced on an iPhone 17 Pro Max simulator: select a train, rotate to landscape with Cmd+Left or Cmd+Right, and the map reset to the whole country. `TagradarUITests` now covers the same transition.
 
 On iPhone Duo this stops being an edge case and becomes a core interaction — every open and close of the device crosses the same boundary.
 
 ### Fix
 
-The map's durable state — camera, visible region, selection, the card's trail and its detent, and any deferred focus — now lives in `MapState` (`Tagradar/Views/Map/MapState.swift`), an `@Observable` model owned by `RootView` as `@State` and injected into both branches with `.environment(mapState)`, exactly the way `AppNavigation` already is. `RootView` never changes identity, so the object survives the swap and each freshly built `MapScreen` picks up where the last one left off. Neither layout changed; `MapScreen` reads and writes `mapState.…` instead of its own `@State`.
+The map's durable state — camera, visible region, selection, the card's trail and its detent, and any deferred focus — now lives in `MapState` (`Tagradar/Views/Map/MapState.swift`), an `@Observable` model owned by `RootView` as `@State` and injected with `.environment(mapState)`, exactly the way `AppNavigation` already is. `RootView` never changes identity, so the object survives the swap and each freshly built `MapScreen` picks up where the last one left off. Neither layout changed; `MapScreen` reads and writes `mapState.…` instead of its own `@State`.
 
 Selecting in the regular layout does not push onto the card's trail (there is no card), so a preserved trail could lag the selection: closing a Duo after picking a different train on the inner display would leave the card on whatever it showed before the device opened. `MapScreen` therefore reconciles when the size class becomes compact, appending the current selection to the trail so the card and the map agree and "back" still returns to what the card showed before.
+
+The iPad redesign that followed removed the tabs altogether: `RootView` no longer branches on size class, `MapScreen` is the single root and swaps its own compact and regular layouts. `MapState` stays where it is, because the views inside those layouts are still rebuilt on the flip.
 
 ## Blocked on Xcode 27.1
 

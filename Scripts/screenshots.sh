@@ -13,9 +13,9 @@
 #   TRAIN=560 Scripts/screenshots.sh               # pin the train instead of picking one live
 #   SKIP_BUILD=1 Scripts/screenshots.sh            # reuse the last build
 #
-# Needs TRV_API_KEY in .env.local and `idb` (https://fbidb.io) for the iPhone captures, which drag
-# the bottom card to the height that frames each subject. Which screen is showing is decided by the
-# debug launch arguments -save/-train/-station/-tab, so no UI automation has to find its way there.
+# Needs TRV_API_KEY in .env.local and `idb` (https://fbidb.io): the iPhone captures drag the bottom
+# card to the height that frames each subject, and the iPad ones open the sidebar. Which screen is showing is decided by the
+# debug launch arguments -save/-train/-station, so no UI automation has to find its way there.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -218,10 +218,8 @@ for DEVICE in "${DEVICES[@]}"; do
   # The status bar Apple uses in its own screenshots.
   xcrun simctl status_bar "$UDID" override \
     --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4 >/dev/null 2>&1 || true
-  if [ "$PREFIX" = iphone ]; then
-    [ -x "$IDB" ] || { echo "idb not found at $IDB — install it or set IDB=<path>"; exit 1; }
-    "$IDB" connect "$UDID" >/dev/null 2>&1 || true
-  fi
+  [ -x "$IDB" ] || { echo "idb not found at $IDB — install it or set IDB=<path>"; exit 1; }
+  "$IDB" connect "$UDID" >/dev/null 2>&1 || true
 
   for LOCALE in "${LOCALE_LIST[@]}"; do
     case "$LOCALE" in
@@ -260,6 +258,11 @@ for DEVICE in "${DEVICES[@]}"; do
     expand_card() { swipe 220 470 220 90; }
     collapse_card() { swipe 220 450 220 930; }
     scroll_card() { swipe 220 780 220 300; }
+    # The iPad sidebar is hidden in portrait; its glass toggle sits in the map's top-left corner.
+    open_sidebar() {
+      "$IDB" ui tap --udid "$UDID" 40 52 >/dev/null 2>&1
+      settle 3
+    }
 
     if [ "$PREFIX" = iphone ]; then
       # The card opens at its middle height over the map. Each shot drags it to whatever frames its
@@ -282,14 +285,21 @@ for DEVICE in "${DEVICES[@]}"; do
       collapse_card
       shot "05-route" 2
     else
+      # Portrait: the map alone, then a train inspector beside it, then the same two subjects
+      # again with the sidebar open, so the set shows both the map at full width and all three
+      # columns at once.
       launch
       shot "01-map"
-      launch -train "$TRAIN"
+      launch -train "$TRAIN" -save "$SAVED"
       shot "02-train"
-      launch -station "$STATION"
-      shot "03-station"
-      launch -tab saved -save "$SAVED"
-      shot "04-saved"
+      launch -station "$STATION" -save "$SAVED"
+      settle
+      open_sidebar
+      shot "03-station" 2
+      launch -train "$TRAIN" -save "$SAVED"
+      settle
+      open_sidebar
+      shot "04-saved" 2
     fi
   done
 

@@ -4,7 +4,8 @@ import SwiftUI
 import TrafikverketKit
 
 /// The live map. On iPhone it is Apple Maps-like: full-bleed map, glass controls bottom-right and a
-/// persistent bottom card for search, saved trains and details. On iPad the detail opens in an inspector.
+/// persistent bottom card for search, saved trains and details. On iPad the same card is a sidebar
+/// beside the map and a selected train or station opens in an inspector on the other side.
 struct MapScreen: View {
     @Environment(LiveTrainStore.self) private var live
     @Environment(StationDirectory.self) private var stations
@@ -14,8 +15,8 @@ struct MapScreen: View {
     /// Camera, selection and the card's trail. Owned by `RootView` so they outlive this view when
     /// the size class changes — see `MapState`.
     @Environment(MapState.self) private var mapState
-    @State private var showSettings = false
     @State private var sheetPresented = true
+    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     @Namespace private var mapScope
 
     /// Height of the collapsed card: the search field with breathing room under the grabber.
@@ -50,8 +51,7 @@ struct MapScreen: View {
             focus(on: key)
         }
         .onChange(of: navigation.pendingStationSignature, initial: true) { _, signature in
-            // iPad routes station links to the Search tab; on iPhone the card shows the board.
-            guard !isRegular, let signature, let station = stations.station(signature) else { return }
+            guard let signature, let station = stations.station(signature) else { return }
             navigation.pendingStationSignature = nil
             startFreshTrail()
             focus(on: station)
@@ -60,7 +60,7 @@ struct MapScreen: View {
             // Same reason as the pending signature above, but for a link that arrived before the
             // station it names was in the directory. `revision` fires for the disk cache and the
             // live refresh alike, where `isLoaded` only ever changes on the first of the two.
-            guard !isRegular, let signature = navigation.pendingStationSignature,
+            guard let signature = navigation.pendingStationSignature,
                   let station = stations.station(signature) else { return }
             navigation.pendingStationSignature = nil
             startFreshTrail()
@@ -86,10 +86,8 @@ struct MapScreen: View {
             // resetting keeps "back" returning to what the card was showing; `push` skips the
             // append when that is already the same screen.
             //
-            // `initial: true` because `RootView` switches subtrees on this same predicate, which
-            // rebuilds this view: no single instance ever sees the value change, so the flip is only
-            // ever observed as the starting value of a fresh instance. Harmless on a cold launch,
-            // where there is nothing selected yet.
+            // `initial: true` so a view that starts out compact with a selection already in
+            // `mapState` reconciles too. Harmless on a cold launch, where nothing is selected yet.
             guard !regular else { return }
             if let station = mapState.selectedStation {
                 push(.station(station), if: true)
@@ -183,20 +181,38 @@ struct MapScreen: View {
 
     // MARK: iPad
 
+    /// Sidebar, map, inspector. The card's search and lists stay on screen beside the map, and a
+    /// selected train or station opens alongside it rather than over it. In portrait the sidebar
+    /// tucks away and comes back from the glass button in the corner or a swipe from the left edge.
+    ///
+    /// The sidebar gets constant bindings on purpose: details never push inside it here (they go to
+    /// the inspector), and the card's real trail and detent are left alone for the compact layout
+    /// to pick up again.
     private var regularLayout: some View {
-        NavigationStack {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            MapSheet(
+                style: .sidebar,
+                path: .constant(NavigationPath()),
+                detent: .constant(.medium),
+                onSelectTrain: select,
+                onSelectStation: { focus(on: $0) }
+            )
+            .navigationSplitViewColumnWidth(min: 320, ideal: 360, max: 440)
+        } detail: {
             map
+                .ignoresSafeArea(edges: .top)
                 .safeAreaInset(edge: .top, spacing: 0) { regularTopOverlay }
-                .navigationTitle("Map")
-                .toolbar(.hidden, for: .navigationBar)
                 .mapScope(mapScope)
-                .sheet(isPresented: $showSettings) {
-                    NavigationStack { SettingsView() }
-                }
-                .inspector(isPresented: inspectorBinding) {
-                    inspectorDetail
-                        .inspectorColumnWidth(min: 340, ideal: 400, max: 520)
-                }
+                // The system bar would only carry the sidebar toggle, and an otherwise empty bar
+                // collapses along with it; the toggle lives in the overlay instead.
+                .toolbar(.hidden, for: .navigationBar)
+        }
+        // Attached outside the split view on purpose: inside it, the inspector's toolbar (Close,
+        // Follow, Star, Share) is unified into the map column's bar, which is hidden. Out here it
+        // is its own column with its own bar.
+        .inspector(isPresented: inspectorBinding) {
+            inspectorDetail
+                .inspectorColumnWidth(min: 340, ideal: 400, max: 520)
         }
     }
 
@@ -230,19 +246,25 @@ struct MapScreen: View {
         }
     }
 
+    /// Sidebar toggle, status and map controls. Settings lives in the sidebar's header, like on
+    /// iPhone.
     private var regularTopOverlay: some View {
         @Bindable var mapState = mapState
-        return HStack(alignment: .top) {
-            StatusPill(state: live.state, count: live.trainCount, lastUpdate: live.lastUpdate)
-            Spacer()
-            GlassEffectContainer(spacing: 10) {
-                VStack(spacing: 10) {
-                    Button("Settings", systemImage: "gearshape") { showSettings = true }
-                        .buttonStyle(.glass)
-                        .labelStyle(.iconOnly)
-                    MapControlsCluster(camera: $mapState.camera)
+        return HStack(alignment: .top, spacing: 12) {
+            Button("Sidebar", systemImage: "sidebar.leading") {
+                withAnimation {
+                    // Tested against `.detailOnly` rather than for it: the split view resolves
+                    // `.automatic` and writes the concrete value back before the first tap, but
+                    // nothing documents that, and reading it the other way round would make a
+                    // stale `.automatic` hide the sidebar instead of showing it.
+                    columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
                 }
             }
+            .buttonStyle(.glass)
+            .labelStyle(.iconOnly)
+            StatusPill(state: live.state, count: live.trainCount, lastUpdate: live.lastUpdate)
+            Spacer()
+            MapControlsCluster(camera: $mapState.camera)
         }
         .padding(.horizontal)
         .padding(.top, 4)

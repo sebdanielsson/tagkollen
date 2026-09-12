@@ -16,7 +16,7 @@ Tågradar is a native iOS and iPadOS app that shows every train in Sweden live o
 - **Live Activities**: follow a train and see its next stop, delay and progress on the Lock Screen and in the Dynamic Island. The countdown and progress bar run on their own, and while the train is moving the activity is refreshed about once a minute in the background through short network wake-ups (no server involved); iOS may space them out on a poor connection.
 - **Widgets** for the Home Screen and Lock Screen: one saved train (or always the next one), and the departure board of a station of your choice.
 - **Traffic messages** from Trafikverket that affect the stations on your train's route.
-- **iPhone and iPad** layouts. On iPhone the map fills the screen and an Apple Maps-style bottom card holds search, saved trains, quick access to stations and the train and station details. On iPad the tab bar adapts to a sidebar, lists get a split view, and the train detail opens as an inspector next to the full-size map.
+- **iPhone and iPad** layouts. On iPhone the map fills the screen and an Apple Maps-style bottom card holds search, saved trains, quick access to stations and the train and station details. On iPad the same card is a sidebar beside the full-size map, with every upcoming saved train and a station list, and a train or station opens in an inspector on the other side.
 - Built with SwiftUI, MapKit and the iOS 26 Liquid Glass design language. No third-party dependencies, no analytics, no tracking.
 
 ## Requirements
@@ -64,7 +64,7 @@ Tagradar/                 SwiftUI app
   App/                     Entry point, dependency container, settings
   Models/                  TrainKey, TrainJourney, TrainStop, LiveTrain, FavoriteTrain (SwiftData)
   Services/                Live positions (SSE), station directory, delay index, timetable queries
-  Views/                   Map, train detail, search, favorites, settings
+  Views/                   Map, the search and saved card, train detail, station board, settings
   AppIcon.icon/            Icon Composer package (all sizes and appearances are compiled from it)
 TagradarWidgets/          WidgetKit extension: saved-train and departures widgets, Live Activity UI
 fastlane/                  Store metadata (en-US, sv), screenshots and the App Store submission lane

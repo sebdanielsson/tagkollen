@@ -490,16 +490,6 @@
         }
       }
     },
-    "Enter the train number from your ticket. Pick a future date to save an upcoming trip.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ange tågnumret från din biljett. Välj ett framtida datum för att spara en kommande resa."
-          }
-        }
-      }
-    },
     "Follow": {
       "localizations": {
         "sv": {
@@ -656,26 +646,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Livepositioner och tidtabeller för alla tåg i Sverige, direkt från Trafikverkets öppna data."
-          }
-        }
-      }
-    },
-    "Loading stations…": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Läser in stationer…"
-          }
-        }
-      }
-    },
-    "Major stations": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Större stationer"
           }
         }
       }
@@ -880,16 +850,6 @@
         }
       }
     },
-    "No train found": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inget tåg hittades"
-          }
-        }
-      }
-    },
     "Not advertised": {
       "localizations": {
         "sv": {
@@ -1090,6 +1050,16 @@
         }
       }
     },
+    "Remove": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta bort"
+          }
+        }
+      }
+    },
     "Remove my key": {
       "localizations": {
         "sv": {
@@ -1106,16 +1076,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rapportera ett problem"
-          }
-        }
-      }
-    },
-    "Results": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Resultat"
           }
         }
       }
@@ -1180,46 +1140,6 @@
         }
       }
     },
-    "Search": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sök"
-          }
-        }
-      }
-    },
-    "Search by": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sök efter"
-          }
-        }
-      }
-    },
-    "Search for a train number or a station.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sök efter ett tågnummer eller en station."
-          }
-        }
-      }
-    },
-    "Select a train to see its details.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Välj ett tåg för att se detaljer."
-          }
-        }
-      }
-    },
     "Settings": {
       "localizations": {
         "sv": {
@@ -1236,6 +1156,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dela"
+          }
+        }
+      }
+    },
+    "Sidebar": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sidofält"
           }
         }
       }
@@ -1360,16 +1290,6 @@
         }
       }
     },
-    "Station name": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stationsnamn"
-          }
-        }
-      }
-    },
     "Stations": {
       "localizations": {
         "sv": {
@@ -1446,16 +1366,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tryck på stjärnan på ett tåg för att spara det här. Praktiskt inför en resa senare i veckan."
-          }
-        }
-      }
-    },
-    "Tap the star on any train to keep it here. Great for a trip later this week.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck på stjärnan på ett tåg för att spara det här. Perfekt för en resa senare i veckan."
           }
         }
       }
@@ -1630,32 +1540,12 @@
         }
       }
     },
-    "Train number": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tågnummer"
-          }
-        }
-      }
-    },
     "Train number or station": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Tågnummer eller station"
-          }
-        }
-      }
-    },
-    "Train number, e.g. 520": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tågnummer, t.ex. 520"
           }
         }
       }
@@ -1740,16 +1630,6 @@
         }
       }
     },
-    "Upcoming": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kommande"
-          }
-        }
-      }
-    },
     "Updated %@": {
       "localizations": {
         "sv": {
@@ -1776,16 +1656,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Välkommen till Tågradar"
-          }
-        }
-      }
-    },
-    "Whole country": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hela landet"
           }
         }
       }

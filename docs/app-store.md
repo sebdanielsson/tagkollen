@@ -136,7 +136,7 @@ App Store Connect needs one set per device family the app runs on; `TARGETED_DEV
 
 Smaller iPhone and iPad sizes are scaled by Apple from these two, so nothing else has to be produced.
 
-`Scripts/screenshots.sh` regenerates the whole set — both devices, both locales — and strips the alpha channel the simulator always writes (`Scripts/strip-alpha.swift`). It needs `TRV_API_KEY` in `.env.local` and [`idb`](https://fbidb.io) for the drags that set the height of the iPhone bottom card.
+`Scripts/screenshots.sh` regenerates the whole set — both devices, both locales — and strips the alpha channel the simulator always writes (`Scripts/strip-alpha.swift`). It needs `TRV_API_KEY` in `.env.local` and [`idb`](https://fbidb.io): the iPhone shots drag the bottom card to the height that frames each subject, and the iPad shots open the sidebar.
 
 ```bash
 Scripts/screenshots.sh                    # everything

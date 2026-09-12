@@ -1,92 +1,44 @@
 import SwiftData
 import SwiftUI
 
-/// Top-level tab structure. On iPad the tab bar adapts to a sidebar and each tab uses the
-/// full window with split navigation.
+/// The app is one map. `MapScreen` decides how to lay itself out for the size class it is given:
+/// a bottom card on iPhone, a sidebar and an inspector around the map on iPad. Keeping that
+/// decision inside `MapScreen` means a size-class change never rebuilds it.
 struct RootView: View {
     @State private var navigation = AppNavigation()
-    /// Owned here rather than by `MapScreen` so it survives the `phone`/`tabs` swap below —
-    /// see `MapState`.
+    /// Owned here so the map's camera, selection and card trail are independent of any view
+    /// being rebuilt — see `MapState`.
     @State private var mapState = MapState()
     @Environment(AppDependencies.self) private var deps
     @Environment(APIKeyStore.self) private var keyStore
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.horizontalSizeClass) private var sizeClass
-    @State private var showOnboarding = false
 
     var body: some View {
         Group {
-            if sizeClass == .regular {
-                tabs
+            if keyStore.hasKey {
+                MapScreen()
             } else {
-                phone
+                NavigationStack {
+                    APIKeyOnboardingView()
+                }
             }
         }
+        .environment(navigation)
+        .environment(mapState)
+        .onOpenURL { navigation.handle($0) }
+        .onAppear { applyDebugLaunchArguments() }
         .onChange(of: deps.pendingOpenURL) { _, url in
             guard let url else { return }
             navigation.handle(url)
             deps.pendingOpenURL = nil
         }
     }
-
-    /// iPhone: Apple Maps-like single screen. The bottom card carries search and saved trains.
-    @ViewBuilder
-    private var phone: some View {
-        if keyStore.hasKey {
-            MapScreen()
-                .environment(navigation)
-                .environment(mapState)
-                .onOpenURL { navigation.handle($0) }
-                .onAppear { applyDebugLaunchArguments() }
-        } else {
-            NavigationStack {
-                APIKeyOnboardingView()
-            }
-        }
-    }
-
-    /// iPad: adaptive tab bar / sidebar with full-width screens.
-    private var tabs: some View {
-        @Bindable var navigation = navigation
-        return TabView(selection: $navigation.selectedTab) {
-            Tab("Map", systemImage: "map", value: AppNavigation.Tab.map) {
-                MapScreen()
-            }
-            Tab("Saved", systemImage: "star", value: AppNavigation.Tab.favorites) {
-                FavoritesScreen()
-            }
-            Tab("Search", systemImage: "magnifyingglass", value: AppNavigation.Tab.search, role: .search) {
-                SearchScreen()
-            }
-        }
-        .tabViewStyle(.sidebarAdaptable)
-        .tabBarMinimizeBehavior(.onScrollDown)
-        .environment(navigation)
-        .environment(mapState)
-        .onAppear {
-            showOnboarding = !keyStore.hasKey
-            applyDebugLaunchArguments()
-        }
-        .onOpenURL { navigation.handle($0) }
-        .onChange(of: keyStore.hasKey) { _, hasKey in
-            if hasKey {
-                showOnboarding = false
-            }
-        }
-        .sheet(isPresented: $showOnboarding) {
-            NavigationStack {
-                APIKeyOnboardingView()
-            }
-            .interactiveDismissDisabled(!keyStore.hasKey)
-        }
-    }
 }
 
 extension RootView {
-    /// `-tab map|saved|search` selects a tab, `-train <number>` opens a train at launch,
-    /// `-station <signature>` opens a departure board and `-save <number>[,<number>…]` pins trains
-    /// so the Saved sections have something to show. Debug builds only; used by
-    /// Scripts/simulator.sh and Scripts/screenshots.sh.
+    /// `-train <number>` opens a train at launch, `-station <signature>` opens a departure board
+    /// and `-save <number>[,<number>…]` pins trains so the Saved section has something to show.
+    /// Debug builds only; used by Scripts/simulator.sh and Scripts/screenshots.sh.
     private func applyDebugLaunchArguments() {
         #if DEBUG
             seedDebugFavorites()
@@ -97,12 +49,6 @@ extension RootView {
             // puts in front of a custom scheme.
             if let signature = UserDefaults.standard.string(forKey: "station"), !signature.isEmpty {
                 navigation.showStation(signature)
-            }
-            switch UserDefaults.standard.string(forKey: "tab") {
-            case "saved", "favorites": navigation.selectedTab = .favorites
-            case "search": navigation.selectedTab = .search
-            case "map": navigation.selectedTab = .map
-            default: break
             }
         #endif
     }
