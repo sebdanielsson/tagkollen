@@ -33,6 +33,10 @@ struct MapTrainsCard: View {
     /// delivered the favorites was enough to leave the card stuck on Recent.
     @State private var tab: Tab = .saved
     @State private var showEarlier = false
+    /// Bumped by this card's own save and unsave. The feedback keys off it rather than off the
+    /// number of saved runs, because on iPad the inspector sits beside the card and its star
+    /// moves that number as well — which fired this card's haptic on top of the detail's.
+    @State private var toggles = 0
 
     private static let maxRows = 4
     /// How many timetables to ask for at once. The sidebar renders every saved run, so the number
@@ -55,10 +59,17 @@ struct MapTrainsCard: View {
             case .recent: recentCard
             }
         }
-        // Once for the card rather than once per star: the trigger has to be something that moves
-        // when a run is saved or unsaved, and every visible star watching the same value would
-        // fire a burst of haptics proportional to the number of rows.
-        .sensoryFeedback(.success, trigger: favorites.count)
+        // Once for the card rather than once per star: every visible star watching the same value
+        // would fire a burst of haptics proportional to the number of rows.
+        .sensoryFeedback(.success, trigger: toggles)
+        // Here rather than on `earlierSection`: that view is removed in the same update that
+        // empties the list, so an observer on it never sees the change and the group would come
+        // back expanded the next time a saved run ages into it.
+        .onChange(of: pastFavorites.isEmpty) { _, empty in
+            if empty {
+                showEarlier = false
+            }
+        }
     }
 
     /// Sorted by the time each row shows, not by the `@Query`'s `departureDate` — `TrainKey`
@@ -190,13 +201,6 @@ struct MapTrainsCard: View {
         }
         .tint(.secondary)
         .padding(.top, upcomingFavorites.isEmpty ? 0 : 4)
-        .onChange(of: pastFavorites.isEmpty) { _, empty in
-            // Unsaving the last past run takes the group away; without this it would come back
-            // expanded the next time a saved run arrives, against "collapsed by default".
-            if empty {
-                showEarlier = false
-            }
-        }
     }
 
     /// Saved rows carry the same star as the Recent tab, so a run can be unsaved from the list it
@@ -220,6 +224,7 @@ struct MapTrainsCard: View {
         modelContext.delete(fav)
         try? modelContext.save()
         monitor.trainRemoved(id)
+        toggles += 1
     }
 
     /// What this style actually renders, so the loader and the rows agree on the set.
@@ -279,6 +284,7 @@ struct MapTrainsCard: View {
             try? modelContext.save()
             monitor.trainSaved(fav, journey: journey)
         }
+        toggles += 1
     }
 
     /// The shared body of both tabs: tappable rows, divided, on one rounded card — four of them
