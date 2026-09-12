@@ -13,17 +13,17 @@ struct TrainSelection: Hashable {
     var liveID: String?
 }
 
-/// Search, saved trains and quick stations. The persistent bottom card on iPhone, where train and
-/// station details push inside it like place cards in Apple Maps; the sidebar on iPad, where the
-/// details open in an inspector instead and both lists are shown in full rather than shortened.
+/// Search, trains and stations. The persistent bottom card on iPhone, where train and station
+/// details push inside it like place cards in Apple Maps; the sidebar on iPad, where the details
+/// open in an inspector instead and both lists are shown in full rather than shortened.
 struct MapSheet: View {
     /// Where the sheet is being shown. Decided by `MapScreen`, not read from the size class: a
     /// `NavigationSplitView` sidebar column is compact width whatever the device, so the
     /// environment would call the iPad sidebar a phone card.
     enum Style {
-        /// The bottom card on iPhone: room for the next few saved trains and a strip of stations.
+        /// The bottom card on iPhone: room for the next few trains and a strip of stations.
         case card
-        /// The iPad sidebar: every upcoming saved train and a full station list.
+        /// The iPad sidebar: every train the card would have truncated, and a full station list.
         case sidebar
     }
 
@@ -38,12 +38,8 @@ struct MapSheet: View {
 
     @Environment(AppDependencies.self) private var deps
     @Environment(StationDirectory.self) private var stations
-    @Environment(JourneyStore.self) private var journeyStore
     @Environment(AppSettings.self) private var settings
     @Environment(SpeechSearch.self) private var speech
-    @Environment(TrainMonitor.self) private var monitor
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \FavoriteTrain.departureDate) private var favorites: [FavoriteTrain]
     @Query(sort: \FavoriteStation.createdAt) private var favoriteStations: [FavoriteStation]
 
     @State private var query = ""
@@ -52,7 +48,6 @@ struct MapSheet: View {
     @State private var isSearching = false
     @State private var searchError: String?
     @State private var showSettings = false
-    @State private var showEarlier = false
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -177,164 +172,127 @@ struct MapSheet: View {
 
     @ViewBuilder
     private var idleContent: some View {
-        // Nothing upcoming and nothing to prompt for means the section has no content at all:
-        // with only past runs saved they are in `earlierSection`, and a "Saved trains" heading
-        // over an empty card would just be a hole above them.
-        if showsSavedPrompt || !shownFavorites.isEmpty {
-            savedTrainsSection
-        }
-        if style == .sidebar, !pastFavorites.isEmpty {
-            earlierSection
-        }
-        // Same reason: the directory arrives asynchronously and is empty until it does, so
+        MapTrainsCard(style: style, onSelectTrain: onSelectTrain)
+        // `StationDirectory` fills in asynchronously and resolves nothing until it does, so
         // offline on a first launch this would be a heading over an empty card.
         if !quickStations.isEmpty {
             stationsSection
         }
     }
 
-    /// Sorted by the time each row shows, not by the `@Query`'s `departureDate` — `TrainKey`
-    /// normalises that to midnight, so runs saved for the same day tie and fall back to storage
-    /// order, which here would also decide which four make the cut.
-    private var upcomingFavorites: [FavoriteTrain] {
-        favorites.filter { end(of: $0) > .now }
-            .map { ($0, departure(of: $0)) }
-            .sorted { $0.1 < $1.1 }
-            .map(\.0)
-    }
+    private enum QuickStationKind {
+        case favorite, recent, major
 
-    /// Read from the same snapshot `FavoriteTrainRow` renders, so a trip segment sorts by its
-    /// boarding stop and a freshly pinned run takes its place as soon as its journey is cached.
-    private func departure(of fav: FavoriteTrain) -> Date {
-        var snapshot = TrainSnapshot(favorite: fav)
-        if let journey = journeyStore.cached(fav.key) {
-            snapshot.apply(journey)
+        var symbol: String {
+            switch self {
+            case .favorite: "star.fill"
+            case .recent: "clock.arrow.circlepath"
+            case .major: "building.columns.fill"
+            }
         }
-        return snapshot.scheduledDeparture ?? fav.departureDate
-    }
 
-    /// When a saved run stops being upcoming, plus three hours of slack. Read through the same
-    /// snapshot as the row, so a trip segment ends at the alighting stop rather than at the
-    /// terminus — otherwise someone who gets off halfway keeps the row in Upcoming for the rest of
-    /// the run. Falls back to a day and a half past departure while the journey is still unknown.
-    private func end(of fav: FavoriteTrain) -> Date {
-        var snapshot = TrainSnapshot(favorite: fav)
-        if let journey = journeyStore.cached(fav.key) {
-            snapshot.apply(journey)
+        var tint: Color {
+            self == .favorite ? .yellow : .accentColor
         }
-        // `setSegment` clears the cached times when it has no journey to hand, so a segment can
-        // have an alighting stop and no time for it; the snapshot's arrival is nil then, and the
-        // run's own arrival is still the best answer.
-        let arrival = snapshot.scheduledArrival
-            ?? fav.scheduledArrival
-            ?? fav.departureDate.addingTimeInterval(36 * 3600)
-        return arrival.addingTimeInterval(3 * 3600)
     }
 
-    /// Runs that have already arrived. The card has no room for them; the sidebar keeps them so a
-    /// train saved for a trip that is over can still be found and removed, which is otherwise only
-    /// possible by searching the run up again and un-starring it from its detail.
-    private var pastFavorites: [FavoriteTrain] {
-        favorites.filter { end(of: $0) <= .now }
-            .map { ($0, departure(of: $0)) }
-            .sorted { $0.1 > $1.1 }
-            .map(\.0)
+    private struct QuickStation: Identifiable {
+        let station: TrainStation
+        let kind: QuickStationKind
+        var id: String {
+            station.id
+        }
     }
 
-    /// The card only has room for the next few; the sidebar shows them all.
-    private var shownFavorites: [FavoriteTrain] {
-        let upcoming = upcomingFavorites
-        return style == .sidebar ? upcoming : Array(upcoming.prefix(4))
+    /// Starred stations first, then recently opened ones, then the big hubs.
+    private var quickStations: [QuickStation] {
+        let majors = ["Cst", "G", "M", "U", "Lp", "Nr", "Vå", "Öb", "Hb", "Lu", "Gä", "Suc", "Umå"]
+        var seen = Set<String>()
+        let ordered: [(String, QuickStationKind)] = favoriteStations.map { ($0.signature, .favorite) }
+            + settings.recentStations.map { ($0, .recent) }
+            + majors.map { ($0, .major) }
+        return ordered
+            .filter { seen.insert($0.0).inserted }
+            .compactMap { sig, kind in stations.station(sig).map { QuickStation(station: $0, kind: kind) } }
+            // The strip is swiped sideways, so it stops at a sensible number; the sidebar is a
+            // scrolling list and showing every starred station is the point of it.
+            .prefix(style == .sidebar ? .max : 14)
+            .map(\.self)
     }
 
-    /// Whether to offer the "star a train" prompt. Only when this style has nothing to show at
-    /// all: the sidebar keeps past runs in `earlierSection`, so telling someone to save their
-    /// first train while their saved trains sit just below it would be wrong.
-    private var showsSavedPrompt: Bool {
-        guard upcomingFavorites.isEmpty else { return false }
-        return style == .sidebar ? pastFavorites.isEmpty : true
-    }
-
-    private var savedTrainsSection: some View {
+    private var stationsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Saved trains")
+            Text("Stations")
                 .font(.title3.weight(.semibold))
-            if showsSavedPrompt {
-                HStack(spacing: 12) {
-                    Image(systemName: "star")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 32)
-                    Text("Tap the star on a train to keep it here. Handy for a trip later this week.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.fill.quaternary, in: .rect(cornerRadius: 16))
+            if style == .sidebar {
+                stationList
             } else {
-                rows(for: shownFavorites)
-                    .task(id: shownFavorites.map(\.id)) {
-                        // Concurrently: the sidebar lists every upcoming run, and awaiting each
-                        // one in turn would leave the last row blank for N round trips.
-                        // `JourneyStore` de-duplicates anything already in flight.
-                        await withTaskGroup { group in
-                            for key in shownFavorites.map(\.key) {
-                                group.addTask { _ = try? await journeyStore.load(key) }
-                            }
-                        }
-                    }
+                stationStrip
             }
         }
     }
 
-    /// Saved runs that have already arrived, so they can still be removed. Collapsed by default:
-    /// they are history, not something to act on.
-    private var earlierSection: some View {
-        DisclosureGroup(isExpanded: $showEarlier) {
-            rows(for: pastFavorites)
-                .padding(.top, 10)
-        } label: {
-            Text("Earlier")
-                .font(.title3.weight(.semibold))
-        }
-        .tint(.primary)
-    }
-
-    /// One tappable row per saved run, each removable from a long press.
-    private func rows(for trains: [FavoriteTrain]) -> some View {
-        VStack(spacing: 0) {
-            ForEach(Array(trains.enumerated()), id: \.element.id) { index, fav in
+    /// The sidebar has the height for a proper list: full names, and the icon says why a station
+    /// is here (starred, recent, or simply a big one).
+    private var stationList: some View {
+        let items = quickStations
+        return VStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 Button {
-                    onSelectTrain(fav.key)
+                    open(item.station)
                 } label: {
-                    FavoriteTrainRow(favorite: fav, journey: journeyStore.cached(fav.key))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .contentShape(.rect)
+                    HStack {
+                        Image(systemName: item.kind.symbol)
+                            .foregroundStyle(item.kind.tint)
+                            .frame(width: 28)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.station.name)
+                            Text(item.station.locationSignature).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").foregroundStyle(.tertiary).imageScale(.small)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .contextMenu {
-                    Button("Remove", systemImage: "star.slash", role: .destructive) {
-                        remove(fav)
-                    }
-                }
-                if index < trains.count - 1 {
-                    Divider().padding(.leading, 14)
+                if index < items.count - 1 {
+                    Divider().padding(.leading, 56)
                 }
             }
         }
         .background(.fill.quaternary, in: .rect(cornerRadius: 16))
     }
 
-    /// Unsaves a run. Goes through `TrainMonitor` for the same reason the star in `TrainDetailView`
-    /// does: a pending "departs soon" reminder has to be cancelled and the widget timelines
-    /// reloaded, or a train the user just removed still notifies them and still shows in a widget.
-    private func remove(_ fav: FavoriteTrain) {
-        let id = fav.id
-        modelContext.delete(fav)
-        try? modelContext.save()
-        monitor.trainRemoved(id)
+    /// The card's compact take: a row of circles to swipe through.
+    private var stationStrip: some View {
+        ScrollView(.horizontal) {
+            HStack(alignment: .top, spacing: 14) {
+                ForEach(quickStations) { item in
+                    let station = item.station
+                    Button {
+                        open(station)
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: item.kind.symbol)
+                                .font(.title3)
+                                .foregroundStyle(.white)
+                                .frame(width: 56, height: 56)
+                                .background(item.kind.tint.gradient, in: .circle)
+                            Text(station.advertisedShortLocationName ?? station.name)
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .frame(width: 72)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+        .scrollIndicators(.hidden)
     }
 
     // MARK: Search results
@@ -471,124 +429,5 @@ struct MapSheet: View {
             journeys = []
             searchError = error.localizedDescription
         }
-    }
-}
-
-// MARK: - Stations
-
-extension MapSheet {
-    private enum QuickStationKind {
-        case favorite, recent, major
-
-        var symbol: String {
-            switch self {
-            case .favorite: "star.fill"
-            case .recent: "clock.arrow.circlepath"
-            case .major: "building.columns.fill"
-            }
-        }
-
-        var tint: Color {
-            self == .favorite ? .yellow : .accentColor
-        }
-    }
-
-    private struct QuickStation: Identifiable {
-        let station: TrainStation
-        let kind: QuickStationKind
-        var id: String {
-            station.id
-        }
-    }
-
-    /// Starred stations first, then recently opened ones, then the big hubs.
-    private var quickStations: [QuickStation] {
-        let majors = ["Cst", "G", "M", "U", "Lp", "Nr", "Vå", "Öb", "Hb", "Lu", "Gä", "Suc", "Umå"]
-        var seen = Set<String>()
-        let ordered: [(String, QuickStationKind)] = favoriteStations.map { ($0.signature, .favorite) }
-            + settings.recentStations.map { ($0, .recent) }
-            + majors.map { ($0, .major) }
-        return ordered
-            .filter { seen.insert($0.0).inserted }
-            .compactMap { sig, kind in stations.station(sig).map { QuickStation(station: $0, kind: kind) } }
-            // The strip is swiped sideways, so it stops at a sensible number; the sidebar is a
-            // scrolling list and showing every starred station is the point of it.
-            .prefix(style == .sidebar ? .max : 14)
-            .map(\.self)
-    }
-
-    private var stationsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Stations")
-                .font(.title3.weight(.semibold))
-            if style == .sidebar {
-                stationList
-            } else {
-                stationStrip
-            }
-        }
-    }
-
-    /// The sidebar has the height for a proper list: full names, and the icon says why a station
-    /// is here (starred, recent, or simply a big one).
-    private var stationList: some View {
-        let items = quickStations
-        return VStack(spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                Button {
-                    open(item.station)
-                } label: {
-                    HStack {
-                        Image(systemName: item.kind.symbol)
-                            .foregroundStyle(item.kind.tint)
-                            .frame(width: 28)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.station.name)
-                            Text(item.station.locationSignature).font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right").foregroundStyle(.tertiary).imageScale(.small)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                if index < items.count - 1 {
-                    Divider().padding(.leading, 56)
-                }
-            }
-        }
-        .background(.fill.quaternary, in: .rect(cornerRadius: 16))
-    }
-
-    /// The card's compact take: a row of circles to swipe through.
-    private var stationStrip: some View {
-        ScrollView(.horizontal) {
-            HStack(alignment: .top, spacing: 14) {
-                ForEach(quickStations) { item in
-                    let station = item.station
-                    Button {
-                        open(station)
-                    } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: item.kind.symbol)
-                                .font(.title3)
-                                .foregroundStyle(.white)
-                                .frame(width: 56, height: 56)
-                                .background(item.kind.tint.gradient, in: .circle)
-                            Text(station.advertisedShortLocationName ?? station.name)
-                                .font(.caption)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .frame(width: 72)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 2)
-        }
-        .scrollIndicators(.hidden)
     }
 }

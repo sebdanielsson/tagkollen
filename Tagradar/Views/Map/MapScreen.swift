@@ -17,6 +17,10 @@ struct MapScreen: View {
     @Environment(MapState.self) private var mapState
     @State private var sheetPresented = true
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    /// Bumped every time a station is focused. Part of the inspector stack's identity, because
+    /// the signature alone is not: selecting the same station again after a train was pushed from
+    /// its board would otherwise leave that train on screen instead of reopening the board.
+    @State private var stationBoardEpoch = 0
     @Namespace private var mapScope
 
     /// Height of the collapsed card: the search field with breathing room under the grabber.
@@ -255,7 +259,7 @@ struct MapScreen: View {
                         }
                     }
             }
-            .id(station.locationSignature)
+            .id("\(station.locationSignature)#\(stationBoardEpoch)")
         } else if let selection = currentSelection {
             NavigationStack {
                 TrainDetailView(key: selection.key, liveID: selection.liveID, onClose: clearSelection)
@@ -375,6 +379,7 @@ struct MapScreen: View {
     /// Selects a station: zooms the camera there, marks it on the map, and opens its board — used
     /// by search, quick stations and station deep links alike.
     private func focus(on station: TrainStation, pushingPath: Bool = true) {
+        stationBoardEpoch += 1
         mapState.selectedTrainID = nil
         mapState.selectedKey = nil
         mapState.deferredFocus = nil

@@ -1030,6 +1030,16 @@
         }
       }
     },
+    "Recent": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste"
+          }
+        }
+      }
+    },
     "Reconnect": {
       "localizations": {
         "sv": {
