@@ -186,7 +186,11 @@ struct MapSheet: View {
         if style == .sidebar, !pastFavorites.isEmpty {
             earlierSection
         }
-        stationsSection
+        // Same reason: the directory arrives asynchronously and is empty until it does, so
+        // offline on a first launch this would be a heading over an empty card.
+        if !quickStations.isEmpty {
+            stationsSection
+        }
     }
 
     /// Sorted by the time each row shows, not by the `@Query`'s `departureDate` — `TrainKey`
