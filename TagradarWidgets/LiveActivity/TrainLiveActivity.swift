@@ -159,7 +159,7 @@ private struct NextStopLine: View {
                     Text("Next").font(.caption).foregroundStyle(.secondary)
                     Text(next).font(.subheadline.weight(.semibold)).lineLimit(1)
                     TimePair(planned: state.nextStopPlanned, expected: state.nextStopExpected, font: .subheadline)
-                    TrackChip(track: state.nextStopTrack)
+                    TrackChip(track: state.nextStopTrack, compact: true)
                     if let expected = state.nextStopExpected ?? state.nextStopPlanned, expected > .now {
                         // Minute granularity: the Lock Screen does not tick seconds, and it costs less.
                         Text(expected, style: .relative)
@@ -172,7 +172,7 @@ private struct NextStopLine: View {
             case .scheduled:
                 Text("Departs").font(.caption).foregroundStyle(.secondary)
                 TimePair(planned: attributes.scheduledDeparture, expected: state.expectedDeparture, font: .subheadline.weight(.semibold))
-                TrackChip(track: state.originTrack)
+                TrackChip(track: state.originTrack, compact: true)
             }
             Spacer(minLength: 0)
         }

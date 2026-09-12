@@ -77,6 +77,19 @@ struct TrainSnapshot: Hashable, Sendable, Identifiable {
         status == .canceled
     }
 
+    /// The track the traveller needs right now: the one their train leaves the boarding stop from
+    /// until it has, then the one it pulls in at next. Nothing once the trip is over or called
+    /// off — including a run left `.scheduled` or `.enRoute` by a journey that stopped updating,
+    /// whose track is as old as the rest of it.
+    var currentTrack: String? {
+        guard !isOver else { return nil }
+        return switch status {
+        case .scheduled: originTrack
+        case .enRoute: nextStopTrack
+        case .arrived, .canceled, nil: nil
+        }
+    }
+
     /// Departure time to show: the estimate when one exists, otherwise the timetable.
     var bestDeparture: Date? {
         expectedDeparture ?? scheduledDeparture
@@ -135,12 +148,16 @@ struct TrainSnapshot: Hashable, Sendable, Identifiable {
         let remaining = part.filter { !$0.hasPassed && !$0.isCanceled }
         let next = remaining.first
         upcomingStops = remaining.dropFirst().prefix(4).map {
-            UpcomingStop(signature: $0.signature, expected: $0.arrival?.bestKnownTime ?? $0.departure?.bestKnownTime, track: $0.track)
+            UpcomingStop(
+                signature: $0.signature,
+                expected: $0.arrival?.bestKnownTime ?? $0.departure?.bestKnownTime,
+                track: $0.arrivalTrack
+            )
         }
         nextStopSignature = boarded ? next?.signature : nil
         nextStopPlanned = next?.arrival?.advertisedTimeAtLocation ?? next?.departure?.advertisedTimeAtLocation
         nextStopExpected = next?.arrival?.bestKnownTime ?? next?.departure?.bestKnownTime
-        nextStopTrack = next?.track
+        nextStopTrack = next?.arrivalTrack
         delay = switch status {
         case .scheduled: departureRow?.delay
         case .enRoute: next?.arrival?.delay ?? next?.departure?.delay ?? part.last(where: \.hasPassed)?.delay

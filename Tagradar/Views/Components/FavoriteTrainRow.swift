@@ -28,6 +28,9 @@ struct FavoriteTrainRow: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
                         .background(.quaternary, in: .capsule)
+                    // The track the traveller needs from where they board, not the one the run
+                    // starts on: `snapshot` is already segment-relative.
+                    TrackChip(track: snapshot.currentTrack)
                     if favorite.segment != nil {
                         Image(systemName: "person.fill")
                             .font(.caption2)

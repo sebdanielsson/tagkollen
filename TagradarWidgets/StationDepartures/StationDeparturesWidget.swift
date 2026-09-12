@@ -25,8 +25,7 @@ struct DepartureItem: Hashable, Sendable, Identifiable {
         let targets = (row.toLocation ?? []).sorted { ($0.order ?? 0) < ($1.order ?? 0) }
         destination = targets.map { names.shortName($0.locationName) }.joined(separator: " / ")
         product = row.productInformation?.first?.description
-        let raw = row.trackAtLocation?.trimmingCharacters(in: .whitespaces) ?? ""
-        track = raw.isEmpty || raw.lowercased() == "x" ? nil : raw
+        track = row.announcedTrack
         canceled = row.isCanceled
         delay = row.delay
     }
@@ -187,7 +186,7 @@ struct StationDeparturesView: View {
                 if item.canceled {
                     Text("Canceled").font(.caption2.weight(.semibold)).foregroundStyle(.red)
                 } else {
-                    TrackChip(track: item.track)
+                    TrackChip(track: item.track, compact: true)
                 }
             }
         }
@@ -198,8 +197,12 @@ struct StationDeparturesView: View {
             Text(Format.clock(item.expected ?? item.planned)).font(.caption.weight(.semibold)).monospacedDigit()
             Text(item.destination).font(.caption).lineLimit(1)
             Spacer(minLength: 0)
+            // Flat on purpose: this family renders accented and monochrome, where the chip's
+            // background washes out. It still owes VoiceOver the same label the chip gives.
             if let track = item.track {
-                Text(track).font(.caption2.weight(.semibold))
+                Text(track)
+                    .font(.caption2.weight(.semibold))
+                    .accessibilityLabel(Text("Track \(track)"))
             }
         }
     }

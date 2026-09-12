@@ -13,6 +13,7 @@ struct RecentTrainRow: View {
     }
 
     var body: some View {
+        let snapshot = snapshot
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
@@ -24,6 +25,7 @@ struct RecentTrainRow: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
                         .background(.quaternary, in: .capsule)
+                    TrackChip(track: snapshot?.currentTrack)
                 }
                 Text("\(stations.name(recent.originSignature)) → \(stations.name(recent.destinationSignature))")
                     .font(.subheadline)

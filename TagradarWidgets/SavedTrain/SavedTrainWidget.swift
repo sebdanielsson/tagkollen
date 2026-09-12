@@ -248,7 +248,7 @@ struct MediumTrainView: View {
                         Text("Next").font(.caption2).foregroundStyle(.secondary)
                         Text(names.shortName(next)).font(.subheadline.weight(.medium)).lineLimit(1)
                         TimePair(planned: train.nextStopPlanned, expected: train.nextStopExpected, font: .caption)
-                        TrackChip(track: train.nextStopTrack)
+                        TrackChip(track: train.nextStopTrack, compact: true)
                     }
                 } else if train.status == .scheduled, let departure = train.bestDeparture, departure > .now {
                     VStack(alignment: .trailing, spacing: 1) {
@@ -265,7 +265,7 @@ struct MediumTrainView: View {
         HStack(spacing: 6) {
             TimePair(planned: planned, expected: expected, canceled: train.isCanceled, font: .subheadline.weight(.semibold))
             Text(name).font(.subheadline).lineLimit(1)
-            TrackChip(track: track)
+            TrackChip(track: track, compact: true)
         }
     }
 }

@@ -45,15 +45,7 @@ struct AnnouncementRow: View {
             Spacer(minLength: 4)
 
             VStack(alignment: .trailing, spacing: 4) {
-                if let track = announcement.trackAtLocation, !track.isEmpty, track.lowercased() != "x" {
-                    Text(track)
-                        .font(.caption.weight(.bold))
-                        .monospacedDigit()
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.quaternary, in: .rect(cornerRadius: 5))
-                        .accessibilityLabel(Text("Track \(track)"))
-                }
+                TrackChip(track: announcement.announcedTrack)
                 DelayBadge(delay: announcement.delay, canceled: announcement.isCanceled, compact: true)
             }
         }

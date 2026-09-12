@@ -96,6 +96,52 @@ struct TrainSnapshotTests {
         #expect(snapshot.progress == 1)
     }
 
+    @Test("The track to show is the boarding stop's until the train is boarded, then the next stop's")
+    func trackToShow() {
+        // Waiting to board: the track the train leaves the boarding stop from.
+        #expect(running(.scheduled).currentTrack == "3")
+        // Aboard: the track it pulls in at next.
+        #expect(running(.enRoute).currentTrack == "2")
+        #expect(running(.arrived).currentTrack == nil)
+        #expect(running(.canceled).currentTrack == nil)
+        // Nothing reported an arrival, so the run is still `.scheduled` — but it is long over and
+        // its track is as old as the rest of it.
+        let stale = running(.scheduled, arrivingIn: -6 * 3600)
+        #expect(stale.isOver)
+        #expect(stale.currentTrack == nil)
+    }
+
+    /// A live snapshot around `now`, so the rules that ask whether the trip is over see a trip
+    /// that is not. Tracks differ by role: 3 to leave the boarding stop, 2 to pull in at the next.
+    private func running(_ status: TrainJourney.Status, arrivingIn seconds: TimeInterval = 3600) -> TrainSnapshot {
+        var snapshot = TrainSnapshot(favorite: FavoriteTrain(key: TrainKey(ident: "837", departureDate: .now), journey: nil))
+        snapshot.status = status
+        snapshot.scheduledArrival = .now.addingTimeInterval(seconds)
+        snapshot.originTrack = "3"
+        snapshot.nextStopTrack = "2"
+        return snapshot
+    }
+
+    @Test("A stop it pulls into is quoted by its arrival track, one you board by its departure track")
+    func arrivalAndDepartureTracksDiffer() throws {
+        // Uppsala takes the train in on 2 and lets it out from 4; at Gävle it is 6 in, 3 out.
+        let journey = try TrainJourney(key: SampleRun.key, announcements: [
+            SampleRun.row("1", .departure, at: "Cst", planned: "10:00", actual: "10:10"),
+            SampleRun.row("2", .arrival, at: "U", planned: "10:40", estimated: "10:48", track: "2"),
+            SampleRun.row("3", .departure, at: "U", planned: "10:42", estimated: "10:49", track: "4"),
+            SampleRun.row("4", .arrival, at: "Gä", planned: "11:30", estimated: "11:30", track: "6"),
+            SampleRun.row("5", .departure, at: "Gä", planned: "11:32", estimated: "11:32", track: "3"),
+            SampleRun.row("6", .arrival, at: "Suc", planned: "13:00", estimated: "13:00"),
+        ])
+        let aboard = TrainSnapshot(journey: journey)
+        #expect(aboard.nextStopSignature == "U")
+        #expect(aboard.nextStopTrack == "2")
+        #expect(aboard.upcomingStops.first?.signature == "Gä")
+        #expect(aboard.upcomingStops.first?.track == "6")
+        // Boarding at Gävle is the other way round: the platform the train leaves from.
+        #expect(TrainSnapshot(journey: journey, segment: TripSegment(boarding: "Gä", alighting: "Suc")).originTrack == "3")
+    }
+
     @Test("Segment with unknown or reversed stations falls back to the whole run")
     func invalidSegment() throws {
         let stops = try SampleRun.lateFromOriginRecoveringLater().stops

@@ -111,6 +111,13 @@ public struct TrainAnnouncement: TRVObject, Hashable, Identifiable {
         canceled ?? false
     }
 
+    /// The track this train uses at the station, or `nil` when none is announced: the field comes
+    /// back blank, and as "X" for a train that is not given a track at all (a pass-through).
+    public var announcedTrack: String? {
+        let value = trackAtLocation?.trimmingCharacters(in: .whitespaces) ?? ""
+        return value.isEmpty || value.lowercased() == "x" ? nil : value
+    }
+
     public var hasDeparted: Bool {
         timeAtLocation != nil
     }
