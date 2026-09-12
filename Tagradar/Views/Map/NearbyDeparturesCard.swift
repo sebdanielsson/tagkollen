@@ -150,7 +150,10 @@ struct NearbyDeparturesCard: View {
                     Text(station.name)
                         .font(.subheadline.weight(.medium))
                     if let text = Format.distance(distance) {
-                        Text("· \(text)")
+                        // Verbatim: `Format.distance` is already localized, and a bare separator
+                        // is nothing to translate — as a `Text` key it would only add "· %@" to
+                        // the catalog for every language to leave untouched.
+                        Text(verbatim: "· \(text)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
