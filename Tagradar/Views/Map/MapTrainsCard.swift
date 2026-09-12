@@ -64,9 +64,9 @@ struct MapTrainsCard: View {
             .map(\.0)
     }
 
-    /// Runs that have already arrived. The card has no room for them; the sidebar keeps them so a
-    /// train saved for a trip that is over can still be found and unsaved, which is otherwise only
-    /// possible by searching the run up again.
+    /// Runs that have already arrived, kept out of the main list but still reachable: without
+    /// them a train saved for a trip that is over cannot be found or unsaved at all, short of
+    /// searching the run up again. The card shows the same group as the sidebar, collapsed.
     private var pastFavorites: [FavoriteTrain] {
         favorites.filter { end(of: $0) <= .now }
             .map { ($0, departure(of: $0)) }
@@ -94,8 +94,7 @@ struct MapTrainsCard: View {
     /// all: the sidebar keeps past runs below, so telling someone to save their first train while
     /// their saved trains sit just under it would be wrong.
     private var showsSavedPrompt: Bool {
-        guard upcomingFavorites.isEmpty else { return false }
-        return style == .sidebar ? pastFavorites.isEmpty : true
+        upcomingFavorites.isEmpty && pastFavorites.isEmpty
     }
 
     /// Read from the same snapshot `FavoriteTrainRow` renders, so a trip segment sorts by its
@@ -159,7 +158,7 @@ struct MapTrainsCard: View {
                         await load(shown(upcomingFavorites).map(\.key))
                     }
             }
-            if style == .sidebar, !pastFavorites.isEmpty {
+            if !pastFavorites.isEmpty {
                 earlierSection
             }
         }
@@ -171,6 +170,12 @@ struct MapTrainsCard: View {
         DisclosureGroup(isExpanded: $showEarlier) {
             savedRows(pastFavorites)
                 .padding(.top, 10)
+                // Only once the group is open: a run that has arrived still has a journey to
+                // show, and the screen this replaced refreshed past favourites that had none,
+                // but fetching them behind a collapsed disclosure would be work nobody asked for.
+                .task(id: shown(pastFavorites).map(\.id)) {
+                    await load(shown(pastFavorites).map(\.key))
+                }
         } label: {
             Text("Earlier")
                 .font(.subheadline.weight(.semibold))
