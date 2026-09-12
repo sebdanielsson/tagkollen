@@ -52,6 +52,10 @@ struct MapTrainsCard: View {
             case .recent: recentCard
             }
         }
+        // Once for the card rather than once per star: the trigger has to be something that moves
+        // when a run is saved or unsaved, and every visible star watching the same value would
+        // fire a burst of haptics proportional to the number of rows.
+        .sensoryFeedback(.success, trigger: favorites.count)
     }
 
     /// Sorted by the time each row shows, not by the `@Query`'s `departureDate` — `TrainKey`
@@ -236,8 +240,6 @@ struct MapTrainsCard: View {
         return star(saved: saved, label: saved ? "Saved" : "Save") { toggleSaved(recent) }
     }
 
-    /// `trigger` is the number of saved runs rather than `saved`: on a row that is always saved,
-    /// the latter never changes and the feedback would never fire.
     private func star(saved: Bool, label: LocalizedStringKey, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: saved ? "star.fill" : "star")
@@ -248,7 +250,6 @@ struct MapTrainsCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(label))
-        .sensoryFeedback(.success, trigger: favorites.count)
     }
 
     /// Mirrors the star in `TrainDetailView`: the same reminders and widget refresh have to follow,

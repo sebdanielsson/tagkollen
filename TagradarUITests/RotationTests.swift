@@ -31,6 +31,9 @@ final class RotationTests: XCTestCase {
         let arguments = (environment["TAGRADAR_LAUNCH_ARGS"] ?? "").split(separator: " ").map(String.init)
         // Seconds for the map, the live stream and the timetable to settle after each pose change.
         let settle = UInt32(environment["TAGRADAR_SETTLE"] ?? "") ?? 10
+        // An iPad is regular width in landscape whatever happens, so its assertion is not
+        // negotiable. A smaller iPhone stays on the card and has nothing to assert.
+        let isPad = UIDevice.current.userInterfaceIdiom == .pad
 
         let app = XCUIApplication()
         // Pinned to the source language: every label this test looks up is localised, and the
@@ -67,12 +70,18 @@ final class RotationTests: XCTestCase {
                 window.width > window.height,
                 "the simulator ignored the rotation request, so the landscape layout was never laid out"
             )
-            // The sidebar toggle exists only in the regular layout, so it says which layout this
-            // device landed in without assuming an idiom: an iPhone Max is regular in landscape
-            // too, while a smaller iPhone stays on the card and has nothing to assert.
+            // The sidebar toggle exists only in the regular layout. On iPhone it says which
+            // layout this device landed in — a Max is regular in landscape, a smaller one is not
+            // — but on iPad it must never be used to decide whether to check, because losing the
+            // regular layout is the regression this test exists to catch and skipping on its
+            // absence would report that as a pass.
             let isRegular = app.buttons["Sidebar"].waitForExistence(timeout: 5)
-            print("[RotationTests] landscape layout: \(isRegular ? "regular, asserting the sidebar" : "compact, nothing to assert")")
-            guard isRegular else { continue }
+            print("[RotationTests] landscape layout: \(isRegular ? "regular" : "compact")")
+            if isPad {
+                XCTAssertTrue(isRegular, "an iPad should be in the regular layout in landscape")
+            } else if !isRegular {
+                continue
+            }
             // The sidebar's search field is the one thing only the sidebar has.
             let search = app.textFields["Train number or station"]
             XCTAssertTrue(
