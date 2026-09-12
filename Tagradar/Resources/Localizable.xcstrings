@@ -1070,6 +1070,16 @@
         }
       }
     },
+    "Recently searched": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senast sökta"
+          }
+        }
+      }
+    },
     "Reconnect": {
       "localizations": {
         "sv": {
