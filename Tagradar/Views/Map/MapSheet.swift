@@ -192,7 +192,11 @@ struct MapSheet: View {
         }
 
         var tint: Color {
-            self == .favorite ? .yellow : .accentColor
+            switch self {
+            case .favorite: .yellow
+            case .recent: .accentColor
+            case .major: .secondary
+            }
         }
     }
 
