@@ -28,6 +28,9 @@ struct FavoriteTrainRow: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
                         .background(.quaternary, in: .capsule)
+                    // The track the traveller needs from where they board, not the one the run
+                    // starts on: `snapshot` is already segment-relative.
+                    TrackChip(track: snapshot.currentTrack)
                     if favorite.segment != nil {
                         Image(systemName: "person.fill")
                             .font(.caption2)
@@ -52,18 +55,13 @@ struct FavoriteTrainRow: View {
             }
             Spacer()
             if journey != nil {
-                VStack(alignment: .trailing, spacing: 4) {
-                    // The track the traveller needs from where they board, not the one the run
-                    // starts on: `snapshot` is already segment-relative.
-                    TrackChip(track: snapshot.currentTrack, compact: true)
-                    switch snapshot.status {
-                    case .arrived:
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    case .canceled:
-                        DelayBadge(delay: nil, canceled: true, compact: true)
-                    default:
-                        DelayBadge(delay: snapshot.delay, compact: true)
-                    }
+                switch snapshot.status {
+                case .arrived:
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                case .canceled:
+                    DelayBadge(delay: nil, canceled: true, compact: true)
+                default:
+                    DelayBadge(delay: snapshot.delay, compact: true)
                 }
             }
         }

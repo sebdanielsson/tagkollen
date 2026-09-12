@@ -13,6 +13,7 @@ struct RecentTrainRow: View {
     }
 
     var body: some View {
+        let snapshot = snapshot
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
@@ -24,6 +25,7 @@ struct RecentTrainRow: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
                         .background(.quaternary, in: .capsule)
+                    TrackChip(track: snapshot?.currentTrack)
                 }
                 Text("\(stations.name(recent.originSignature)) → \(stations.name(recent.destinationSignature))")
                     .font(.subheadline)
@@ -42,16 +44,13 @@ struct RecentTrainRow: View {
             }
             Spacer()
             if let snapshot {
-                VStack(alignment: .trailing, spacing: 4) {
-                    TrackChip(track: snapshot.currentTrack, compact: true)
-                    switch snapshot.status {
-                    case .arrived:
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    case .canceled:
-                        DelayBadge(delay: nil, canceled: true, compact: true)
-                    default:
-                        DelayBadge(delay: snapshot.delay, compact: true)
-                    }
+                switch snapshot.status {
+                case .arrived:
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                case .canceled:
+                    DelayBadge(delay: nil, canceled: true, compact: true)
+                default:
+                    DelayBadge(delay: snapshot.delay, compact: true)
                 }
             }
         }
