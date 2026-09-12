@@ -15,7 +15,7 @@ struct TrainSelection: Hashable {
 
 /// Search, saved trains and quick stations. The persistent bottom card on iPhone, where train and
 /// station details push inside it like place cards in Apple Maps; the sidebar on iPad, where the
-/// details open in an inspector instead and the saved list has room to show every upcoming train.
+/// details open in an inspector instead and both lists are shown in full rather than shortened.
 struct MapSheet: View {
     /// Where the sheet is being shown. Decided by `MapScreen`, not read from the size class: a
     /// `NavigationSplitView` sidebar column is compact width whatever the device, so the

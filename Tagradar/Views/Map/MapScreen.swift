@@ -45,7 +45,10 @@ struct MapScreen: View {
             push(.train(TrainSelection(key: train.key, liveID: id)), if: true)
             withAnimation(.smooth) { mapState.camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.45) }
         }
-        .onChange(of: navigation.pendingMapFocus) { _, key in
+        // `initial: true` because the request can be made before this view exists: `RootView`
+        // reads the launch arguments and takes deep links while the onboarding screen is up, so a
+        // train asked for without an API key would otherwise wait for the next live update.
+        .onChange(of: navigation.pendingMapFocus, initial: true) { _, key in
             guard let key else { return }
             startFreshTrail()
             focus(on: key)
@@ -236,7 +239,12 @@ struct MapScreen: View {
             NavigationStack {
                 // No `onSelectTrain` on purpose: unlike the iPhone card, the inspector is its own
                 // navigation stack, so a train pushes on top of the board with a back button and
-                // the map keeps showing the station the user is reading about.
+                // the map keeps showing the station the user is reading about. The trade-off is
+                // that this stack is local, so a train opened from here is not in `MapState`: if
+                // the size class then goes compact (folding an iPhone Duo, an iPad Split View
+                // narrowing), the card reopens the board rather than that train. Routing the
+                // selection through `MapScreen` would fix it by moving the map off the station,
+                // which is the behaviour this deliberately avoids.
                 StationBoardView(station: station)
                     .toolbar {
                         // The inspector has no dismiss chrome of its own, and unlike a train
