@@ -60,7 +60,14 @@ struct NearbyDeparturesCard: View {
 
     /// Rows shown before "Show more"; `fetchLimit` is fetched up front so expanding is instant.
     private static let previewCount = 3
-    private static let fetchLimit = 6
+    /// What "Show more" reveals. Comfortably more than the preview because the query is ordered by
+    /// advertised time and capped here: at a hub the lookback below can spend several of these
+    /// slots on runs that have already gone, and the point of the card is the ones that have not.
+    private static let fetchLimit = 12
+    /// The board filters on the advertised time, so this window has to reach back far enough that
+    /// a run still standing at the platform on a delay is not read as one that has left. Matches
+    /// `StationBoardView`, which asks the same question of a station the user picked by hand.
+    private static let lookback: TimeInterval = -10 * 60
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -283,7 +290,7 @@ struct NearbyDeparturesCard: View {
         station = nearest
         let metres = nearest.coordinate.map { fix.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) }
         distance = metres
-        let start = Date.now.addingTimeInterval(-5 * 60)
+        let start = Date.now.addingTimeInterval(Self.lookback)
         do {
             let fetched = switch board {
             case .departures:
