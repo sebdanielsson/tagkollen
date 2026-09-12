@@ -5,8 +5,9 @@ import XCTest
 /// selected, and wherever the rotation lands in the regular layout, the sidebar comes in beside
 /// the map. Nothing outside the app can rotate a simulator — `simctl` has no such command and
 /// Simulator.app only takes it from its own menu — so this is the one place a size-class change is
-/// exercised. It is worth running on an iPhone 17 Pro Max as well as an iPad: a Max is regular
-/// width in landscape, so it takes the same layout.
+/// exercised. Worth running on an iPhone 17 Pro Max as well as an iPad — a Max is regular width in
+/// landscape, so it takes the same layout — with
+/// `TEST_RUNNER_TAGRADAR_EXPECT_REGULAR_LANDSCAPE=1` to make that expectation binding.
 ///
 /// The screen to start from is chosen with the same debug launch arguments `RootView` reads
 /// (`-train`, `-station`, `-save`). `xcodebuild` strips the `TEST_RUNNER_` prefix and passes the
@@ -31,9 +32,17 @@ final class RotationTests: XCTestCase {
         let arguments = (environment["TAGRADAR_LAUNCH_ARGS"] ?? "").split(separator: " ").map(String.init)
         // Seconds for the map, the live stream and the timetable to settle after each pose change.
         let settle = UInt32(environment["TAGRADAR_SETTLE"] ?? "") ?? 10
-        // An iPad is regular width in landscape whatever happens, so its assertion is not
-        // negotiable. A smaller iPhone stays on the card and has nothing to assert.
-        let isPad = UIDevice.current.userInterfaceIdiom == .pad
+        // Whether this destination is expected to land in the regular layout when it turns.
+        // An iPad always does. An iPhone depends on the model — a Plus or Max is regular width in
+        // landscape, a smaller one is not — and nothing in the runner distinguishes them, so that
+        // case is declared by whoever starts the run rather than guessed from a screen dimension:
+        //
+        //     TEST_RUNNER_TAGRADAR_EXPECT_REGULAR_LANDSCAPE=1
+        //
+        // Without it an iPhone run checks only that the selection survives, which is all a
+        // compact device has to promise.
+        let expectsRegularLandscape = UIDevice.current.userInterfaceIdiom == .pad
+            || ["1", "true", "YES"].contains(environment["TAGRADAR_EXPECT_REGULAR_LANDSCAPE"] ?? "")
 
         let app = XCUIApplication()
         // Pinned to the source language: every label this test looks up is localised, and the
@@ -70,18 +79,14 @@ final class RotationTests: XCTestCase {
                 window.width > window.height,
                 "the simulator ignored the rotation request, so the landscape layout was never laid out"
             )
-            // The sidebar toggle exists only in the regular layout. On iPhone it says which
-            // layout this device landed in — a Max is regular in landscape, a smaller one is not
-            // — but on iPad it must never be used to decide whether to check, because losing the
-            // regular layout is the regression this test exists to catch and skipping on its
-            // absence would report that as a pass.
+            // The sidebar toggle exists only in the regular layout, so its presence is the
+            // layout. It must never decide *whether* to check on a destination expected to be
+            // regular: losing that layout is the regression this test exists to catch, and
+            // skipping on the toggle's absence would report it as a pass.
             let isRegular = app.buttons["Sidebar"].waitForExistence(timeout: 5)
             print("[RotationTests] landscape layout: \(isRegular ? "regular" : "compact")")
-            if isPad {
-                XCTAssertTrue(isRegular, "an iPad should be in the regular layout in landscape")
-            } else if !isRegular {
-                continue
-            }
+            guard expectsRegularLandscape else { continue }
+            XCTAssertTrue(isRegular, "this destination should be in the regular layout in landscape")
             // The sidebar's search field is the one thing only the sidebar has.
             let search = app.textFields["Train number or station"]
             XCTAssertTrue(

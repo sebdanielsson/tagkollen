@@ -266,8 +266,9 @@ for DEVICE in "${DEVICES[@]}"; do
       settle 3
     }
     # App Store screenshots are portrait, and the simulator cannot be rotated from here, so a
-    # device left in landscape would silently produce a set with the wrong pixel size and the
-    # sidebar in the wrong state. Say so instead.
+    # device left in landscape would silently produce a set with the wrong pixel size — and with
+    # the card drags and the sidebar tap, which are both in portrait coordinates, landing
+    # somewhere else entirely. Say so instead.
     require_portrait() {
       local dir probe width height
       # A directory, because `sips` needs the .png suffix and macOS `mktemp` cannot add one:
@@ -283,6 +284,7 @@ for DEVICE in "${DEVICES[@]}"; do
       fi
     }
 
+    require_portrait
     if [ "$PREFIX" = iphone ]; then
       # The card opens at its middle height over the map. Each shot drags it to whatever frames its
       # subject: up for a list, down to the search bar when the map itself is the subject.
@@ -307,7 +309,6 @@ for DEVICE in "${DEVICES[@]}"; do
       # Portrait: the map alone, then a train inspector beside it, then the same two subjects
       # again with the sidebar open, so the set shows both the map at full width and all three
       # columns at once.
-      require_portrait
       launch
       shot "01-map"
       launch -train "$TRAIN" -save "$SAVED"
