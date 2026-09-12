@@ -34,13 +34,23 @@ struct RecentTrain: Codable, Hashable, Identifiable, Sendable {
     }
 
     /// Fills the gaps of a favorite saved before its journey was loaded, so the row it turns into
-    /// reads the same as the one the user just tapped the star on.
-    func fillIn(_ favorite: FavoriteTrain) {
-        favorite.originSignature = favorite.originSignature ?? originSignature
-        favorite.destinationSignature = favorite.destinationSignature ?? destinationSignature
-        favorite.productName = favorite.productName ?? productName
-        favorite.scheduledDeparture = favorite.scheduledDeparture ?? scheduledDeparture
-        favorite.scheduledArrival = favorite.scheduledArrival ?? scheduledArrival
+    /// reads the same as the one the user just tapped the star on. Returns whether anything
+    /// changed, so a caller sweeping the list can tell an actual repair from a no-op and save only
+    /// for the former.
+    @discardableResult
+    func fillIn(_ favorite: FavoriteTrain) -> Bool {
+        var changed = false
+        func fill<Value>(_ keyPath: ReferenceWritableKeyPath<FavoriteTrain, Value?>, _ value: Value?) {
+            guard favorite[keyPath: keyPath] == nil, let value else { return }
+            favorite[keyPath: keyPath] = value
+            changed = true
+        }
+        fill(\.originSignature, originSignature)
+        fill(\.destinationSignature, destinationSignature)
+        fill(\.productName, productName)
+        fill(\.scheduledDeparture, scheduledDeparture)
+        fill(\.scheduledArrival, scheduledArrival)
+        return changed
     }
 
     /// Whether the run is still worth offering. A journey that ended hours ago is history, not a

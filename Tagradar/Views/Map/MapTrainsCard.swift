@@ -157,6 +157,20 @@ struct MapTrainsCard: View {
             saveButton(for: recent)
         }
         .task(id: shown(recents).map(\.id)) {
+            // A run starred from the detail view before its journey arrived has a favorite with
+            // nothing in it, and the branch above renders that instead of this record — so the row
+            // would drop to "Train 537 · – → –" while the record beside it still knows the route
+            // and the times. Repaired here rather than while rendering, which must not write.
+            // A successful load fills the favorite in too; this is what the offline case has.
+            var repaired = false
+            for recent in shown(recents) {
+                if let favorite = favorite(for: recent), recent.fillIn(favorite) {
+                    repaired = true
+                }
+            }
+            if repaired {
+                try? modelContext.save()
+            }
             await load(shown(recents).map(\.key))
         }
     }
