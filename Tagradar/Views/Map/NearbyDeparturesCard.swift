@@ -264,6 +264,10 @@ struct NearbyDeparturesCard: View {
     /// caches its rows under Departures even if the user has since switched tab.
     private func load(board: Board) async {
         guard location.isAuthorized else { return }
+        // A task cancelled before its body first ran still runs it — cancellation is cooperative,
+        // not a skip — and everything down to the first await below is synchronous. Without this
+        // the cache path could hand its rows to a board the user has already left.
+        guard !Task.isCancelled else { return }
         // Claimed before the early return below, so the cache path can't leave the refresh button
         // spinning and disabled with no run left to clear it.
         isLoading = true
@@ -272,6 +276,11 @@ struct NearbyDeparturesCard: View {
                 isLoading = false
             }
         }
+        // Deliberately answers without a fresh fix. Skipping a location request and a round trip
+        // on a push and pop back through the sheet is the whole point of the cache, and the entry
+        // is only good for `pollingInterval` — fifteen seconds, with no setting to raise it. The
+        // nearest station cannot change in that time on foot, and a journey that does cross one
+        // keeps the card reloading anyway.
         if let cached = cache[board], cached.revision == stations.revision,
            Date.now.timeIntervalSince(cached.loadedAt) < settings.pollingInterval {
             station = cached.station
