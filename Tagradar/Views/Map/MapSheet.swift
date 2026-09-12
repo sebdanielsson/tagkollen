@@ -40,6 +40,7 @@ struct MapSheet: View {
     @Environment(StationDirectory.self) private var stations
     @Environment(AppSettings.self) private var settings
     @Environment(SpeechSearch.self) private var speech
+    @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \FavoriteStation.createdAt) private var favoriteStations: [FavoriteStation]
 
     @State private var query = ""
@@ -201,6 +202,19 @@ struct MapSheet: View {
             case .major: .gray.mix(with: .black, by: 0.25)
             }
         }
+
+        /// The colour of the glyph itself in the sidebar list, which is the opposite job: the
+        /// symbol is drawn *on* the card rather than under a white one, so the colour has to move
+        /// with the appearance instead of staying put. The bubble's fixed dark gray measures
+        /// 5.8:1 on a light card but 2.9:1 on a dark one — below the same floor it was chosen to
+        /// clear. Mixing away from the background in both directions gives 5.8:1 and 7.8:1.
+        func glyphTint(_ scheme: ColorScheme) -> Color {
+            switch self {
+            case .favorite: .yellow
+            case .recent: .accentColor
+            case .major: .gray.mix(with: scheme == .dark ? .white : .black, by: 0.25)
+            }
+        }
     }
 
     private struct QuickStation: Identifiable {
@@ -250,7 +264,7 @@ struct MapSheet: View {
                 } label: {
                     HStack {
                         Image(systemName: item.kind.symbol)
-                            .foregroundStyle(item.kind.tint)
+                            .foregroundStyle(item.kind.glyphTint(colorScheme))
                             .frame(width: 28)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.station.name)
