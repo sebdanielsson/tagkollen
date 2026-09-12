@@ -197,8 +197,12 @@ struct StationDeparturesView: View {
             Text(Format.clock(item.expected ?? item.planned)).font(.caption.weight(.semibold)).monospacedDigit()
             Text(item.destination).font(.caption).lineLimit(1)
             Spacer(minLength: 0)
+            // Flat on purpose: this family renders accented and monochrome, where the chip's
+            // background washes out. It still owes VoiceOver the same label the chip gives.
             if let track = item.track {
-                Text(track).font(.caption2.weight(.semibold))
+                Text(track)
+                    .font(.caption2.weight(.semibold))
+                    .accessibilityLabel(Text("Track \(track)"))
             }
         }
     }
