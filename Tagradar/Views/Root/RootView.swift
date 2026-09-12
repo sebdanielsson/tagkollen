@@ -5,6 +5,9 @@ import SwiftUI
 /// full window with split navigation.
 struct RootView: View {
     @State private var navigation = AppNavigation()
+    /// Owned here rather than by `MapScreen` so it survives the `phone`/`tabs` swap below —
+    /// see `MapState`.
+    @State private var mapState = MapState()
     @Environment(AppDependencies.self) private var deps
     @Environment(APIKeyStore.self) private var keyStore
     @Environment(\.modelContext) private var modelContext
@@ -32,6 +35,7 @@ struct RootView: View {
         if keyStore.hasKey {
             MapScreen()
                 .environment(navigation)
+                .environment(mapState)
                 .onOpenURL { navigation.handle($0) }
                 .onAppear { applyDebugLaunchArguments() }
         } else {
@@ -58,6 +62,7 @@ struct RootView: View {
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
         .environment(navigation)
+        .environment(mapState)
         .onAppear {
             showOnboarding = !keyStore.hasKey
             applyDebugLaunchArguments()
