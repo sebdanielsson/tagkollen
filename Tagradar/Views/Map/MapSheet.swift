@@ -192,7 +192,14 @@ struct MapSheet: View {
         }
 
         var tint: Color {
-            self == .favorite ? .yellow : .accentColor
+            switch self {
+            case .favorite: .yellow
+            case .recent: .accentColor
+            // Darkened because `.gradient` lifts the top of the circle: plain `.gray` leaves the
+            // white glyph at 2.6:1, under the 3:1 floor for graphical objects. Not `.secondary` —
+            // that is a 60%-alpha *label* colour, so the bubble would tint with whatever is behind it.
+            case .major: .gray.mix(with: .black, by: 0.25)
+            }
         }
     }
 
