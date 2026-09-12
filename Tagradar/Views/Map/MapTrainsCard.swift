@@ -178,6 +178,13 @@ struct MapTrainsCard: View {
         }
         .tint(.secondary)
         .padding(.top, upcomingFavorites.isEmpty ? 0 : 4)
+        .onChange(of: pastFavorites.isEmpty) { _, empty in
+            // Unsaving the last past run takes the group away; without this it would come back
+            // expanded the next time a saved run arrives, against "collapsed by default".
+            if empty {
+                showEarlier = false
+            }
+        }
     }
 
     /// Saved rows carry the same star as the Recent tab, so a run can be unsaved from the list it
@@ -188,7 +195,9 @@ struct MapTrainsCard: View {
         } select: {
             onSelectTrain($0.key)
         } accessory: { fav in
-            star(saved: true) { unsave(fav) }
+            // Labelled for what it does: on these rows the star is always filled, so describing
+            // the state would leave VoiceOver saying "Saved" on the control that removes.
+            star(saved: true, label: "Remove") { unsave(fav) }
         }
     }
 
@@ -219,10 +228,12 @@ struct MapTrainsCard: View {
     /// Says whether the run is saved, and saves or unsaves it without leaving the card.
     private func saveButton(for recent: RecentTrain) -> some View {
         let saved = favorite(for: recent) != nil
-        return star(saved: saved) { toggleSaved(recent) }
+        return star(saved: saved, label: saved ? "Saved" : "Save") { toggleSaved(recent) }
     }
 
-    private func star(saved: Bool, action: @escaping () -> Void) -> some View {
+    /// `trigger` is the number of saved runs rather than `saved`: on a row that is always saved,
+    /// the latter never changes and the feedback would never fire.
+    private func star(saved: Bool, label: LocalizedStringKey, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: saved ? "star.fill" : "star")
                 .font(.subheadline)
@@ -231,8 +242,8 @@ struct MapTrainsCard: View {
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text(saved ? "Saved" : "Save"))
-        .sensoryFeedback(.success, trigger: saved)
+        .accessibilityLabel(Text(label))
+        .sensoryFeedback(.success, trigger: favorites.count)
     }
 
     /// Mirrors the star in `TrainDetailView`: the same reminders and widget refresh have to follow,
