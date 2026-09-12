@@ -11,8 +11,14 @@ struct TrainStop: Identifiable, Hashable, Sendable {
         "\(signature)|\(arrival?.activityId ?? "")|\(departure?.activityId ?? "")"
     }
 
+    /// The track to quote for someone getting on here, so the departure's when the two differ.
     var track: String? {
         departure?.announcedTrack ?? arrival?.announcedTrack
+    }
+
+    /// The track the train pulls in at — what a stop still ahead of you is asked about.
+    var arrivalTrack: String? {
+        arrival?.announcedTrack ?? departure?.announcedTrack
     }
 
     var isOrigin: Bool {

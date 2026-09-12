@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The track a train uses at a station, boxed so it reads as a platform number and not as one more
-/// time or delay. Nothing is drawn without a track, so callers can hand it an optional straight.
+/// time or delay. Nothing is drawn without a track, so callers can pass an optional unwrapped.
 struct TrackChip: View {
     let track: String?
     /// Widget-sized: the same chip a step smaller, for rows that are already tight.
