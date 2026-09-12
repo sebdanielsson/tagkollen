@@ -35,6 +35,9 @@ struct MapTrainsCard: View {
     @State private var showEarlier = false
 
     private static let maxRows = 4
+    /// How many timetables to ask for at once. The sidebar renders every saved run, so the number
+    /// of rows is the user's to decide, and a long list should not open with a request per row.
+    private static let maxConcurrentLoads = 4
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -224,11 +227,19 @@ struct MapTrainsCard: View {
         style == .sidebar ? items : Array(items.prefix(Self.maxRows))
     }
 
-    /// Concurrently: the sidebar lists every run, and awaiting each in turn would leave the last
-    /// row blank for as many round trips. `JourneyStore` de-duplicates anything already in flight.
+    /// Concurrently but a few at a time: the sidebar lists every run, so awaiting each in turn
+    /// would leave the last row blank for as many round trips, while starting them all at once
+    /// would put a request per saved run on the wire. `JourneyStore` de-duplicates anything
+    /// already in flight.
     private func load(_ keys: [TrainKey]) async {
-        await withTaskGroup { group in
-            for key in keys {
+        await withTaskGroup(of: Void.self) { group in
+            var remaining = keys.makeIterator()
+            for _ in 0 ..< Self.maxConcurrentLoads {
+                guard let key = remaining.next() else { break }
+                group.addTask { _ = try? await journeyStore.load(key) }
+            }
+            while await group.next() != nil {
+                guard let key = remaining.next() else { continue }
                 group.addTask { _ = try? await journeyStore.load(key) }
             }
         }

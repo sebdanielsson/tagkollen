@@ -269,11 +269,14 @@ for DEVICE in "${DEVICES[@]}"; do
     # device left in landscape would silently produce a set with the wrong pixel size and the
     # sidebar in the wrong state. Say so instead.
     require_portrait() {
-      local probe width height
-      probe=$(mktemp -t tagradar-pose).png
+      local dir probe width height
+      # A directory, because `sips` needs the .png suffix and macOS `mktemp` cannot add one:
+      # appending it to the name would leave the file `mktemp` actually created behind.
+      dir=$(mktemp -d -t tagradar-pose)
+      probe="$dir/probe.png"
       xcrun simctl io "$UDID" screenshot "$probe" >/dev/null 2>&1
       read -r width height <<<"$(sips -g pixelWidth -g pixelHeight "$probe" | awk '/pixelWidth|pixelHeight/ {printf "%s ", $2}')"
-      rm -f "$probe"
+      rm -rf "$dir"
       if [ "${width:-0}" -gt "${height:-1}" ]; then
         echo "$DEVICE is in landscape (${width}x${height}). Rotate it to portrait (Cmd+Left) and rerun." >&2
         exit 1
