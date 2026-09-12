@@ -11,37 +11,17 @@ struct MapScreen: View {
     @Environment(AppNavigation.self) private var navigation
     @Environment(\.horizontalSizeClass) private var sizeClass
 
-    @State private var camera: MapCameraPosition = .region(MapScreen.swedenRegion)
-    @State private var visibleRegion: MKCoordinateRegion = MapScreen.swedenRegion
-    @State private var selectedTrainID: String?
-    @State private var selectedKey: TrainKey?
-    @State private var selectedStation: TrainStation?
+    /// Camera, selection and the card's trail. Owned by `RootView` so they outlive this view when
+    /// the size class changes — see `MapState`.
+    @Environment(MapState.self) private var mapState
     @State private var showSettings = false
-    @State private var sheetPath = NavigationPath()
-    /// Typed shadow of `sheetPath`, kept in lockstep with every push — see `MapNavigationStack`.
-    @State private var navigationStack = MapNavigationStack()
-    /// A focus request this screen deferred because live positions hadn't arrived yet. Kept here
-    /// rather than in `AppNavigation.pendingMapFocus`, which means "something outside the map
-    /// asked for this" and resets the card's trail — a retry of our own must not do that.
-    @State private var deferredFocus: DeferredFocus?
-    @State private var sheetDetent: PresentationDetent = .medium
     @State private var sheetPresented = true
     @Namespace private var mapScope
-
-    static let swedenRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 62.0, longitude: 16.0),
-        span: MKCoordinateSpan(latitudeDelta: 14.5, longitudeDelta: 14.5)
-    )
 
     /// Height of the collapsed card: the search field with breathing room under the grabber.
     static let collapsedSheetHeight: CGFloat = 76
     static let sheetTopPadding: CGFloat = 16
     private static let logger = Logger(subsystem: "se.tagradar.app", category: "MapScreen")
-
-    private struct DeferredFocus {
-        let key: TrainKey
-        let pushesPath: Bool
-    }
 
     private var isRegular: Bool {
         sizeClass == .regular
@@ -55,14 +35,14 @@ struct MapScreen: View {
                 compactLayout
             }
         }
-        .onChange(of: selectedTrainID) { _, id in
+        .onChange(of: mapState.selectedTrainID) { _, id in
             Self.logger.debug("selectedTrainID → \(id ?? "nil", privacy: .public)")
             guard let id, let train = live.train(id: id) else { return }
-            selectedStation = nil
-            deferredFocus = nil
-            selectedKey = train.key
+            mapState.selectedStation = nil
+            mapState.deferredFocus = nil
+            mapState.selectedKey = train.key
             push(.train(TrainSelection(key: train.key, liveID: id)), if: true)
-            withAnimation(.smooth) { camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.45) }
+            withAnimation(.smooth) { mapState.camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.45) }
         }
         .onChange(of: navigation.pendingMapFocus) { _, key in
             guard let key else { return }
@@ -90,41 +70,61 @@ struct MapScreen: View {
             if let key = navigation.pendingMapFocus {
                 startFreshTrail()
                 focus(on: key)
-            } else if let deferred = deferredFocus {
+            } else if let deferred = mapState.deferredFocus {
                 // Our own retry, so the card keeps whatever trail it already had.
                 focus(on: deferred.key, pushingPath: deferred.pushesPath)
-            } else if let selectedKey, selectedTrainID == nil, live.train(for: selectedKey) != nil {
+            } else if let key = mapState.selectedKey, mapState.selectedTrainID == nil, live.train(for: key) != nil {
                 // The selected train had no live position when chosen; it just started reporting one.
-                focus(on: selectedKey)
+                focus(on: key)
             }
         }
-        .onChange(of: sheetPath) { _, path in
+        .onChange(of: isRegular, initial: true) { _, regular in
+            // Selection changes in the regular layout bypass the card's trail (`push` is a no-op
+            // there), so when the layout comes back to compact the trail can be behind the map:
+            // the card would show whatever it showed before the flip while the map has moved on.
+            // Put the current selection on top so the two agree again. Appending rather than
+            // resetting keeps "back" returning to what the card was showing; `push` skips the
+            // append when that is already the same screen.
+            //
+            // `initial: true` because `RootView` switches subtrees on this same predicate, which
+            // rebuilds this view: no single instance ever sees the value change, so the flip is only
+            // ever observed as the starting value of a fresh instance. Harmless on a cold launch,
+            // where there is nothing selected yet.
+            guard !regular else { return }
+            if let station = mapState.selectedStation {
+                push(.station(station), if: true)
+            } else if let selection = currentSelection {
+                push(.train(selection), if: true)
+            }
+        }
+        .onChange(of: mapState.sheetPath) { _, path in
             Self.logger.debug("sheetPath → \(path.count) items")
             // A shorter path than our shadow copy means the user tapped "back" (pushes already
             // grow both together, so this only fires for a pop). Trim the shadow to match, then
             // restore the map to whatever's now on top — the previous station's board, an earlier
             // train, or nothing at the root.
-            guard path.count < navigationStack.routes.count else {
-                if path.count > navigationStack.routes.count {
+            guard path.count < mapState.navigationStack.routes.count else {
+                if path.count > mapState.navigationStack.routes.count {
                     // Something appended without going through `push`, so the shadow is now
                     // shallower than the real stack and the next "back" would restore the wrong
                     // screen. Nothing does today; this is here so it can't fail silently.
-                    Self.logger.error("sheetPath grew to \(path.count) past the shadow's \(navigationStack.routes.count)")
+                    Self.logger.error("sheetPath grew to \(path.count) past the shadow's \(mapState.navigationStack.routes.count)")
                 }
                 return
             }
-            navigationStack.trim(to: path.count)
+            mapState.navigationStack.trim(to: path.count)
             restoreSelection()
         }
     }
 
     private var map: some View {
-        TrainMapView(
-            camera: $camera,
-            visibleRegion: $visibleRegion,
-            selectedTrainID: $selectedTrainID,
-            selectedKey: selectedKey,
-            selectedStation: selectedStation,
+        @Bindable var mapState = mapState
+        return TrainMapView(
+            camera: $mapState.camera,
+            visibleRegion: $mapState.visibleRegion,
+            selectedTrainID: $mapState.selectedTrainID,
+            selectedKey: mapState.selectedKey,
+            selectedStation: mapState.selectedStation,
             onSelectStation: { focus(on: $0) },
             scope: mapScope
         )
@@ -140,7 +140,7 @@ struct MapScreen: View {
 
     /// Bottom padding that keeps the controls just above the card at the current detent.
     private func controlsBottomPadding(containerHeight: CGFloat) -> CGFloat {
-        switch sheetDetent {
+        switch mapState.sheetDetent {
         case .medium: containerHeight * 0.55 + 40 // medium ≈ 55 % of the safe-area height
         case .large: containerHeight + 200 // pushed off-screen
         default: Self.collapsedSheetHeight + 16
@@ -148,7 +148,8 @@ struct MapScreen: View {
     }
 
     private func compactMap(containerHeight: CGFloat) -> some View {
-        map
+        @Bindable var mapState = mapState
+        return map
             .ignoresSafeArea(edges: .top)
             .safeAreaInset(edge: .top, spacing: 0) {
                 HStack {
@@ -160,18 +161,23 @@ struct MapScreen: View {
                 .padding(.bottom, 8)
             }
             .overlay(alignment: .bottomTrailing) {
-                MapControlsCluster(camera: $camera)
+                MapControlsCluster(camera: $mapState.camera)
                     .padding(.trailing, 12)
                     .padding(.bottom, controlsBottomPadding(containerHeight: containerHeight))
-                    .animation(.smooth(duration: 0.35), value: sheetDetent)
+                    .animation(.smooth(duration: 0.35), value: mapState.sheetDetent)
             }
             .mapScope(mapScope)
             .sheet(isPresented: $sheetPresented) {
-                MapSheet(path: $sheetPath, detent: $sheetDetent, onSelectTrain: select, onSelectStation: { focus(on: $0) })
-                    .presentationDetents([.height(Self.collapsedSheetHeight), .medium, .large], selection: $sheetDetent)
-                    .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-                    .presentationDragIndicator(.visible)
-                    .interactiveDismissDisabled()
+                MapSheet(
+                    path: $mapState.sheetPath,
+                    detent: $mapState.sheetDetent,
+                    onSelectTrain: select,
+                    onSelectStation: { focus(on: $0) }
+                )
+                .presentationDetents([.height(Self.collapsedSheetHeight), .medium, .large], selection: $mapState.sheetDetent)
+                .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                .presentationDragIndicator(.visible)
+                .interactiveDismissDisabled()
             }
     }
 
@@ -199,14 +205,14 @@ struct MapScreen: View {
     /// without this a tapped station dot would only move the camera.
     @ViewBuilder
     private var inspectorDetail: some View {
-        if let selectedStation {
+        if let station = mapState.selectedStation {
             // Keyed on the station: without this a different station would reuse this stack, so
             // the panel would keep showing a train pushed from the previous station's board.
             NavigationStack {
                 // No `onSelectTrain` on purpose: unlike the iPhone card, the inspector is its own
                 // navigation stack, so a train pushes on top of the board with a back button and
                 // the map keeps showing the station the user is reading about.
-                StationBoardView(station: selectedStation)
+                StationBoardView(station: station)
                     .toolbar {
                         // The inspector has no dismiss chrome of its own, and unlike a train
                         // detail the board has no Close button, so without this the panel can
@@ -216,7 +222,7 @@ struct MapScreen: View {
                         }
                     }
             }
-            .id(selectedStation.locationSignature)
+            .id(station.locationSignature)
         } else if let selection = currentSelection {
             NavigationStack {
                 TrainDetailView(key: selection.key, liveID: selection.liveID, onClose: clearSelection)
@@ -225,7 +231,8 @@ struct MapScreen: View {
     }
 
     private var regularTopOverlay: some View {
-        HStack(alignment: .top) {
+        @Bindable var mapState = mapState
+        return HStack(alignment: .top) {
             StatusPill(state: live.state, count: live.trainCount, lastUpdate: live.lastUpdate)
             Spacer()
             GlassEffectContainer(spacing: 10) {
@@ -233,7 +240,7 @@ struct MapScreen: View {
                     Button("Settings", systemImage: "gearshape") { showSettings = true }
                         .buttonStyle(.glass)
                         .labelStyle(.iconOnly)
-                    MapControlsCluster(camera: $camera)
+                    MapControlsCluster(camera: $mapState.camera)
                 }
             }
         }
@@ -245,14 +252,14 @@ struct MapScreen: View {
     // MARK: Selection plumbing
 
     private var currentSelection: TrainSelection? {
-        if selectedTrainID == nil, selectedKey == nil {
+        if mapState.selectedTrainID == nil, mapState.selectedKey == nil {
             return nil
         }
-        return TrainSelection(key: selectedKey, liveID: selectedTrainID)
+        return TrainSelection(key: mapState.selectedKey, liveID: mapState.selectedTrainID)
     }
 
     private var inspectorBinding: Binding<Bool> {
-        Binding(get: { currentSelection != nil || selectedStation != nil }, set: {
+        Binding(get: { currentSelection != nil || mapState.selectedStation != nil }, set: {
             if !$0 {
                 clearSelection()
             }
@@ -260,10 +267,10 @@ struct MapScreen: View {
     }
 
     private func clearSelection() {
-        selectedTrainID = nil
-        selectedKey = nil
-        selectedStation = nil
-        deferredFocus = nil
+        mapState.selectedTrainID = nil
+        mapState.selectedKey = nil
+        mapState.selectedStation = nil
+        mapState.deferredFocus = nil
         startFreshTrail()
     }
 
@@ -273,16 +280,16 @@ struct MapScreen: View {
     /// Runs in the regular size class too, where the card isn't on screen — cheap, and it keeps
     /// the two representations from ever disagreeing.
     private func startFreshTrail() {
-        guard !sheetPath.isEmpty || !navigationStack.isEmpty else { return }
-        sheetPath = NavigationPath()
-        navigationStack.reset()
+        guard !mapState.sheetPath.isEmpty || !mapState.navigationStack.isEmpty else { return }
+        mapState.sheetPath = NavigationPath()
+        mapState.navigationStack.reset()
     }
 
     /// Re-applies whatever is now on top of the navigation stack after a "back" tap trimmed it —
     /// restoring the map's selection and camera without pushing anything new onto the
     /// (already-correct) path.
     private func restoreSelection() {
-        switch navigationStack.top {
+        switch mapState.navigationStack.top {
         case let .station(station):
             focus(on: station, pushingPath: false)
         case let .train(selection):
@@ -291,15 +298,15 @@ struct MapScreen: View {
             } else {
                 // A train with no advertised number (freight or service) has no key to re-focus
                 // by, but its live id still selects the marker and re-centres the camera.
-                selectedStation = nil
-                selectedKey = nil
-                selectedTrainID = selection.liveID
+                mapState.selectedStation = nil
+                mapState.selectedKey = nil
+                mapState.selectedTrainID = selection.liveID
             }
         case nil:
-            selectedTrainID = nil
-            selectedKey = nil
-            selectedStation = nil
-            deferredFocus = nil
+            mapState.selectedTrainID = nil
+            mapState.selectedKey = nil
+            mapState.selectedStation = nil
+            mapState.deferredFocus = nil
         }
     }
 
@@ -309,9 +316,9 @@ struct MapScreen: View {
     /// Does nothing in the regular size class (no card), when the caller is restoring a selection
     /// after "back" (`shouldPush` false), or when that screen is already on top.
     private func push(_ route: MapSheetRoute, if shouldPush: Bool) {
-        guard shouldPush, !isRegular, navigationStack.push(route) else { return }
-        sheetPath.append(route)
-        sheetDetent = .medium
+        guard shouldPush, !isRegular, mapState.navigationStack.push(route) else { return }
+        mapState.sheetPath.append(route)
+        mapState.sheetDetent = .medium
     }
 
     /// Selects a train from a list or search result: zooms to it when it has a live position.
@@ -329,14 +336,14 @@ struct MapScreen: View {
     /// Selects a station: zooms the camera there, marks it on the map, and opens its board — used
     /// by search, quick stations and station deep links alike.
     private func focus(on station: TrainStation, pushingPath: Bool = true) {
-        selectedTrainID = nil
-        selectedKey = nil
-        deferredFocus = nil
-        selectedStation = station
+        mapState.selectedTrainID = nil
+        mapState.selectedKey = nil
+        mapState.deferredFocus = nil
+        mapState.selectedStation = station
         push(.station(station), if: pushingPath)
         if let coordinate = station.coordinate {
             withAnimation(.smooth) {
-                camera = cameraFocusing(
+                mapState.camera = cameraFocusing(
                     CLLocationCoordinate2D(latitude: coordinate.latitude, longitude: coordinate.longitude),
                     spanDegrees: 0.3
                 )
@@ -346,27 +353,27 @@ struct MapScreen: View {
 
     private func focus(on key: TrainKey, pushingPath: Bool = true) {
         navigation.pendingMapFocus = nil
-        deferredFocus = nil
+        mapState.deferredFocus = nil
         if let train = live.train(for: key) {
-            selectedStation = nil
-            selectedKey = key
-            selectedTrainID = train.id
+            mapState.selectedStation = nil
+            mapState.selectedKey = key
+            mapState.selectedTrainID = train.id
             // Pushed here rather than left to `selectedTrainID`'s observer, which can't fire when
             // the id is unchanged (re-selecting the same train) and doesn't know about
             // `pushingPath` (a "back" restore must not push anything).
             push(.train(TrainSelection(key: key, liveID: train.id)), if: pushingPath)
             withAnimation(.smooth) {
-                camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.3)
+                mapState.camera = cameraFocusing(train.clCoordinate, spanDegrees: 0.3)
             }
         } else if live.state.isLive || !live.trains.isEmpty {
             // No live position (yet); still open the timetable.
-            selectedStation = nil
-            selectedKey = key
-            selectedTrainID = nil
+            mapState.selectedStation = nil
+            mapState.selectedKey = key
+            mapState.selectedTrainID = nil
             push(.train(TrainSelection(key: key, liveID: nil)), if: pushingPath)
         } else {
             // Live data not loaded yet; try again once positions arrive.
-            deferredFocus = DeferredFocus(key: key, pushesPath: pushingPath)
+            mapState.deferredFocus = MapState.DeferredFocus(key: key, pushesPath: pushingPath)
         }
     }
 }
