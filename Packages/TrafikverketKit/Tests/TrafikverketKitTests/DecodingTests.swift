@@ -36,6 +36,13 @@ struct DecodingTests {
         #expect(departure.toLocation?.first?.locationName == "G")
         #expect(departure.delay == 8 * 60.0)
         #expect(!departure.hasDeparted)
+        #expect(departure.announcedTrack == "11")
+        // A blank field, or the "X" the API sends for a train with no track of its own, is no track.
+        var unassigned = departure
+        unassigned.trackAtLocation = "X"
+        #expect(unassigned.announcedTrack == nil)
+        unassigned.trackAtLocation = "  "
+        #expect(unassigned.announcedTrack == nil)
 
         let arrival = result.objects[1]
         #expect(arrival.activityType == .arrival)
@@ -44,6 +51,7 @@ struct DecodingTests {
         #expect(arrival.deviation?.first?.description == "Spårändrat")
 
         #expect(result.objects[2].isCanceled)
+        #expect(result.objects[2].announcedTrack == nil)
     }
 
     @Test func decodesStations() throws {

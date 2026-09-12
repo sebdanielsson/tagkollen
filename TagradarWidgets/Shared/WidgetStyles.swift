@@ -39,20 +39,3 @@ struct TimePair: View {
         return abs(expected.timeIntervalSince(planned)) >= 60
     }
 }
-
-/// Track number chip.
-struct TrackChip: View {
-    let track: String?
-
-    var body: some View {
-        if let track, !track.isEmpty {
-            Text(track)
-                .font(.caption2.weight(.bold))
-                .monospacedDigit()
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1)
-                .background(.quaternary, in: .rect(cornerRadius: 4))
-                .accessibilityLabel(Text("Track \(track)"))
-        }
-    }
-}

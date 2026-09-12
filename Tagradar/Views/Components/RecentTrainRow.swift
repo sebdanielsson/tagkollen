@@ -42,13 +42,16 @@ struct RecentTrainRow: View {
             }
             Spacer()
             if let snapshot {
-                switch snapshot.status {
-                case .arrived:
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                case .canceled:
-                    DelayBadge(delay: nil, canceled: true, compact: true)
-                default:
-                    DelayBadge(delay: snapshot.delay, compact: true)
+                VStack(alignment: .trailing, spacing: 4) {
+                    TrackChip(track: snapshot.currentTrack, compact: true)
+                    switch snapshot.status {
+                    case .arrived:
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    case .canceled:
+                        DelayBadge(delay: nil, canceled: true, compact: true)
+                    default:
+                        DelayBadge(delay: snapshot.delay, compact: true)
+                    }
                 }
             }
         }

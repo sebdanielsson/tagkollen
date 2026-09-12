@@ -125,6 +125,7 @@ targets:
       - path: Tagradar/Support/SharedStorage.swift
       - path: Tagradar/Support/StationNames.swift
       - path: Tagradar/Views/Components/DelayBadge.swift
+      - path: Tagradar/Views/Components/TrackChip.swift
       - path: Tagradar/Resources/Localizable.xcstrings
       # The extension is its own binary, so it needs its own declaration of the required-reason
       # APIs it uses — SharedStorage above reaches UserDefaults through the App Group.

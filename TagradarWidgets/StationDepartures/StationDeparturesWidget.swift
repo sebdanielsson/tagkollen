@@ -25,8 +25,7 @@ struct DepartureItem: Hashable, Sendable, Identifiable {
         let targets = (row.toLocation ?? []).sorted { ($0.order ?? 0) < ($1.order ?? 0) }
         destination = targets.map { names.shortName($0.locationName) }.joined(separator: " / ")
         product = row.productInformation?.first?.description
-        let raw = row.trackAtLocation?.trimmingCharacters(in: .whitespaces) ?? ""
-        track = raw.isEmpty || raw.lowercased() == "x" ? nil : raw
+        track = row.announcedTrack
         canceled = row.isCanceled
         delay = row.delay
     }
@@ -187,7 +186,7 @@ struct StationDeparturesView: View {
                 if item.canceled {
                     Text("Canceled").font(.caption2.weight(.semibold)).foregroundStyle(.red)
                 } else {
-                    TrackChip(track: item.track)
+                    TrackChip(track: item.track, compact: true)
                 }
             }
         }

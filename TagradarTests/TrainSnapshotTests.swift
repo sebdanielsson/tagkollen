@@ -96,6 +96,24 @@ struct TrainSnapshotTests {
         #expect(snapshot.progress == 1)
     }
 
+    @Test("The track to show is the boarding stop's until the train is boarded, then the next stop's")
+    func trackToShow() throws {
+        let journey = try SampleRun.lateFromOriginRecoveringLater()
+        // Boarding at Gävle, still waiting: the track that run leaves Gävle from.
+        #expect(TrainSnapshot(journey: journey, segment: TripSegment(boarding: "Gä", alighting: "Suc")).currentTrack == "3")
+        // Aboard since Stockholm: the track it pulls in at next.
+        let aboard = TrainSnapshot(journey: journey)
+        #expect(aboard.status == .enRoute)
+        #expect(aboard.currentTrack == "1")
+        // Nothing to act on once the trip is over.
+        let done = try TrainSnapshot(journey: TrainJourney(key: SampleRun.key, announcements: [
+            SampleRun.row("1", .departure, at: "Cst", planned: "10:00", actual: "10:00"),
+            SampleRun.row("2", .arrival, at: "U", planned: "10:40", actual: "10:45", track: "5"),
+        ]), segment: TripSegment(boarding: "Cst", alighting: "U"))
+        #expect(done.status == .arrived)
+        #expect(done.currentTrack == nil)
+    }
+
     @Test("Segment with unknown or reversed stations falls back to the whole run")
     func invalidSegment() throws {
         let stops = try SampleRun.lateFromOriginRecoveringLater().stops

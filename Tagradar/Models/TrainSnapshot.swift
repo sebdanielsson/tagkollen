@@ -77,6 +77,16 @@ struct TrainSnapshot: Hashable, Sendable, Identifiable {
         status == .canceled
     }
 
+    /// The track the traveller needs right now: the one their train leaves the boarding stop from
+    /// until it has, then the one it pulls in at next. Nothing once the trip is over or called off.
+    var currentTrack: String? {
+        switch status {
+        case .scheduled: originTrack
+        case .enRoute: nextStopTrack
+        case .arrived, .canceled, nil: nil
+        }
+    }
+
     /// Departure time to show: the estimate when one exists, otherwise the timetable.
     var bestDeparture: Date? {
         expectedDeparture ?? scheduledDeparture
