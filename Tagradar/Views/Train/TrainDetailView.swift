@@ -13,6 +13,7 @@ struct TrainDetailView: View {
     @Environment(JourneyStore.self) private var journeyStore
     @Environment(LiveTrainStore.self) private var live
     @Environment(StationDirectory.self) private var stations
+    @Environment(AppSettings.self) private var settings
     @Environment(AppNavigation.self) private var navigation
     @Environment(LiveActivityController.self) private var activities
     @Environment(TrainMonitor.self) private var monitor
@@ -184,6 +185,7 @@ struct TrainDetailView: View {
         .refreshable { await load() }
         .task(id: effectiveKey?.id) {
             await load()
+            rememberVisit()
             await autoRefresh()
         }
         .alert("Could not start Live Activity", isPresented: Binding(get: { followError != nil }, set: {
@@ -228,6 +230,15 @@ struct TrainDetailView: View {
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    /// Notes the visit so the map card can offer a way back to this run. Deliberately not inside
+    /// `load()`, which also runs on every pull and every auto-refresh tick: opening a train is the
+    /// event worth remembering, not looking at it for a while. Without a journey there is nothing
+    /// to show in a row, so a failed load leaves no trace.
+    private func rememberVisit() {
+        guard let key = effectiveKey, let journey else { return }
+        settings.addRecentTrain(RecentTrain(key: key, journey: journey))
     }
 
     private func autoRefresh() async {
