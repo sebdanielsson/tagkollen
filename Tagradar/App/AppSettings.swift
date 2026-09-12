@@ -56,11 +56,20 @@ final class AppSettings {
     /// Train runs the user has opened, newest first — not necessarily saved as favorites.
     /// Runs whose journey is over are dropped as they are read, so the stored list never needs
     /// sweeping and a card built from it can't offer a shortcut back to yesterday.
+    /// Ordered by `openedAt` rather than by how the list happens to be stored, so the field the
+    /// record carries is the one the order actually comes from. The key breaks ties, because
+    /// `sorted` is not stable and two runs opened in the same instant would otherwise swap around
+    /// between reads.
     var recentTrains: [RecentTrain] {
-        storedRecentTrains.filter { $0.isCurrent() }
+        storedRecentTrains
+            .filter { $0.isCurrent() }
+            .sorted { ($0.openedAt, $0.id) > ($1.openedAt, $1.id) }
     }
 
+    /// A run too old to be read back is not stored at all: it would take one of the eight slots
+    /// and push out a run the card can still show, so the list would appear to lose a train.
     func addRecentTrain(_ train: RecentTrain) {
+        guard train.isCurrent() else { return }
         var list = storedRecentTrains.filter { $0.id != train.id && $0.isCurrent() }
         list.insert(train, at: 0)
         storedRecentTrains = Array(list.prefix(8))
@@ -68,7 +77,10 @@ final class AppSettings {
 
     private var storedRecentTrains: [RecentTrain] {
         didSet {
-            defaults.set(try? JSONEncoder().encode(storedRecentTrains), forKey: Keys.recentTrains)
+            // Passing a nil `Data` here would *remove* the key and wipe the history; keeping the
+            // last good value is the better failure.
+            guard let data = try? JSONEncoder().encode(storedRecentTrains) else { return }
+            defaults.set(data, forKey: Keys.recentTrains)
         }
     }
 

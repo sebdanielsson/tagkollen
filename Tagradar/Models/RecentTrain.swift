@@ -44,9 +44,9 @@ struct RecentTrain: Codable, Hashable, Identifiable, Sendable {
     }
 
     /// Whether the run is still worth offering. A journey that ended hours ago is history, not a
-    /// shortcut — the same window `MapSheet` uses to retire a saved train from the card.
+    /// shortcut — the same window the saved tab uses, so the two never retire a run at
+    /// different times.
     func isCurrent(now: Date = .now) -> Bool {
-        let end = scheduledArrival ?? departureDate.addingTimeInterval(36 * 3600)
-        return end.addingTimeInterval(3 * 3600) > now
+        TrainSnapshot.isCurrentRun(departureDate: departureDate, scheduledArrival: scheduledArrival, now: now)
     }
 }
