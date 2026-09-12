@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import os
 import TrafikverketKit
@@ -70,6 +71,24 @@ final class StationDirectory {
             }
         }
         return Array((exact + prefix + contains).prefix(limit))
+    }
+
+    /// The closest advertised station to `location`, or `nil` beyond `maxDistance` — far enough
+    /// that the result would no longer plausibly be "where the user is", e.g. abroad.
+    func nearest(to location: CLLocation, maxDistance: CLLocationDistance = 40000) -> TrainStation? {
+        Self.nearest(among: located, to: location, maxDistance: maxDistance)
+    }
+
+    nonisolated static func nearest(
+        among located: [LocatedStation], to location: CLLocation, maxDistance: CLLocationDistance = 40000
+    ) -> TrainStation? {
+        located
+            .map { located in (located, location.distance(from: CLLocation(
+                latitude: located.coordinate.latitude, longitude: located.coordinate.longitude
+            ))) }
+            .filter { $0.1 <= maxDistance }
+            .min { $0.1 < $1.1 }
+            .map(\.0.station)
     }
 
     // MARK: Loading

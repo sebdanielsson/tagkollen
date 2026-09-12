@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 import TrafikverketKit
 
@@ -38,9 +37,8 @@ struct MapSheet: View {
 
     @Environment(AppDependencies.self) private var deps
     @Environment(StationDirectory.self) private var stations
-    @Environment(AppSettings.self) private var settings
     @Environment(SpeechSearch.self) private var speech
-    @Query(sort: \FavoriteStation.createdAt) private var favoriteStations: [FavoriteStation]
+    @Environment(\.openURL) private var openURL
 
     @State private var query = ""
     @State private var date = Date.now
@@ -48,6 +46,8 @@ struct MapSheet: View {
     @State private var isSearching = false
     @State private var searchError: String?
     @State private var showSettings = false
+    /// Owned here rather than by `NearbyDeparturesCard`, which the sheet swaps out while searching.
+    @State private var showLocationDeniedAlert = false
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -65,6 +65,16 @@ struct MapSheet: View {
         }
         .sheet(isPresented: $showSettings) {
             NavigationStack { SettingsView() }
+        }
+        .alert("Location access is off", isPresented: $showLocationDeniedAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    openURL(url)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Allow location access for Tågradar in Settings to see departures near you.")
         }
         .onChange(of: searchFocused) { _, focused in
             if focused {
@@ -173,133 +183,12 @@ struct MapSheet: View {
     @ViewBuilder
     private var idleContent: some View {
         MapTrainsCard(style: style, onSelectTrain: onSelectTrain)
-        // `StationDirectory` fills in asynchronously and resolves nothing until it does, so
-        // offline on a first launch this would be a heading over an empty card.
-        if !quickStations.isEmpty {
-            stationsSection
-        }
-    }
-
-    private enum QuickStationKind {
-        case favorite, recent, major
-
-        var symbol: String {
-            switch self {
-            case .favorite: "star.fill"
-            case .recent: "clock.arrow.circlepath"
-            case .major: "building.columns.fill"
-            }
-        }
-
-        var tint: Color {
-            switch self {
-            case .favorite: .yellow
-            case .recent: .accentColor
-            // Darkened because `.gradient` lifts the top of the circle: plain `.gray` leaves the
-            // white glyph at 2.6:1, under the 3:1 floor for graphical objects. Not `.secondary` —
-            // that is a 60%-alpha *label* colour, so the bubble would tint with whatever is behind it.
-            case .major: .gray.mix(with: .black, by: 0.25)
-            }
-        }
-    }
-
-    private struct QuickStation: Identifiable {
-        let station: TrainStation
-        let kind: QuickStationKind
-        var id: String {
-            station.id
-        }
-    }
-
-    /// Starred stations first, then recently opened ones, then the big hubs.
-    private var quickStations: [QuickStation] {
-        let majors = ["Cst", "G", "M", "U", "Lp", "Nr", "Vå", "Öb", "Hb", "Lu", "Gä", "Suc", "Umå"]
-        var seen = Set<String>()
-        let ordered: [(String, QuickStationKind)] = favoriteStations.map { ($0.signature, .favorite) }
-            + settings.recentStations.map { ($0, .recent) }
-            + majors.map { ($0, .major) }
-        return ordered
-            .filter { seen.insert($0.0).inserted }
-            .compactMap { sig, kind in stations.station(sig).map { QuickStation(station: $0, kind: kind) } }
-            // The strip is swiped sideways, so it stops at a sensible number; the sidebar is a
-            // scrolling list and showing every starred station is the point of it.
-            .prefix(style == .sidebar ? .max : 14)
-            .map(\.self)
-    }
-
-    private var stationsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Stations")
-                .font(.title3.weight(.semibold))
-            if style == .sidebar {
-                stationList
-            } else {
-                stationStrip
-            }
-        }
-    }
-
-    /// The sidebar has the height for a proper list: full names, and the icon says why a station
-    /// is here (starred, recent, or simply a big one).
-    private var stationList: some View {
-        let items = quickStations
-        return VStack(spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                Button {
-                    open(item.station)
-                } label: {
-                    HStack {
-                        Image(systemName: item.kind.symbol)
-                            .foregroundStyle(item.kind.tint)
-                            .frame(width: 28)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.station.name)
-                            Text(item.station.locationSignature).font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right").foregroundStyle(.tertiary).imageScale(.small)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                if index < items.count - 1 {
-                    Divider().padding(.leading, 56)
-                }
-            }
-        }
-        .background(.fill.quaternary, in: .rect(cornerRadius: 16))
-    }
-
-    /// The card's compact take: a row of circles to swipe through.
-    private var stationStrip: some View {
-        ScrollView(.horizontal) {
-            HStack(alignment: .top, spacing: 14) {
-                ForEach(quickStations) { item in
-                    let station = item.station
-                    Button {
-                        open(station)
-                    } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: item.kind.symbol)
-                                .font(.title3)
-                                .foregroundStyle(.white)
-                                .frame(width: 56, height: 56)
-                                .background(item.kind.tint.gradient, in: .circle)
-                            Text(station.advertisedShortLocationName ?? station.name)
-                                .font(.caption)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .frame(width: 72)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 2)
-        }
-        .scrollIndicators(.hidden)
+        QuickStationsRow(style: style, onSelectStation: open)
+        NearbyDeparturesCard(
+            onSelectTrain: onSelectTrain,
+            onSelectStation: open,
+            showLocationDeniedAlert: $showLocationDeniedAlert
+        )
     }
 
     // MARK: Search results

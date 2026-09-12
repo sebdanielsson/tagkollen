@@ -77,12 +77,12 @@ struct StationBoardView: View {
                 } else {
                     ForEach(rows) { row in
                         if let onSelectTrain {
-                            Button { onSelectTrain(key(for: row)) } label: {
+                            Button { onSelectTrain(row.key) } label: {
                                 AnnouncementRow(announcement: row)
                             }
                             .buttonStyle(.plain)
                         } else {
-                            NavigationLink(value: key(for: row)) {
+                            NavigationLink(value: row.key) {
                                 AnnouncementRow(announcement: row)
                             }
                         }
@@ -144,10 +144,6 @@ struct StationBoardView: View {
             modelContext.insert(FavoriteStation(signature: station.locationSignature, name: station.name))
         }
         try? modelContext.save()
-    }
-
-    private func key(for row: TrainAnnouncement) -> TrainKey {
-        TrainKey(ident: row.advertisedTrainIdent ?? "", departureDate: row.scheduledDepartureDateTime ?? .now)
     }
 
     private func load() async {

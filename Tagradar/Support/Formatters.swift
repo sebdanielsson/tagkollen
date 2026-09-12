@@ -65,6 +65,14 @@ enum Format {
         return measurement.formatted(.measurement(width: .abbreviated, usage: .general))
     }
 
+    /// `850 m away` or `1.2 km away`, in the user's preferred unit system.
+    static func distance(_ meters: Double?) -> String? {
+        guard let meters else { return nil }
+        let measurement = Measurement(value: meters, unit: UnitLength.meters)
+        let value = measurement.formatted(.measurement(width: .abbreviated, usage: .general))
+        return String(localized: "\(value) away")
+    }
+
     static func compass(_ bearing: Int?) -> String? {
         guard let bearing else { return nil }
         let directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]

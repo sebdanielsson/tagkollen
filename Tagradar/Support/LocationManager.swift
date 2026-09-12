@@ -11,7 +11,9 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
     var pendingCenter = false
 
     private let manager = CLLocationManager()
-    private var pendingRequests: [CheckedContinuation<CLLocation?, Never>] = []
+    /// Keyed so a cancelled caller can drop its own request without disturbing the others waiting
+    /// on the same fix.
+    private var pendingRequests: [UUID: CheckedContinuation<CLLocation?, Never>] = [:]
 
     override init() {
         status = manager.authorizationStatus
@@ -32,19 +34,32 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
     }
 
     /// One-shot fix, or nil when unavailable. Requires authorization.
+    ///
+    /// Honours cancellation: CoreLocation is free to stay silent — indoors, or with location
+    /// services wedged — and without this a cancelled caller would stay suspended for as long as
+    /// it takes the next delegate callback to arrive, if one ever does.
     func currentLocation() async -> CLLocation? {
-        guard isAuthorized else { return nil }
+        guard isAuthorized, !Task.isCancelled else { return nil }
         if let recent = manager.location, Date.now.timeIntervalSince(recent.timestamp) < 60 {
             return recent
         }
-        return await withCheckedContinuation { continuation in
-            pendingRequests.append(continuation)
-            manager.requestLocation()
+        let id = UUID()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                pendingRequests[id] = continuation
+                manager.requestLocation()
+            }
+        } onCancel: {
+            Task { @MainActor in self.cancelPending(id) }
         }
     }
 
+    private func cancelPending(_ id: UUID) {
+        pendingRequests.removeValue(forKey: id)?.resume(returning: nil)
+    }
+
     private func resolvePending(with location: CLLocation?) {
-        let waiting = pendingRequests
+        let waiting = pendingRequests.values
         pendingRequests.removeAll()
         for continuation in waiting {
             continuation.resume(returning: location)
