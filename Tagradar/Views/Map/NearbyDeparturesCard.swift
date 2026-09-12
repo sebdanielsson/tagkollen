@@ -62,12 +62,16 @@ struct NearbyDeparturesCard: View {
         var revision: Int
     }
 
-    /// Rows shown before "Show more"; `fetchLimit` is fetched up front so expanding is instant.
+    /// Rows shown before "Show more"; `maxRows` is fetched up front so expanding is instant.
     private static let previewCount = 3
-    /// What "Show more" reveals. Comfortably more than the preview because the query is ordered by
-    /// advertised time and capped here: at a hub the lookback below can spend several of these
-    /// slots on runs that have already gone, and the point of the card is the ones that have not.
-    private static let fetchLimit = 12
+    /// What "Show more" reveals, counted after the departed runs have been dropped.
+    private static let maxRows = 8
+    /// Asked of the API, which applies its limit before this card gets to filter anything. A hub
+    /// can fill the lookback window below with runs that have already gone, so a limit near
+    /// `maxRows` would spend the whole response on them and leave the card looking empty at the
+    /// busiest station it will ever be used at. Bounded well above that, not unbounded: this runs
+    /// on a location fix, and the six-hour window the query defaults to is a lot of train.
+    private static let fetchLimit = 60
     /// The board filters on the advertised time, so this window has to reach back far enough that
     /// a run still standing at the platform on a delay is not read as one that has left. Matches
     /// `StationBoardView`, which asks the same question of a station the user picked by hand.
@@ -327,7 +331,7 @@ struct NearbyDeparturesCard: View {
             // and the query is ordered by advertised time, so unfiltered they take the preview's
             // three rows at a hub. `timeAtLocation` is the API recording that the call actually
             // happened — departure or arrival — so a late train still waiting has none and stays.
-            let pending = fetched.filter { !$0.hasDeparted }
+            let pending = Array(fetched.filter { !$0.hasDeparted }.prefix(Self.maxRows))
             rows = pending
             loadedBoard = board
             error = nil
@@ -395,6 +399,12 @@ private struct SkeletonRows: View {
         .redacted(reason: .placeholder)
         .opacity(isPulsing ? 0.4 : 1)
         .background(.fill.quaternary, in: .rect(cornerRadius: 16))
+        // `redacted` blurs the placeholders on screen but leaves them in the accessibility tree,
+        // so without this VoiceOver reads out "00:00, Placeholder station" as though it were a
+        // departure. One "Loading" in place of the three fake rows says what is actually going on.
+        .accessibilityElement(children: .ignore)
+        // Not "Loading departures": the same skeleton stands in for the arrivals board.
+        .accessibilityLabel(Text("Loading"))
         .onAppear {
             withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
                 isPulsing = true

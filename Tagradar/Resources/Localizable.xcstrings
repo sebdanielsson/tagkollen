@@ -710,6 +710,16 @@
         }
       }
     },
+    "Loading": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läser in"
+          }
+        }
+      }
+    },
     "Location access is off": {
       "localizations": {
         "sv": {
