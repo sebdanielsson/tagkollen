@@ -4,7 +4,6 @@
 #   Scripts/simulator.sh                      # iPhone 17 Pro
 #   Scripts/simulator.sh "iPad Pro 13-inch (M5)"
 #   Scripts/simulator.sh "iPhone 17 Pro" shot.png   # also save a screenshot after launch
-#   TAB=search Scripts/simulator.sh                   # open a specific tab (map|saved|search), debug builds only
 #   TRAIN=520 Scripts/simulator.sh                    # open a train's detail at launch, debug builds only
 #   STATION=Cst Scripts/simulator.sh                  # open a station's board at launch, debug builds only
 #   SAVE=520,537 Scripts/simulator.sh                 # pin trains in Saved at launch, debug builds only
@@ -60,7 +59,6 @@ if [ -f .env.local ]; then
   set -a; source .env.local; set +a
 fi
 ARGS=()
-[ -n "${TAB:-}" ] && ARGS+=(-tab "$TAB")
 [ -n "${TRAIN:-}" ] && ARGS+=(-train "$TRAIN")
 [ -n "${STATION:-}" ] && ARGS+=(-station "$STATION")
 [ -n "${SAVE:-}" ] && ARGS+=(-save "$SAVE")

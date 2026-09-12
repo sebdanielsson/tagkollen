@@ -16,7 +16,7 @@ The `.xcodeproj` is generated and git-ignored. Edit `project.yml` instead and re
 - **Swift 6, strict concurrency.** Keep `@MainActor` on UI-facing observable classes and make everything else `Sendable`.
 - **No third-party dependencies.** The app should build with only Apple frameworks. Open an issue before proposing one.
 - **Only Trafikverket's open data** as a data source: the live Open API, plus the bundled NJDB track geometry (`docs/rail-network.md`). Other sources need a maintainer's OK first.
-- **iOS 26 only.** Use the native Liquid Glass components (`glassEffect`, `.glass` button styles, adaptive tab bar) rather than custom chrome.
+- **iOS 26 only.** Use the native Liquid Glass components (`glassEffect`, `.glass` button styles, `NavigationSplitView`) rather than custom chrome.
 - **iPhone and iPad.** Check both a compact (iPhone) and a regular (iPad) layout before opening a pull request.
 - **Localisation.** All user-facing strings go through SwiftUI's string catalog (`Localizable.xcstrings`). English is the source language; Swedish is a translation.
 - **Formatting and linting.** Run `swiftformat .` and `swiftlint` before committing. CI checks both.

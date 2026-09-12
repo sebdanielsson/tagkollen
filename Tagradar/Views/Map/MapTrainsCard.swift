@@ -5,6 +5,10 @@ import SwiftUI
 /// the ones they last opened. Both tabs render the same kind of row on purpose, so switching
 /// between them is a change of source, not of reading.
 struct MapTrainsCard: View {
+    /// Whether this is the iPhone card or the iPad sidebar. The card keeps its four rows; the
+    /// sidebar has the height to show every run, and to keep the ones that have already arrived
+    /// within reach instead of dropping them.
+    var style: MapSheet.Style = .card
     var onSelectTrain: (TrainKey) -> Void
 
     /// What the card is showing: what the user kept, or what they last looked at.
@@ -28,8 +32,16 @@ struct MapTrainsCard: View {
     /// but latched: the picker writes its selection back, so one render before `@Query` had
     /// delivered the favorites was enough to leave the card stuck on Recent.
     @State private var tab: Tab = .saved
+    @State private var showEarlier = false
+    /// Bumped by this card's own save and unsave. The feedback keys off it rather than off the
+    /// number of saved runs, because on iPad the inspector sits beside the card and its star
+    /// moves that number as well — which fired this card's haptic on top of the detail's.
+    @State private var toggles = 0
 
     private static let maxRows = 4
+    /// How many timetables to ask for at once. The sidebar renders every saved run, so the number
+    /// of rows is the user's to decide, and a long list should not open with a request per row.
+    private static let maxConcurrentLoads = 4
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -47,19 +59,60 @@ struct MapTrainsCard: View {
             case .recent: recentCard
             }
         }
+        // Once for the card rather than once per star: every visible star watching the same value
+        // would fire a burst of haptics proportional to the number of rows.
+        .sensoryFeedback(.success, trigger: toggles)
+        // Here rather than on `earlierSection`: that view is removed in the same update that
+        // empties the list, so an observer on it never sees the change and the group would come
+        // back expanded the next time a saved run ages into it.
+        .onChange(of: pastFavorites.isEmpty) { _, empty in
+            if empty {
+                showEarlier = false
+            }
+        }
     }
 
     /// Sorted by the time each row shows, not by the `@Query`'s `departureDate` — `TrainKey`
     /// normalises that to midnight, so runs saved for the same day tie and fall back to storage
     /// order, which here would also decide which four make the cut.
     private var upcomingFavorites: [FavoriteTrain] {
-        favorites.filter { fav in
-            let end = fav.scheduledArrival ?? fav.departureDate.addingTimeInterval(36 * 3600)
-            return end.addingTimeInterval(3 * 3600) > .now
+        favorites.filter { end(of: $0) > .now }
+            .map { ($0, departure(of: $0)) }
+            .sorted { $0.1 < $1.1 }
+            .map(\.0)
+    }
+
+    /// Runs that have already arrived, kept out of the main list but still reachable: without
+    /// them a train saved for a trip that is over cannot be found or unsaved at all, short of
+    /// searching the run up again. The card shows the same group as the sidebar, collapsed.
+    private var pastFavorites: [FavoriteTrain] {
+        favorites.filter { end(of: $0) <= .now }
+            .map { ($0, departure(of: $0)) }
+            .sorted { $0.1 > $1.1 }
+            .map(\.0)
+    }
+
+    /// When a saved run stops being upcoming, plus three hours of slack. Read through the same
+    /// snapshot as the row, so a trip segment ends at the alighting stop rather than at the
+    /// terminus — otherwise someone who gets off halfway keeps the row in Saved for the rest of
+    /// the run. `setSegment` clears the cached times when it has no journey to hand, so a segment
+    /// can have an alighting stop and no time for it; the run's own arrival is the answer then.
+    private func end(of fav: FavoriteTrain) -> Date {
+        var snapshot = TrainSnapshot(favorite: fav)
+        if let journey = journeyStore.cached(fav.key) {
+            snapshot.apply(journey)
         }
-        .map { ($0, departure(of: $0)) }
-        .sorted { $0.1 < $1.1 }
-        .map(\.0)
+        let arrival = snapshot.scheduledArrival
+            ?? fav.scheduledArrival
+            ?? fav.departureDate.addingTimeInterval(36 * 3600)
+        return arrival.addingTimeInterval(3 * 3600)
+    }
+
+    /// Whether to offer the "star a train" prompt. Only when this style has nothing to show at
+    /// all: the sidebar keeps past runs below, so telling someone to save their first train while
+    /// their saved trains sit just under it would be wrong.
+    private var showsSavedPrompt: Bool {
+        upcomingFavorites.isEmpty && pastFavorites.isEmpty
     }
 
     /// Read from the same snapshot `FavoriteTrainRow` renders, so a trip segment sorts by its
@@ -96,16 +149,14 @@ struct MapTrainsCard: View {
         } accessory: { recent in
             saveButton(for: recent)
         }
-        .task(id: recents.map(\.id)) {
-            for recent in recents.prefix(Self.maxRows) {
-                _ = try? await journeyStore.load(recent.key)
-            }
+        .task(id: shown(recents).map(\.id)) {
+            await load(shown(recents).map(\.key))
         }
     }
 
     @ViewBuilder
     private var savedCard: some View {
-        if upcomingFavorites.isEmpty {
+        if showsSavedPrompt {
             HStack(spacing: 12) {
                 Image(systemName: "star")
                     .font(.title3)
@@ -119,17 +170,82 @@ struct MapTrainsCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.fill.quaternary, in: .rect(cornerRadius: 16))
         } else {
-            rows(upcomingFavorites) { fav in
-                FavoriteTrainRow(favorite: fav, journey: journeyStore.cached(fav.key))
-            } select: {
-                onSelectTrain($0.key)
-            } accessory: { _ in
-                EmptyView()
+            if !upcomingFavorites.isEmpty {
+                savedRows(upcomingFavorites)
+                    .task(id: shown(upcomingFavorites).map(\.id)) {
+                        await load(shown(upcomingFavorites).map(\.key))
+                    }
             }
-            .task(id: upcomingFavorites.map(\.id)) {
-                for fav in upcomingFavorites.prefix(Self.maxRows) {
-                    _ = try? await journeyStore.load(fav.key)
+            if !pastFavorites.isEmpty {
+                earlierSection
+            }
+        }
+    }
+
+    /// Saved runs that have already arrived, so they can still be reached and unsaved. Collapsed
+    /// by default: they are history, not something to act on.
+    private var earlierSection: some View {
+        DisclosureGroup(isExpanded: $showEarlier) {
+            savedRows(pastFavorites)
+                .padding(.top, 10)
+                // Only once the group is open: a run that has arrived still has a journey to
+                // show, and the screen this replaced refreshed past favourites that had none,
+                // but fetching them behind a collapsed disclosure would be work nobody asked for.
+                .task(id: shown(pastFavorites).map(\.id)) {
+                    await load(shown(pastFavorites).map(\.key))
                 }
+        } label: {
+            Text("Earlier")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .tint(.secondary)
+        .padding(.top, upcomingFavorites.isEmpty ? 0 : 4)
+    }
+
+    /// Saved rows carry the same star as the Recent tab, so a run can be unsaved from the list it
+    /// is in — the only other way is to open the train and unstar it there.
+    private func savedRows(_ items: [FavoriteTrain]) -> some View {
+        rows(items) { fav in
+            FavoriteTrainRow(favorite: fav, journey: journeyStore.cached(fav.key))
+        } select: {
+            onSelectTrain($0.key)
+        } accessory: { fav in
+            // Labelled for what it does: on these rows the star is always filled, so describing
+            // the state would leave VoiceOver saying "Saved" on the control that removes.
+            star(saved: true, label: "Remove") { unsave(fav) }
+        }
+    }
+
+    /// Unsaves a run. Mirrors the star in `TrainDetailView` and in the Recent tab: the reminder
+    /// has to be cancelled and the widgets refreshed, or a removed train still notifies.
+    private func unsave(_ fav: FavoriteTrain) {
+        let id = fav.id
+        modelContext.delete(fav)
+        try? modelContext.save()
+        monitor.trainRemoved(id)
+        toggles += 1
+    }
+
+    /// What this style actually renders, so the loader and the rows agree on the set.
+    private func shown<Item>(_ items: [Item]) -> [Item] {
+        style == .sidebar ? items : Array(items.prefix(Self.maxRows))
+    }
+
+    /// Concurrently but a few at a time: the sidebar lists every run, so awaiting each in turn
+    /// would leave the last row blank for as many round trips, while starting them all at once
+    /// would put a request per saved run on the wire. `JourneyStore` de-duplicates anything
+    /// already in flight.
+    private func load(_ keys: [TrainKey]) async {
+        await withTaskGroup(of: Void.self) { group in
+            var remaining = keys.makeIterator()
+            for _ in 0 ..< Self.maxConcurrentLoads {
+                guard let key = remaining.next() else { break }
+                group.addTask { _ = try? await journeyStore.load(key) }
+            }
+            while await group.next() != nil {
+                guard let key = remaining.next() else { continue }
+                group.addTask { _ = try? await journeyStore.load(key) }
             }
         }
     }
@@ -137,9 +253,11 @@ struct MapTrainsCard: View {
     /// Says whether the run is saved, and saves or unsaves it without leaving the card.
     private func saveButton(for recent: RecentTrain) -> some View {
         let saved = favorite(for: recent) != nil
-        return Button {
-            toggleSaved(recent)
-        } label: {
+        return star(saved: saved, label: saved ? "Saved" : "Save") { toggleSaved(recent) }
+    }
+
+    private func star(saved: Bool, label: LocalizedStringKey, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             Image(systemName: saved ? "star.fill" : "star")
                 .font(.subheadline)
                 .foregroundStyle(saved ? Color.yellow : Color.secondary)
@@ -147,8 +265,7 @@ struct MapTrainsCard: View {
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text(saved ? "Saved" : "Save"))
-        .sensoryFeedback(.success, trigger: saved)
+        .accessibilityLabel(Text(label))
     }
 
     /// Mirrors the star in `TrainDetailView`: the same reminders and widget refresh have to follow,
@@ -167,9 +284,11 @@ struct MapTrainsCard: View {
             try? modelContext.save()
             monitor.trainSaved(fav, journey: journey)
         }
+        toggles += 1
     }
 
-    /// The shared body of both tabs: up to four tappable rows, divided, on one rounded card.
+    /// The shared body of both tabs: tappable rows, divided, on one rounded card — four of them
+    /// on the iPhone card, all of them in the sidebar.
     /// The accessory sits beside the row's button rather than inside its label — a button nested
     /// in another button's label never sees the tap.
     private func rows<Item: Identifiable>(
@@ -178,7 +297,7 @@ struct MapTrainsCard: View {
         select: @escaping (Item) -> Void,
         @ViewBuilder accessory: @escaping (Item) -> some View
     ) -> some View {
-        let shown = Array(items.prefix(Self.maxRows))
+        let shown = shown(items)
         return VStack(spacing: 0) {
             ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
                 HStack(spacing: 0) {

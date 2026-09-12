@@ -8,9 +8,9 @@ struct StationBoardView: View {
     let station: TrainStation
     /// When set (the map card on iPhone), selecting a train goes through this instead of a plain
     /// push, so the map behind can update too — and so the push goes through `MapScreen`, which
-    /// mirrors the card's navigation path in a typed shadow. `nil` elsewhere: the board pushes
-    /// trains itself onto the enclosing stack, in the Search and Saved tabs and in the iPad map
-    /// inspector, where the map deliberately stays on the station being read.
+    /// mirrors the card's navigation path in a typed shadow. `nil` in the iPad inspector, where
+    /// the board pushes trains itself onto the enclosing stack and the map deliberately stays on
+    /// the station being read.
     var onSelectTrain: ((TrainKey) -> Void)?
 
     enum Board: String, CaseIterable, Identifiable {
@@ -26,7 +26,6 @@ struct StationBoardView: View {
 
     @Environment(AppDependencies.self) private var deps
     @Environment(AppSettings.self) private var settings
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.modelContext) private var modelContext
     @Query private var favoriteStations: [FavoriteStation]
     @State private var board: Board = .departures

@@ -1,28 +1,22 @@
 import Foundation
 import SwiftUI
 
-/// Cross-tab navigation state: which tab is showing and any pending "show this train on the map".
+/// Requests from outside the map — widget deep links, launch arguments — for the map to show
+/// something. The map consumes each one and clears it.
 @MainActor
 @Observable
 final class AppNavigation {
-    enum Tab: Hashable {
-        case map, favorites, search
-    }
-
-    var selectedTab: Tab = .map
-    /// Set by other screens; the map consumes it, centres on the train and opens its detail.
+    /// A train to centre on and open the detail of.
     var pendingMapFocus: TrainKey?
-    /// A station board to open, by location signature. Set from widget deep links.
+    /// A station board to open, by location signature.
     var pendingStationSignature: String?
 
     func showOnMap(_ key: TrainKey) {
         pendingMapFocus = key
-        selectedTab = .map
     }
 
     func showStation(_ signature: String) {
         pendingStationSignature = signature
-        selectedTab = .search
     }
 
     /// Handles `tagradar://train/<ident>@<yyyy-MM-dd>`, `tagradar://train/<ident>` (today) and

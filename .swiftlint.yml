@@ -2,6 +2,7 @@ included:
   - Tagradar
   - TagradarWidgets
   - TagradarTests
+  - TagradarUITests
   - Packages/TrafikverketKit/Sources
   - Packages/TrafikverketKit/Tests
 excluded:

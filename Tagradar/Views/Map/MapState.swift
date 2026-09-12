@@ -3,15 +3,14 @@ import SwiftUI
 import TrafikverketKit
 
 /// The map's durable state — camera, selection and the bottom card's trail — kept outside
-/// `MapScreen` so it survives that view being rebuilt.
+/// `MapScreen` so it never depends on that view keeping its identity.
 ///
-/// `RootView` hosts `MapScreen` in two structurally different places: bare in the iPhone layout
-/// and inside a `Tab` in the tabbed one. A change of horizontal size class therefore gives SwiftUI
-/// a new view identity and discards whatever `@State` the old `MapScreen` held. That flip happens
-/// whenever an iPhone Plus or Max rotates to landscape, and on iPhone Duo every time the device
-/// opens or closes. Owning this object in `RootView` and reading it through the environment, the
-/// way `AppNavigation` already is, keeps the camera where the user left it and the selected train
-/// selected across the swap.
+/// `MapScreen` lays itself out differently per size class (a bottom card on iPhone, a sidebar and
+/// an inspector on iPad), and a change of horizontal size class — an iPhone Plus or Max rotating
+/// to landscape, an iPhone Duo opening or closing — swaps those layouts and rebuilds the views
+/// inside them. Owning this object in `RootView` and reading it through the environment, the way
+/// `AppNavigation` is, keeps the camera where the user left it and the selected train selected no
+/// matter what gets rebuilt underneath.
 @MainActor
 @Observable
 final class MapState {

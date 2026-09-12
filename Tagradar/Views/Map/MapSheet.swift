@@ -13,9 +13,21 @@ struct TrainSelection: Hashable {
     var liveID: String?
 }
 
-/// The persistent bottom card on iPhone: search, saved trains, quick stations and current delays.
-/// Train and station details push inside the card, like place cards in Apple Maps.
+/// Search, trains and stations. The persistent bottom card on iPhone, where train and station
+/// details push inside it like place cards in Apple Maps; the sidebar on iPad, where the details
+/// open in an inspector instead and both lists are shown in full rather than shortened.
 struct MapSheet: View {
+    /// Where the sheet is being shown. Decided by `MapScreen`, not read from the size class: a
+    /// `NavigationSplitView` sidebar column is compact width whatever the device, so the
+    /// environment would call the iPad sidebar a phone card.
+    enum Style {
+        /// The bottom card on iPhone: room for the next few trains and a strip of stations.
+        case card
+        /// The iPad sidebar: every train the card would have truncated, and a full station list.
+        case sidebar
+    }
+
+    var style: Style = .card
     /// Owned by `MapScreen`, which mirrors it in a typed shadow (`MapNavigationStack`) so a pop
     /// can restore the map. Nothing inside this stack may append to it directly — every push has
     /// to go through `MapScreen`, or the shadow silently drifts and misdirects the next "back".
@@ -160,8 +172,12 @@ struct MapSheet: View {
 
     @ViewBuilder
     private var idleContent: some View {
-        MapTrainsCard(onSelectTrain: onSelectTrain)
-        stationsSection
+        MapTrainsCard(style: style, onSelectTrain: onSelectTrain)
+        // `StationDirectory` fills in asynchronously and resolves nothing until it does, so
+        // offline on a first launch this would be a heading over an empty card.
+        if !quickStations.isEmpty {
+            stationsSection
+        }
     }
 
     private enum QuickStationKind {
@@ -198,7 +214,9 @@ struct MapSheet: View {
         return ordered
             .filter { seen.insert($0.0).inserted }
             .compactMap { sig, kind in stations.station(sig).map { QuickStation(station: $0, kind: kind) } }
-            .prefix(14)
+            // The strip is swiped sideways, so it stops at a sensible number; the sidebar is a
+            // scrolling list and showing every starred station is the point of it.
+            .prefix(style == .sidebar ? .max : 14)
             .map(\.self)
     }
 
@@ -206,33 +224,75 @@ struct MapSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Stations")
                 .font(.title3.weight(.semibold))
-            ScrollView(.horizontal) {
-                HStack(alignment: .top, spacing: 14) {
-                    ForEach(quickStations) { item in
-                        let station = item.station
-                        Button {
-                            open(station)
-                        } label: {
-                            VStack(spacing: 6) {
-                                Image(systemName: item.kind.symbol)
-                                    .font(.title3)
-                                    .foregroundStyle(.white)
-                                    .frame(width: 56, height: 56)
-                                    .background(item.kind.tint.gradient, in: .circle)
-                                Text(station.advertisedShortLocationName ?? station.name)
-                                    .font(.caption)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(2)
-                                    .frame(width: 72)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 2)
+            if style == .sidebar {
+                stationList
+            } else {
+                stationStrip
             }
-            .scrollIndicators(.hidden)
         }
+    }
+
+    /// The sidebar has the height for a proper list: full names, and the icon says why a station
+    /// is here (starred, recent, or simply a big one).
+    private var stationList: some View {
+        let items = quickStations
+        return VStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                Button {
+                    open(item.station)
+                } label: {
+                    HStack {
+                        Image(systemName: item.kind.symbol)
+                            .foregroundStyle(item.kind.tint)
+                            .frame(width: 28)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.station.name)
+                            Text(item.station.locationSignature).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").foregroundStyle(.tertiary).imageScale(.small)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                if index < items.count - 1 {
+                    Divider().padding(.leading, 56)
+                }
+            }
+        }
+        .background(.fill.quaternary, in: .rect(cornerRadius: 16))
+    }
+
+    /// The card's compact take: a row of circles to swipe through.
+    private var stationStrip: some View {
+        ScrollView(.horizontal) {
+            HStack(alignment: .top, spacing: 14) {
+                ForEach(quickStations) { item in
+                    let station = item.station
+                    Button {
+                        open(station)
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: item.kind.symbol)
+                                .font(.title3)
+                                .foregroundStyle(.white)
+                                .frame(width: 56, height: 56)
+                                .background(item.kind.tint.gradient, in: .circle)
+                            Text(station.advertisedShortLocationName ?? station.name)
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .frame(width: 72)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+        .scrollIndicators(.hidden)
     }
 
     // MARK: Search results

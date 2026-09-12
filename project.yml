@@ -177,6 +177,17 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: "$(TAGRADAR_BUNDLE_ID).tests"
         GENERATE_INFOPLIST_FILE: YES
+  TagradarUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    supportedDestinations: [iOS, iPadOS]
+    sources: [TagradarUITests]
+    dependencies:
+      - target: Tagradar
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: "$(TAGRADAR_BUNDLE_ID).uitests"
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   Tagradar:
     build:
@@ -194,3 +205,16 @@ schemes:
         - package: TrafikverketKit/TrafikverketKitTests
     archive:
       config: Release
+  # Rotates the running app and checks the selection and the iPad sidebar survive it. Kept out of
+  # the Tagradar scheme so CI's test run stays fast and offline-safe; it needs live train data.
+  TagradarUITests:
+    build:
+      targets:
+        Tagradar: all
+        TagradarUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - TagradarUITests
