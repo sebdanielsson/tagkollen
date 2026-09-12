@@ -21,9 +21,13 @@ struct MapTrainsCard: View {
 
     @Environment(JourneyStore.self) private var journeyStore
     @Environment(AppSettings.self) private var settings
+    @Environment(TrainMonitor.self) private var monitor
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \FavoriteTrain.departureDate) private var favorites: [FavoriteTrain]
-    /// Nil until the user picks a tab, so the card can open on whichever one has something to show.
-    @State private var tab: Tab?
+    /// The card always opens on Saved. Resolving a default from the lists instead looked tidier
+    /// but latched: the picker writes its selection back, so one render before `@Query` had
+    /// delivered the favorites was enough to leave the card stuck on Recent.
+    @State private var tab: Tab = .saved
 
     private static let maxRows = 4
 
@@ -33,7 +37,7 @@ struct MapTrainsCard: View {
                 Text("Saved trains")
                     .font(.title3.weight(.semibold))
             } else {
-                Picker("Trains", selection: Binding(get: { visibleTab }, set: { tab = $0 })) {
+                Picker("Trains", selection: $tab) {
                     ForEach(Tab.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
@@ -68,17 +72,20 @@ struct MapTrainsCard: View {
         return snapshot.scheduledDeparture ?? fav.departureDate
     }
 
-    /// Runs the user opened but never pinned. Saved ones are filtered out — they are one tap away
-    /// in the other tab, and the same train twice on one screen reads like a bug.
+    /// Everything the user opened, saved or not. A saved run still belongs here — it is part of
+    /// what you were just looking at — and its star says which it is without a trip to the tab.
     private var recents: [RecentTrain] {
-        let saved = Set(favorites.map(\.id))
-        return settings.recentTrains.filter { !saved.contains($0.id) }
+        settings.recentTrains
     }
 
-    /// Saved until the user says otherwise, except when there is nothing saved to show: the star
-    /// hint earns its space only while it is the card's whole purpose.
+    private func favorite(for recent: RecentTrain) -> FavoriteTrain? {
+        favorites.first { $0.id == recent.id }
+    }
+
+    /// Falls back to Saved when the other tab has nothing left to show — a run can drop out of
+    /// Recent while the user is looking at it, and an empty grey card is not an answer.
     private var visibleTab: Tab {
-        tab ?? (upcomingFavorites.isEmpty && !recents.isEmpty ? .recent : .saved)
+        recents.isEmpty ? .saved : tab
     }
 
     private var recentCard: some View {
@@ -86,6 +93,8 @@ struct MapTrainsCard: View {
             RecentTrainRow(recent: recent, journey: journeyStore.cached(recent.key))
         } select: {
             onSelectTrain($0.key)
+        } accessory: { recent in
+            saveButton(for: recent)
         }
         .task(id: recents.map(\.id)) {
             for recent in recents.prefix(Self.maxRows) {
@@ -114,6 +123,8 @@ struct MapTrainsCard: View {
                 FavoriteTrainRow(favorite: fav, journey: journeyStore.cached(fav.key))
             } select: {
                 onSelectTrain($0.key)
+            } accessory: { _ in
+                EmptyView()
             }
             .task(id: upcomingFavorites.map(\.id)) {
                 for fav in upcomingFavorites.prefix(Self.maxRows) {
@@ -123,24 +134,66 @@ struct MapTrainsCard: View {
         }
     }
 
+    /// Says whether the run is saved, and saves or unsaves it without leaving the card.
+    private func saveButton(for recent: RecentTrain) -> some View {
+        let saved = favorite(for: recent) != nil
+        return Button {
+            toggleSaved(recent)
+        } label: {
+            Image(systemName: saved ? "star.fill" : "star")
+                .font(.subheadline)
+                .foregroundStyle(saved ? Color.yellow : Color.secondary)
+                .frame(width: 40, height: 40)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(saved ? "Saved" : "Save"))
+        .sensoryFeedback(.success, trigger: saved)
+    }
+
+    /// Mirrors the star in `TrainDetailView`: the same reminders and widget refresh have to follow,
+    /// or a train saved from here would be one the monitor never looks at.
+    private func toggleSaved(_ recent: RecentTrain) {
+        if let existing = favorite(for: recent) {
+            let id = existing.id
+            modelContext.delete(existing)
+            try? modelContext.save()
+            monitor.trainRemoved(id)
+        } else {
+            let journey = journeyStore.cached(recent.key)
+            let fav = FavoriteTrain(key: recent.key, journey: journey)
+            recent.fillIn(fav)
+            modelContext.insert(fav)
+            try? modelContext.save()
+            monitor.trainSaved(fav, journey: journey)
+        }
+    }
+
     /// The shared body of both tabs: up to four tappable rows, divided, on one rounded card.
+    /// The accessory sits beside the row's button rather than inside its label — a button nested
+    /// in another button's label never sees the tap.
     private func rows<Item: Identifiable>(
         _ items: [Item],
         @ViewBuilder row: @escaping (Item) -> some View,
-        select: @escaping (Item) -> Void
+        select: @escaping (Item) -> Void,
+        @ViewBuilder accessory: @escaping (Item) -> some View
     ) -> some View {
         let shown = Array(items.prefix(Self.maxRows))
         return VStack(spacing: 0) {
             ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
-                Button {
-                    select(item)
-                } label: {
-                    row(item)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .contentShape(.rect)
+                HStack(spacing: 0) {
+                    Button {
+                        select(item)
+                    } label: {
+                        row(item)
+                            .padding(.leading, 14)
+                            .padding(.vertical, 10)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    accessory(item)
                 }
-                .buttonStyle(.plain)
+                .padding(.trailing, 14)
                 if index < shown.count - 1 {
                     Divider().padding(.leading, 14)
                 }

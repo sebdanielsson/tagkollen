@@ -33,6 +33,16 @@ struct RecentTrain: Codable, Hashable, Identifiable, Sendable {
         self.openedAt = openedAt
     }
 
+    /// Fills the gaps of a favorite saved before its journey was loaded, so the row it turns into
+    /// reads the same as the one the user just tapped the star on.
+    func fillIn(_ favorite: FavoriteTrain) {
+        favorite.originSignature = favorite.originSignature ?? originSignature
+        favorite.destinationSignature = favorite.destinationSignature ?? destinationSignature
+        favorite.productName = favorite.productName ?? productName
+        favorite.scheduledDeparture = favorite.scheduledDeparture ?? scheduledDeparture
+        favorite.scheduledArrival = favorite.scheduledArrival ?? scheduledArrival
+    }
+
     /// Whether the run is still worth offering. A journey that ended hours ago is history, not a
     /// shortcut — the same window `MapSheet` uses to retire a saved train from the card.
     func isCurrent(now: Date = .now) -> Bool {
