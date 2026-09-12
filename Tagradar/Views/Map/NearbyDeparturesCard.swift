@@ -56,6 +56,10 @@ struct NearbyDeparturesCard: View {
         var distance: CLLocationDistance?
         var rows: [TrainAnnouncement]
         var loadedAt: Date
+        /// The directory the station was resolved against. `LoadKey` reruns the task when this
+        /// changes, but the fast path below would answer from the old directory before the rerun
+        /// ever reached `nearest(to:)`, so the entry has to be able to disqualify itself.
+        var revision: Int
     }
 
     /// Rows shown before "Show more"; `fetchLimit` is fetched up front so expanding is instant.
@@ -261,7 +265,8 @@ struct NearbyDeparturesCard: View {
                 isLoading = false
             }
         }
-        if let cached = cache[board], Date.now.timeIntervalSince(cached.loadedAt) < settings.pollingInterval {
+        if let cached = cache[board], cached.revision == stations.revision,
+           Date.now.timeIntervalSince(cached.loadedAt) < settings.pollingInterval {
             station = cached.station
             distance = cached.distance
             rows = cached.rows
@@ -277,14 +282,21 @@ struct NearbyDeparturesCard: View {
         error = nil
         let fix = await location.currentLocation()
         guard !Task.isCancelled else { return }
-        guard let fix, let nearest = stations.nearest(to: fix) else {
-            station = nil
-            distance = nil
-            rows = []
-            loadedBoard = nil
-            error = String(localized: "Could not find a station near you.")
+        // A one-shot request that comes back empty is a location failure, not an empty map: saying
+        // no station is near would send the user hunting for a station that is right there.
+        guard let fix else {
+            clearBoard(error: String(localized: "Could not get your location."))
             return
         }
+        guard let nearest = stations.nearest(to: fix) else {
+            clearBoard(error: String(localized: "Could not find a station near you."))
+            return
+        }
+        // A cache hit restores the station its rows were loaded for, so an entry from a station the
+        // user has since left relabels the card as soon as that board is selected — the other tab
+        // is not refreshed just because this one was. Resolving a different station makes every
+        // entry that disagrees stale, however young.
+        cache = cache.filter { $0.value.station?.id == nearest.id }
         // Known as soon as we have a location fix, well before the departures/arrivals fetch
         // resolves, so the card can label itself immediately instead of alongside the skeleton.
         station = nearest
@@ -302,7 +314,9 @@ struct NearbyDeparturesCard: View {
             rows = fetched
             loadedBoard = board
             error = nil
-            cache[board] = CacheEntry(station: nearest, distance: metres, rows: fetched, loadedAt: .now)
+            cache[board] = CacheEntry(
+                station: nearest, distance: metres, rows: fetched, loadedAt: .now, revision: stations.revision
+            )
         } catch {
             guard !Task.isCancelled else { return }
             rows = []
@@ -311,6 +325,17 @@ struct NearbyDeparturesCard: View {
             // with nothing scheduled, and the refresh button looks like it does nothing.
             self.error = error.localizedDescription
         }
+    }
+
+    /// Drops back to a bare card carrying `error`. Nothing on screen survives: the station name and
+    /// distance belong to a fix we no longer trust, and rows under the wrong heading read as the
+    /// nearby board rather than the leftovers they are.
+    private func clearBoard(error: String) {
+        station = nil
+        distance = nil
+        rows = []
+        loadedBoard = nil
+        self.error = error
     }
 
     /// Bypasses the TTL cache so a manual tap always hits the network, even right after a load.

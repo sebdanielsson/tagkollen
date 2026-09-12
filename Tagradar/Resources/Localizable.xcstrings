@@ -370,6 +370,16 @@
         }
       }
     },
+    "Could not get your location.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det gick inte att hämta din plats."
+          }
+        }
+      }
+    },
     "Could not load": {
       "localizations": {
         "sv": {
