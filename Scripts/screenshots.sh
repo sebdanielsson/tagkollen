@@ -259,9 +259,25 @@ for DEVICE in "${DEVICES[@]}"; do
     collapse_card() { swipe 220 450 220 930; }
     scroll_card() { swipe 220 780 220 300; }
     # The iPad sidebar is hidden in portrait; its glass toggle sits in the map's top-left corner.
+    # Not idempotent: in landscape the sidebar is already open and this would close it, hence the
+    # portrait check below.
     open_sidebar() {
       "$IDB" ui tap --udid "$UDID" 40 52 >/dev/null 2>&1
       settle 3
+    }
+    # App Store screenshots are portrait, and the simulator cannot be rotated from here, so a
+    # device left in landscape would silently produce a set with the wrong pixel size and the
+    # sidebar in the wrong state. Say so instead.
+    require_portrait() {
+      local probe width height
+      probe=$(mktemp -t tagradar-pose).png
+      xcrun simctl io "$UDID" screenshot "$probe" >/dev/null 2>&1
+      read -r width height <<<"$(sips -g pixelWidth -g pixelHeight "$probe" | awk '/pixelWidth|pixelHeight/ {printf "%s ", $2}')"
+      rm -f "$probe"
+      if [ "${width:-0}" -gt "${height:-1}" ]; then
+        echo "$DEVICE is in landscape (${width}x${height}). Rotate it to portrait (Cmd+Left) and rerun." >&2
+        exit 1
+      fi
     }
 
     if [ "$PREFIX" = iphone ]; then
@@ -288,6 +304,7 @@ for DEVICE in "${DEVICES[@]}"; do
       # Portrait: the map alone, then a train inspector beside it, then the same two subjects
       # again with the sidebar open, so the set shows both the map at full width and all three
       # columns at once.
+      require_portrait
       launch
       shot "01-map"
       launch -train "$TRAIN" -save "$SAVED"

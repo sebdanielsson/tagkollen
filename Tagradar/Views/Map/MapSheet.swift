@@ -213,7 +213,12 @@ struct MapSheet: View {
         if let journey = journeyStore.cached(fav.key) {
             snapshot.apply(journey)
         }
-        let arrival = snapshot.scheduledArrival ?? fav.departureDate.addingTimeInterval(36 * 3600)
+        // `setSegment` clears the cached times when it has no journey to hand, so a segment can
+        // have an alighting stop and no time for it; the snapshot's arrival is nil then, and the
+        // run's own arrival is still the best answer.
+        let arrival = snapshot.scheduledArrival
+            ?? fav.scheduledArrival
+            ?? fav.departureDate.addingTimeInterval(36 * 3600)
         return arrival.addingTimeInterval(3 * 3600)
     }
 
@@ -233,11 +238,19 @@ struct MapSheet: View {
         return style == .sidebar ? upcoming : Array(upcoming.prefix(4))
     }
 
+    /// Whether to offer the "star a train" prompt. Only when this style has nothing to show at
+    /// all: the sidebar keeps past runs in `earlierSection`, so telling someone to save their
+    /// first train while their saved trains sit just below it would be wrong.
+    private var showsSavedPrompt: Bool {
+        guard upcomingFavorites.isEmpty else { return false }
+        return style == .sidebar ? pastFavorites.isEmpty : true
+    }
+
     private var savedTrainsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Saved trains")
                 .font(.title3.weight(.semibold))
-            if upcomingFavorites.isEmpty {
+            if showsSavedPrompt {
                 HStack(spacing: 12) {
                     Image(systemName: "star")
                         .font(.title3)

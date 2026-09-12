@@ -2,9 +2,11 @@ import UIKit
 import XCTest
 
 /// Rotates the running app and checks what a rotation must not break: the selected train stays
-/// selected, and on iPad the landscape layout brings the sidebar in beside the map. Nothing
-/// outside the app can rotate a simulator — `simctl` has no such command and Simulator.app only
-/// takes it from its own menu — so this is the one place a size-class change is exercised.
+/// selected, and wherever the rotation lands in the regular layout, the sidebar comes in beside
+/// the map. Nothing outside the app can rotate a simulator — `simctl` has no such command and
+/// Simulator.app only takes it from its own menu — so this is the one place a size-class change is
+/// exercised. It is worth running on an iPhone 17 Pro Max as well as an iPad: a Max is regular
+/// width in landscape, so it takes the same layout.
 ///
 /// The screen to start from is chosen with the same debug launch arguments `RootView` reads
 /// (`-train`, `-station`, `-save`). `xcodebuild` strips the `TEST_RUNNER_` prefix and passes the
@@ -29,10 +31,11 @@ final class RotationTests: XCTestCase {
         let arguments = (environment["TAGRADAR_LAUNCH_ARGS"] ?? "").split(separator: " ").map(String.init)
         // Seconds for the map, the live stream and the timetable to settle after each pose change.
         let settle = UInt32(environment["TAGRADAR_SETTLE"] ?? "") ?? 10
-        let isPad = UIDevice.current.userInterfaceIdiom == .pad
 
         let app = XCUIApplication()
-        app.launchArguments = arguments
+        // Pinned to the source language: every label this test looks up is localised, and the
+        // simulator's own language would otherwise decide whether the queries match.
+        app.launchArguments = arguments + ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         XCUIDevice.shared.orientation = .portrait
         app.launch()
         defer { XCUIDevice.shared.orientation = .portrait }
@@ -52,18 +55,24 @@ final class RotationTests: XCTestCase {
             add(attachment)
 
             if let train = Self.trainNumber(in: arguments) {
-                // The detail's title, whether it is in the iPhone card or the iPad inspector.
+                // The detail's title, whether it is in the compact card or the regular inspector.
                 let title = app.staticTexts["Train \(train)"]
                 XCTAssertTrue(
                     title.waitForExistence(timeout: 5),
                     "train \(train)'s detail should be showing in \(pose.name)"
                 )
             }
-            guard isPad, pose.orientation.isLandscape else { continue }
+            guard pose.orientation.isLandscape else { continue }
             try XCTSkipUnless(
                 window.width > window.height,
                 "the simulator ignored the rotation request, so the landscape layout was never laid out"
             )
+            // The sidebar toggle exists only in the regular layout, so it says which layout this
+            // device landed in without assuming an idiom: an iPhone Max is regular in landscape
+            // too, while a smaller iPhone stays on the card and has nothing to assert.
+            let isRegular = app.buttons["Sidebar"].waitForExistence(timeout: 5)
+            print("[RotationTests] landscape layout: \(isRegular ? "regular, asserting the sidebar" : "compact, nothing to assert")")
+            guard isRegular else { continue }
             // The sidebar's search field is the one thing only the sidebar has.
             let search = app.textFields["Train number or station"]
             XCTAssertTrue(
