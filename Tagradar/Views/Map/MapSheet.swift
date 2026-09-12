@@ -195,7 +195,9 @@ struct MapSheet: View {
             switch self {
             case .favorite: .yellow
             case .recent: .accentColor
-            case .major: .secondary
+            // Opaque, so it reads the same in both appearances; `Color.secondary` is a
+            // translucent label colour that turns *darkest* of the three in light mode.
+            case .major: .gray
             }
         }
     }
